@@ -1,0 +1,155 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;750;800;950&family=JetBrains+Mono:wght@300;400;500;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Industrial Navy - Primary Brand -> Updated to CYAN as requested */
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-200: #a5f3fc;
+  --color-primary-300: #67e8f9;
+  --color-primary-400: #22d3ee;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-primary-800: #155e75;
+  --color-primary-900: #164e63;
+  --color-primary-950: #083344;
+
+  /* Steel Blue - Secondary */
+  --color-secondary-500: #2C5F8A;
+
+  /* Teal-Emerald - Accent (From Image) */
+  --color-accent-50: #ecfeff;
+  --color-accent-100: #cffafe;
+  --color-accent-200: #a5f3fc;
+  --color-accent-300: #67e8f9;
+  --color-accent-400: #22d3ee;
+  --color-accent-500: #06b6d4; 
+  --color-accent-600: #0891b2;
+  --color-accent-700: #0e7490;
+  --color-accent-900: #164e63;
+  --color-accent-950: #083344;
+  
+  /* Mapping Rose/Pink variables to Teal for compatibility */
+  --color-rose-50: var(--color-accent-50);
+  --color-rose-100: var(--color-accent-100);
+  --color-rose-200: var(--color-accent-200);
+  --color-rose-400: var(--color-accent-400);
+  --color-rose-500: var(--color-accent-500);
+  --color-rose-600: var(--color-accent-600);
+  --color-rose-950: var(--color-accent-950);
+  
+  --color-pink-50: var(--color-accent-50);
+  --color-pink-100: var(--color-accent-100);
+  --color-pink-200: var(--color-accent-200);
+  --color-pink-400: var(--color-accent-400);
+  --color-pink-500: var(--color-accent-500);
+  --color-pink-600: var(--color-accent-600);
+  --color-pink-700: var(--color-accent-700);
+  --color-pink-900: var(--color-accent-900);
+  --color-pink-950: var(--color-accent-950);
+  
+  /* Alert Colors */
+  --color-success: #28A745;
+  --color-warning: #FFC107;
+  --color-danger: #DC3545;
+}
+
+@layer base {
+  body {
+    /* Main Background: #f1f5f9 (Slate 100) */
+    @apply bg-[#f1f5f9] text-[#0B1F3A] font-sans antialiased subpixel-antialiased tracking-normal;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+.dashboard-card {
+  @apply bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-xl hover:translate-y-[-2px] transition-all duration-300;
+}
+
+.btn-primary {
+  @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors disabled:opacity-50;
+}
+
+.input-field {
+  @apply w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Print Overrides for Professional Physical Paper Output */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  /* Hide sidebars, navigation layouts, headers, and buttons */
+  aside, nav, .sidebar, header, button, .no-print, [no-print] {
+    display: none !important;
+    visibility: hidden !important;
+  }
+  /* Ensure the main container is printable */
+  main {
+    display: block !important;
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+  }
+  /* If a print section is active on the page, hide all sibling elements */
+  body:has(.print-section) main > *:not(.print-section):not(:has(.print-section)) {
+    display: none !important;
+  }
+  body:has(.print-section) .fixed:not(:has(.print-section)) {
+    display: none !important;
+  }
+  /* Show only custom printable content */
+  .print-section {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    display: block !important;
+    visibility: visible !important;
+    background: white !important;
+    color: black !important;
+    font-size: 12px !important;
+    box-shadow: none !important;
+    border: none !important;
+    z-index: 99999 !important;
+  }
+  .print-section * {
+    visibility: visible !important;
+  }
+}
+
+/* Elegant traditional cream & maroon mandala card background as shown in image 5 */
+.traditional-mandala-card {
+  background-color: #fbf4df !important;
+  border: 14px solid #7c1d3c !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'%3E%3Cpath d='M30 0 L60 30 L30 60 L0 30 Z' fill='none' stroke='%237c1d3c' stroke-width='0.5' stroke-opacity='0.07'/%3E%3Cpath d='M30 15 L45 30 L30 45 L15 30 Z' fill='none' stroke='%237c1d3c' stroke-width='0.4' stroke-opacity='0.04'/%3E%3Ccircle cx='30' cy='30' r='1.5' fill='%237c1d3c' fill-opacity='0.12'/%3E%3C/svg%3E") !important;
+  color: #3c0c1b !important;
+  position: relative;
+  overflow: hidden;
+}
+

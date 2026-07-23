@@ -1,0 +1,111 @@
+import { useState, useEffect } from 'react';
+
+// Centralised in-memory cache and routing of subscribers for the entire ERP
+let cachedData: any = null;
+let cachedLoading = true;
+const dataSubscribers = new Set<(data: any) => void>();
+const loadingSubscribers = new Set<(loading: boolean) => void>();
+let pollingTimer: any = null;
+let isFirstLoadTriggered = false;
+
+// Cross-tab broadcast channel for instant multi-tab sync
+let syncChannel: BroadcastChannel | null = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  try {
+    syncChannel = new BroadcastChannel('arcenol_erp_sync');
+    syncChannel.onmessage = (event) => {
+      if (event.data === 'REFETCH') {
+        performFetch();
+      }
+    };
+  } catch (e) {}
+}
+
+export function notifyCrossTabSync() {
+  if (syncChannel) {
+    try {
+      syncChannel.postMessage('REFETCH');
+    } catch (e) {}
+  }
+}
+
+// Attempt to load from storage on startup
+if (typeof window !== 'undefined') {
+  const saved = localStorage.getItem('arcenol_db_clean');
+  if (saved) {
+    try {
+      cachedData = JSON.parse(saved);
+      cachedLoading = false;
+    } catch (e) {}
+  }
+}
+
+const performFetch = async () => {
+  try {
+    const res = await fetch('/api/data', { cache: 'no-store' });
+    const contentType = res.headers.get('content-type');
+    if (!res.ok || !contentType || !contentType.includes('application/json')) {
+      // Server is restarting or returning HTML fallback; retain cached state gracefully
+      return;
+    }
+    const json = await res.json();
+    cachedData = json;
+    cachedLoading = false;
+
+    // Notify all active React hook listeners
+    dataSubscribers.forEach((cb) => {
+      try { cb(json); } catch (e) {}
+    });
+    loadingSubscribers.forEach((cb) => {
+      try { cb(false); } catch (e) {}
+    });
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('arcenol_db_clean', JSON.stringify(json));
+    }
+  } catch (err) {
+    console.warn('[ERP State Sync Warning]:', err);
+  }
+};
+
+const initGlobalPolling = () => {
+  performFetch();
+  if (!isFirstLoadTriggered) {
+    isFirstLoadTriggered = true;
+    if (pollingTimer) clearInterval(pollingTimer);
+    pollingTimer = setInterval(performFetch, 2500);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('focus', () => performFetch());
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) performFetch();
+      });
+    }
+  }
+};
+
+export function useERPData() {
+  const [data, setData] = useState<any>(cachedData);
+  const [loading, setLoading] = useState<boolean>(cachedLoading);
+
+  useEffect(() => {
+    // Add current component instance state setters to subscribers list
+    dataSubscribers.add(setData);
+    loadingSubscribers.add(setLoading);
+
+    // Initialise global syncing
+    initGlobalPolling();
+
+    return () => {
+      dataSubscribers.delete(setData);
+      loadingSubscribers.delete(setLoading);
+    };
+  }, []);
+
+  const refetch = async () => {
+    await performFetch();
+    notifyCrossTabSync();
+  };
+
+  return { data, loading, refetch };
+}

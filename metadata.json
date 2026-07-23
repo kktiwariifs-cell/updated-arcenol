@@ -1,0 +1,8 @@
+{
+  "name": "Final testing: New: Arcenol ERP Suite",
+  "description": "Comprehensive ERP + CRM + Warranty + Analytics software for Lithium-Ion Battery Manufacturing, featuring modules for purchase, production, sales, billing, and failure analysis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
