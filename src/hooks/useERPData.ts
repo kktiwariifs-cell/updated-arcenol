@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { hydrateDbFromSupabase } from '../lib/clientSupabaseSync';
 
 // Centralised in-memory cache and routing of subscribers for the entire ERP
 let cachedData: any = null;
@@ -59,6 +60,15 @@ const performFetch = async () => {
       return;
     }
     const json = await res.json();
+    
+    // Always ensure Supabase hydration is performed if client inventory is missing or empty
+    if (!json.inventory || json.inventory.length === 0) {
+      try {
+        await hydrateDbFromSupabase(json);
+      } catch (sbErr) {
+        console.warn('[useERPData] Direct client Supabase hydration warning:', sbErr);
+      }
+    }
     
     // Ensure logo and settings are backed up and merged seamlessly
     if (typeof window !== 'undefined' && json) {

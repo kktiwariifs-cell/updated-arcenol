@@ -1222,12 +1222,33 @@ export const Inventory: React.FC = () => {
     { month: 'Jun', cells: 12000, bms: 88 },
   ];
 
-  const filteredInventory = inventory.filter((item: any) => 
-    (item.name.toLowerCase().includes(search.toLowerCase()) || 
-     item.id.toLowerCase().includes(search.toLowerCase()) || 
-     (item.code || '').toLowerCase().includes(search.toLowerCase())) &&
-    (filterCategory === 'ALL' || item.category === filterCategory)
-  );
+  const filteredInventory = (inventory || []).filter((item: any) => {
+    if (!item) return false;
+    const nameStr = (item.name || '').toLowerCase();
+    const idStr = (item.id || '').toLowerCase();
+    const codeStr = (item.code || '').toLowerCase();
+    const supplierStr = (item.supplier || '').toLowerCase();
+    const batchStr = (item.batch || '').toLowerCase();
+    const searchTerm = search.trim().toLowerCase();
+
+    const matchesSearch = !searchTerm || 
+      nameStr.includes(searchTerm) || 
+      idStr.includes(searchTerm) || 
+      codeStr.includes(searchTerm) ||
+      supplierStr.includes(searchTerm) ||
+      batchStr.includes(searchTerm);
+
+    const itemCat = (item.category || '').trim();
+    const filterCat = filterCategory.trim();
+
+    const matchesCategory = filterCat === 'ALL' || 
+      itemCat === filterCat || 
+      itemCat.toLowerCase() === filterCat.toLowerCase() ||
+      (filterCat.toLowerCase().includes('cell') && itemCat.toLowerCase().includes('cell')) ||
+      (filterCat.toLowerCase().includes('raw') && (itemCat.toLowerCase().includes('raw') || itemCat.toLowerCase().includes('chem') || itemCat.toLowerCase().includes('sep')));
+
+    return matchesSearch && matchesCategory;
+  });
 
   const RM_ITEMS_PER_PAGE = 20;
   const totalRmPages = Math.ceil(filteredInventory.length / RM_ITEMS_PER_PAGE) || 1;
@@ -1255,8 +1276,10 @@ export const Inventory: React.FC = () => {
         { id: "cat-7", name: "Category 7 — Accessories & Connectors", code: "CAT-ACC", description: "Chargers, connectors, adapters, and wiring harnesses" }
       ];
 
-  const categoryList = rawCategories.map((c: any) => typeof c === 'object' ? c : { id: `cat-${String(c)}`, name: String(c), code: `CAT-${String(c).substring(0, 4).toUpperCase()}`, description: '' });
-  const categoryNames = Array.from(new Set(categoryList.map((c: any) => c.name)));
+  const categoryList = rawCategories.map((c: any) => typeof c === 'object' ? (c.name ? c : { id: `cat-${c}`, name: String(c), code: 'CAT', description: '' }) : { id: `cat-${String(c)}`, name: String(c), code: `CAT-${String(c).substring(0, 4).toUpperCase()}`, description: '' });
+  const baseCategoryNames = Array.from(new Set(categoryList.map((c: any) => c.name)));
+  const itemCategories = Array.from(new Set((inventory || []).map((i: any) => i.category).filter(Boolean)));
+  const categoryNames = Array.from(new Set([...baseCategoryNames, ...itemCategories]));
   const categories = ['ALL', ...categoryNames];
 
   const flowStages = [

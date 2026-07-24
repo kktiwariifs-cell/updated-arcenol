@@ -37,162 +37,212 @@ export async function hydrateDbFromSupabase(db: any) {
     }
 
     // 1. Inventory
-    const { data: inv, error: invErr } = await supabase.from('inventory').select('*');
-    if (!invErr && inv && inv.length > 0) {
-      db.inventory = inv.map((i: any) => ({
-        id: String(i.id),
-        name: i.name || 'Material Item',
-        code: i.code || i.id,
-        category: i.category || 'Cells',
-        qty: Number(i.qty || 0),
-        unit: i.unit || 'Kg',
-        supplier: i.supplier || 'Vendor',
-        warehouse: i.warehouse || 'Raw Hub',
-        rack: i.rack || 'A-1',
-        price: Number(i.price || 0),
-        grn: i.grn || 'GRN-01',
-        batch: i.batch || 'BATCH-01',
-        minStock: Number(i.min_stock ?? i.minStock ?? 100),
-        reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 250),
-        qcStatus: i.qc_status || i.qcStatus || 'APPROVED',
-        status: i.status || 'AVAILABLE',
-        reservedQty: Number(i.reserved_qty ?? i.reservedQty ?? 0),
-        date: i.date || (i.created_at ? i.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
-      }));
+    try {
+      const { data: inv, error: invErr } = await supabase.from('inventory').select('*');
+      if (invErr) {
+        console.warn('[Client Supabase Sync] Inventory query notice:', invErr);
+      }
+      if (inv && inv.length > 0) {
+        db.inventory = inv.map((i: any) => ({
+          id: String(i.id || i.code || `RM-${Math.random()}`),
+          name: i.name || i.material_name || i.title || 'Material Item',
+          code: i.code || i.sku || i.id,
+          category: i.category || 'Cells',
+          qty: Number(i.qty ?? i.quantity ?? i.stock ?? 0),
+          unit: i.unit || 'Kg',
+          supplier: i.supplier || i.vendor || 'Vendor',
+          warehouse: i.warehouse || i.location || 'Raw Hub',
+          rack: i.rack || 'A-1',
+          price: Number(i.price ?? i.cost ?? 0),
+          grn: i.grn || 'GRN-01',
+          batch: i.batch || 'BATCH-01',
+          minStock: Number(i.min_stock ?? i.minStock ?? 100),
+          reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 250),
+          qcStatus: i.qc_status || i.qcStatus || 'APPROVED',
+          status: i.status || 'AVAILABLE',
+          reservedQty: Number(i.reserved_qty ?? i.reservedQty ?? 0),
+          date: i.date || (i.created_at && typeof i.created_at === 'string' ? i.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+        }));
+      }
+    } catch (invCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydratng inventory:', invCatchErr);
     }
 
     // 2. Graded Cells
-    const { data: graded } = await supabase.from('graded_cells').select('*');
-    if (graded && graded.length > 0) {
-      db.gradedInventory = graded.map((c: any) => ({
-        id: String(c.id),
-        serial: c.serial,
-        voltage: Number(c.voltage || 3.2),
-        ir: Number(c.ir || 7.5),
-        capacity: Number(c.capacity || 6000),
-        cycleCount: Number(c.cycle_count || 0),
-        temp: Number(c.temp || 24.5),
-        grade: c.grade,
-        engineer: c.engineer || 'Suresh P.',
-        usage: c.usage || 'EV PACKS',
-        supplier: c.supplier || 'Energy Plus',
-        parentId: c.parent_id || null
-      }));
+    try {
+      const { data: graded } = await supabase.from('graded_cells').select('*');
+      if (graded && graded.length > 0) {
+        db.gradedInventory = graded.map((c: any) => ({
+          id: String(c.id),
+          serial: c.serial,
+          voltage: Number(c.voltage || 3.2),
+          ir: Number(c.ir || 7.5),
+          capacity: Number(c.capacity || 6000),
+          cycleCount: Number(c.cycle_count || 0),
+          temp: Number(c.temp || 24.5),
+          grade: c.grade,
+          engineer: c.engineer || 'Suresh P.',
+          usage: c.usage || 'EV PACKS',
+          supplier: c.supplier || 'Energy Plus',
+          parentId: c.parent_id || null
+        }));
+      }
+    } catch (gradedCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating graded cells:', gradedCatchErr);
     }
 
     // 3. WIP Inventory
-    const { data: wip } = await supabase.from('wip_inventory').select('*');
-    if (wip && wip.length > 0) {
-      db.wipInventory = wip.map((w: any) => ({
-        id: String(w.id),
-        name: w.name,
-        qty: Number(w.qty || 0),
-        stage: w.stage,
-        lastUpdate: w.last_update || (w.created_at ? w.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
-        components: Array.isArray(w.components) ? w.components : []
-      }));
+    try {
+      const { data: wip } = await supabase.from('wip_inventory').select('*');
+      if (wip && wip.length > 0) {
+        db.wipInventory = wip.map((w: any) => ({
+          id: String(w.id),
+          name: w.name,
+          qty: Number(w.qty || 0),
+          stage: w.stage,
+          lastUpdate: w.last_update || (w.created_at && typeof w.created_at === 'string' ? w.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          components: Array.isArray(w.components) ? w.components : []
+        }));
+      }
+    } catch (wipCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating wip inventory:', wipCatchErr);
     }
 
     // 4. Warehouses
-    const { data: whs } = await supabase.from('warehouses').select('*');
-    if (whs && whs.length > 0) {
-      db.warehouses = whs.map((w: any) => w.name);
+    try {
+      const { data: whs } = await supabase.from('warehouses').select('*');
+      if (whs && whs.length > 0) {
+        db.warehouses = whs.map((w: any) => w.name || w.location || String(w));
+      }
+    } catch (whCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating warehouses:', whCatchErr);
     }
 
     // 5. Customers / Dealers
-    const { data: custs } = await supabase.from('customers').select('*');
-    if (custs && custs.length > 0) {
-      db.dealers = custs.map((c: any) => ({
-        id: String(c.id),
-        company: c.name,
-        region: c.branch || 'Headquarters',
-        gstin: c.gstin || 'N/A',
-        contactPerson: c.contact_person || 'N/A',
-        phone: c.phone || 'N/A',
-        location: c.address || 'N/A'
-      }));
+    try {
+      const { data: custs } = await supabase.from('customers').select('*');
+      if (custs && custs.length > 0) {
+        db.dealers = custs.map((c: any) => ({
+          id: String(c.id),
+          company: c.company || c.name || c.company_name || 'Dealer',
+          category: c.category || 'Tier 1 Dealer',
+          region: c.region || c.branch || 'Headquarters',
+          gstin: c.gstin || 'N/A',
+          contactPerson: c.contact_person || c.contactPerson || 'N/A',
+          phone: c.phone || 'N/A',
+          email: c.email || 'N/A',
+          location: c.location || c.address || 'N/A',
+          city: c.city || 'N/A',
+          state: c.state || 'N/A',
+          creditLimit: Number(c.credit_limit || c.creditLimit || 500000),
+          outstandingBalance: Number(c.outstanding_balance || c.outstandingBalance || 0),
+          status: c.status || 'ACTIVE'
+        }));
+      }
+    } catch (custCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating customers:', custCatchErr);
     }
 
     // 6. Invoices
-    const { data: invs } = await supabase.from('invoices').select('*');
-    if (invs && invs.length > 0) {
-      db.invoices = invs.map((i: any) => ({
-        id: String(i.id),
-        customerId: i.customer_id,
-        billerSignature: i.biller_signature,
-        goods: Array.isArray(i.goods) ? i.goods : [],
-        subtotal: Number(i.subtotal || 0),
-        discount: Number(i.discount || 0),
-        gst: Number(i.gst || 0),
-        grandTotal: Number(i.grand_total || 0),
-        paymentMode: i.payment_mode,
-        status: i.status
-      }));
+    try {
+      const { data: invs } = await supabase.from('invoices').select('*');
+      if (invs && invs.length > 0) {
+        db.invoices = invs.map((i: any) => ({
+          id: String(i.id),
+          customerId: i.customer_id || i.customerId,
+          billerSignature: i.biller_signature || i.billerSignature,
+          goods: Array.isArray(i.goods) ? i.goods : [],
+          subtotal: Number(i.subtotal || 0),
+          discount: Number(i.discount || 0),
+          gst: Number(i.gst || 0),
+          grandTotal: Number(i.grand_total || i.grandTotal || 0),
+          paymentMode: i.payment_mode || i.paymentMode,
+          status: i.status
+        }));
+      }
+    } catch (invsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating invoices:', invsCatchErr);
     }
 
     // 7. Complaints
-    const { data: comps } = await supabase.from('complaints').select('*');
-    if (comps && comps.length > 0) {
-      db.complaints = comps.map((c: any) => ({
-        id: String(c.id),
-        serial: c.serial,
-        type: c.type,
-        stage: c.stage,
-        status: c.status,
-        date: c.date,
-        resolvedDate: c.resolved_date,
-        notes: c.notes,
-        engineeringObservations: c.engineering_observations,
-        rootCause: c.root_cause,
-        engineer: c.engineer,
-        inspectionResult: c.inspection_result
-      }));
+    try {
+      const { data: comps } = await supabase.from('complaints').select('*');
+      if (comps && comps.length > 0) {
+        db.complaints = comps.map((c: any) => ({
+          id: String(c.id),
+          serial: c.serial,
+          type: c.type,
+          stage: c.stage,
+          status: c.status,
+          date: c.date,
+          resolvedDate: c.resolved_date || c.resolvedDate,
+          notes: c.notes,
+          engineeringObservations: c.engineering_observations || c.engineeringObservations,
+          rootCause: c.root_cause || c.rootCause,
+          engineer: c.engineer,
+          inspectionResult: c.inspection_result || c.inspectionResult
+        }));
+      }
+    } catch (compsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating complaints:', compsCatchErr);
     }
 
     // 8. Lead Inquiries
-    const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
-    const { data: leads } = await supabase.from('lead_inquiries').select('*');
-    if (leads && leads.length > 0) {
-      const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
-      const mappedLeads = leads.map((l: any) => {
-        const idStr = String(l.id);
-        const existing = existingLeadsMap.get(idStr) as any;
-        return {
-          id: idStr,
-          company: l.company || existing?.company || 'Unnamed Lead',
-          category: l.category || existing?.category || 'Dealer',
-          leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
-          source: l.source || l.leadSource || existing?.source || 'Website',
-          contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
-          phone: l.mobile || l.phone || existing?.phone || '',
-          location: l.location || existing?.location || '',
-          followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
-          followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
-          requirement: l.requirement || existing?.requirement || '',
-          status: l.status || existing?.status || 'NEW',
-          notes: l.notes || existing?.notes || '',
-          remarksLog: l.remarks_log || l.remarksLog || existing?.remarksLog || []
-        };
-      });
-      const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-      db.leads = [...mappedLeads, ...localOnly];
+    try {
+      const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
+      const { data: leads } = await supabase.from('lead_inquiries').select('*');
+      if (leads && leads.length > 0) {
+        const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
+        const mappedLeads = leads.map((l: any) => {
+          const idStr = String(l.id);
+          const existing = existingLeadsMap.get(idStr) as any;
+          return {
+            id: idStr,
+            company: l.company || existing?.company || 'Unnamed Lead',
+            category: l.category || existing?.category || 'Dealer',
+            leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
+            source: l.source || l.leadSource || existing?.source || 'Website',
+            contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
+            phone: l.mobile || l.phone || existing?.phone || '',
+            location: l.location || existing?.location || '',
+            followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
+            followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
+            requirement: l.requirement || existing?.requirement || '',
+            status: l.status || existing?.status || 'NEW',
+            notes: l.notes || existing?.notes || '',
+            remarksLog: l.remarks_log || l.remarksLog || existing?.remarksLog || []
+          };
+        });
+        const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+        db.leads = [...mappedLeads, ...localOnly];
+      }
+    } catch (leadsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating lead inquiries:', leadsCatchErr);
     }
 
     // 9. Categories
-    const { data: cats } = await supabase.from('categories').select('*');
-    if (cats && cats.length > 0) {
-      db.categories = cats.map((c: any) => c.name);
+    try {
+      const { data: cats } = await supabase.from('categories').select('*');
+      if (cats && cats.length > 0) {
+        db.categories = cats.map((c: any) => c.name || c.title || String(c));
+      }
+    } catch (catsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating categories:', catsCatchErr);
     }
 
     // 10. BOM Blueprints
-    const { data: boms } = await supabase.from('bom_blueprints').select('*');
-    if (boms && boms.length > 0) {
-      db.products = boms.map((b: any) => ({
-        id: String(b.model_id || b.id),
-        name: b.name,
-        category: b.category_group,
-        bom: Array.isArray(b.components) ? b.components : []
-      }));
+    try {
+      const { data: boms } = await supabase.from('bom_blueprints').select('*');
+      if (boms && boms.length > 0) {
+        db.products = boms.map((b: any) => ({
+          id: String(b.model_id || b.id),
+          name: b.name,
+          category: b.category_group || b.category,
+          bom: Array.isArray(b.components) ? b.components : []
+        }));
+      }
+    } catch (bomsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating bom_blueprints:', bomsCatchErr);
     }
   } catch (err) {
     console.warn('[Client Supabase Sync Warning]:', err);
