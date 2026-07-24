@@ -147,6 +147,8 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     price: 0,
     warehouse: '',
     rack: '',
+    minStock: 100,
+    reorderLevel: 250,
     qcStatus: 'APPROVED',
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE'
   });
@@ -193,6 +195,8 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
           setExactQty: true,
           price: inlineForm.price,
           unit: inlineForm.unit,
+          minStock: Number(inlineForm.minStock) || 100,
+          reorderLevel: Number(inlineForm.reorderLevel) || 250,
           qcStatus: inlineForm.qcStatus,
           status: inlineForm.status
         })
@@ -1402,6 +1406,8 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                price: 15,
                                                warehouse: selectedItem._emptyWarehouse,
                                                rack: selectedItem._emptySlotCode,
+                                               minStock: 100,
+                                               reorderLevel: 250,
                                                qcStatus: 'APPROVED',
                                                status: 'ACTIVE'
                                             });
@@ -1528,6 +1534,30 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                             ))}
                                          </select>
                                       </div>
+                                      {/* Minimum Stock (ROL) */}
+                                      <div className="space-y-1">
+                                         <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider block font-black">MINIMUM STOCK (ROL)</label>
+                                         <input
+                                            type="number"
+                                            value={inlineForm.minStock}
+                                            onChange={e => setInlineForm(p => ({ ...p, minStock: Number(e.target.value) }))}
+                                            className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-1 focus:ring-primary-500"
+                                            placeholder="100"
+                                            required
+                                         />
+                                      </div>
+                                      {/* Reorder Level */}
+                                      <div className="space-y-1">
+                                         <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider block font-black">REORDER LEVEL</label>
+                                         <input
+                                            type="number"
+                                            value={inlineForm.reorderLevel}
+                                            onChange={e => setInlineForm(p => ({ ...p, reorderLevel: Number(e.target.value) }))}
+                                            className="w-full bg-white border border-slate-200 rounded-lg py-1.5 px-3 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-1 focus:ring-primary-500"
+                                            placeholder="250"
+                                            required
+                                         />
+                                      </div>
                                    </div>
 
                                    <div className="pt-2 flex justify-end gap-2.5 font-mono">
@@ -1584,6 +1614,8 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                   price: selectedItem.price || 0,
                                                   warehouse: selectedItem.warehouse || '',
                                                   rack: selectedItem.rack || '',
+                                                  minStock: selectedItem.minStock ?? 100,
+                                                  reorderLevel: selectedItem.reorderLevel ?? 250,
                                                   qcStatus: selectedItem.qcStatus || 'APPROVED',
                                                   status: selectedItem.status || 'ACTIVE'
                                                });

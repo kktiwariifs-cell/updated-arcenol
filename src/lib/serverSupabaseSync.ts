@@ -586,10 +586,15 @@ export async function hydrateFromSupabase(db: any) {
           db.products = fetchedProducts;
         } else {
           const productMap = new Map<string, any>();
-          fetchedProducts.forEach((p: any) => productMap.set(p.id, p));
           db.products.forEach((p: any) => {
-            if (!productMap.has(p.id)) {
-              productMap.set(p.id, p);
+            const key = String(p.id || p.model_id || '').trim();
+            if (key) productMap.set(key, p);
+          });
+          fetchedProducts.forEach((p: any) => {
+            const key = String(p.id || p.model_id || '').trim();
+            if (key) {
+              const existing = productMap.get(key);
+              productMap.set(key, { ...existing, ...p });
             }
           });
           db.products = Array.from(productMap.values());

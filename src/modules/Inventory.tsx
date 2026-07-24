@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { 
   Package, Search, Filter, Plus, ChevronRight, AlertTriangle, 
@@ -52,6 +52,8 @@ export const Inventory: React.FC = () => {
   const [warehouse, setWarehouse] = useState('Raw Hub');
   const [rack, setRack] = useState('A-1');
   const [price, setPrice] = useState<number>(0);
+  const [newMinStock, setNewMinStock] = useState<number>(100);
+  const [newReorderLevel, setNewReorderLevel] = useState<number>(250);
   const [grn, setGrn] = useState('');
   const [batch, setBatch] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -162,6 +164,27 @@ export const Inventory: React.FC = () => {
   const [isDeletingRm, setIsDeletingRm] = useState(false);
   const [deleteRmError, setDeleteRmError] = useState('');
 
+  const handleAddNewRmClick = () => {
+    setEditRmItem({ id: '', isNew: true });
+    setEditRmName('');
+    setEditRmCode(`CD-${Math.floor(1000 + Math.random() * 9000)}`);
+    setEditRmCategory('RAW_MATERIAL');
+    setEditRmSupplier('Arcenol Metals');
+    setEditRmBatch(`B-${Math.floor(100 + Math.random() * 900)}`);
+    setEditRmGrn(`GRN-${Math.floor(1000 + Math.random() * 9000)}`);
+    setEditRmPrice(150);
+    setEditRmWarehouse('Raw Hub');
+    setEditRmRack('A-1');
+    setEditRmQty(100);
+    setEditRmUnit('Kg');
+    setEditRmMinStock(100);
+    setEditRmReorderLevel(250);
+    setEditRmQcStatus('APPROVED');
+    setEditRmStatus('ACTIVE');
+    setEditRmError('');
+    setIsEditRmModalOpen(true);
+  };
+
   const handleEditClick = (item: any) => {
     setEditRmItem(item);
     setEditRmName(item.name || '');
@@ -175,8 +198,8 @@ export const Inventory: React.FC = () => {
     setEditRmRack(item.rack || 'A-1');
     setEditRmQty(item.qty || 0);
     setEditRmUnit(item.unit || 'Kg');
-    setEditRmMinStock(item.minStock || 100);
-    setEditRmReorderLevel(item.reorderLevel || 250);
+    setEditRmMinStock(item.minStock ?? 100);
+    setEditRmReorderLevel(item.reorderLevel ?? 250);
     setEditRmQcStatus(item.qcStatus || 'APPROVED');
     setEditRmStatus(item.status || 'ACTIVE');
     setEditRmError('');
@@ -190,7 +213,7 @@ export const Inventory: React.FC = () => {
     setEditRmError('');
     try {
       const payload = {
-        existingItemId: editRmItem.id,
+        existingItemId: editRmItem.isNew ? '' : editRmItem.id,
         name: editRmName,
         code: editRmCode,
         category: editRmCategory,
@@ -202,8 +225,8 @@ export const Inventory: React.FC = () => {
         rack: editRmRack,
         qty: editRmQty,
         unit: editRmUnit,
-        minStock: editRmMinStock,
-        reorderLevel: editRmReorderLevel,
+        minStock: Number(editRmMinStock) || 100,
+        reorderLevel: Number(editRmReorderLevel) || 250,
         qcStatus: editRmQcStatus,
         status: editRmStatus,
         setExactQty: true,
@@ -350,7 +373,9 @@ export const Inventory: React.FC = () => {
         price: price || 150,
         warehouse,
         rack,
-        unit
+        unit,
+        minStock: Number(newMinStock) || 100,
+        reorderLevel: Number(newReorderLevel) || 250
       };
 
       if (editingProcureId) {
@@ -406,6 +431,8 @@ export const Inventory: React.FC = () => {
     setWarehouse(item.warehouse || 'Raw Hub');
     setRack(item.rack || 'A-1');
     setPrice(item.price || 0);
+    setNewMinStock(item.minStock ?? 100);
+    setNewReorderLevel(item.reorderLevel ?? 250);
     setGrn(item.grn || '');
     setBatch(item.batch || '');
     setSubmitError('');
@@ -593,6 +620,8 @@ export const Inventory: React.FC = () => {
             let batch = 'BATCH-01';
             let grn = 'GRN-AUTO';
             let price = 0;
+            let minStock = 100;
+            let reorderLevel = 250;
             let date = new Date().toISOString().substring(0, 10);
             
             headers.forEach((header, index) => {
@@ -623,6 +652,10 @@ export const Inventory: React.FC = () => {
                 grn = val || grn;
               } else if (header === 'base supplier value' || header === 'price' || header === 'cost' || header === 'purchase price' || header === 'valuation' || header === 'value') {
                 price = Number(val) || 0;
+              } else if (header === 'minimum stock' || header === 'minimum stock (rol)' || header === 'min stock' || header === 'rol') {
+                minStock = Number(val) || 100;
+              } else if (header === 'reorder level' || header === 'reorder' || header === 'reorder level (rol)') {
+                reorderLevel = Number(val) || 250;
               } else if (header === 'date' || header === 'entry date' || header === 'date added' || header === 'received date') {
                 date = val || date;
               }
@@ -653,11 +686,15 @@ export const Inventory: React.FC = () => {
                 if (!grn) grn = val;
               } else if (header.includes('price') || header.includes('cost') || header.includes('value')) {
                 if (!price) price = Number(val) || 0;
+              } else if (header.includes('minimum') || header.includes('rol')) {
+                minStock = Number(val) || 100;
+              } else if (header.includes('reorder')) {
+                reorderLevel = Number(val) || 250;
               }
             });
             
             if (name) {
-              items.push({ name, code, category, qty, reservedQty, unit, supplier, warehouse, rack, batch, grn, price, date });
+              items.push({ name, code, category, qty, reservedQty, unit, supplier, warehouse, rack, batch, grn, price, minStock, reorderLevel, date });
             }
           }
           
@@ -1158,7 +1195,54 @@ export const Inventory: React.FC = () => {
   const gradedCells = data?.gradedInventory || [];
   const rawWarehouses = data?.warehouses || ["Main Warehouse", "Production Warehouse", "QC Warehouse", "Service Warehouse", "Scrap Warehouse"];
   const warehouses: string[] = Array.from(new Set(rawWarehouses.map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w)).filter(Boolean)));
-  const products = data?.products || [];
+  const products = useMemo(() => {
+    const defaultBase = [
+      { id: "72V30A", model_id: "72V30A", name: "E-Rickshaw Batteries (72V30A)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 45000 },
+      { id: "BAT-AUTO-35", model_id: "BAT-AUTO-35", name: "Scooter Batteries (BAT-AUTO-35)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 32000 },
+      { id: "PROD-EV-BIKE", model_id: "PROD-EV-BIKE", name: "Bike Batteries (PROD-EV-BIKE)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 38000 },
+      { id: "BAT-VRLA-100", model_id: "BAT-VRLA-100", name: "12V 100Ah (BAT-VRLA-100)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "Solar Battery", price: 14000 },
+      { id: "BAT-INV-150", model_id: "BAT-INV-150", name: "24V 150Ah (BAT-INV-150)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "Tubular Battery", price: 18500 },
+      { id: "PROD-SOLAR-48VESS", model_id: "PROD-SOLAR-48VESS", name: "48V ESS Packs (PROD-SOLAR-48VESS)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "ESS Battery Pack", price: 75000 },
+      { id: "PROD-ESS-TELECOM", model_id: "PROD-ESS-TELECOM", name: "Telecom Batteries (PROD-ESS-TELECOM)", category: "CATEGORY 3 — ESS / INDUSTRIAL BATTERY INVENTORY", type: "Industrial Pack", price: 85000 }
+    ];
+
+    const map = new Map<string, any>();
+    defaultBase.forEach(p => map.set(p.id, p));
+
+    if (Array.isArray(data?.products)) {
+      data.products.forEach((p: any) => {
+        const id = String(p.id || p.model_id || "").trim();
+        if (id) {
+          const existing = map.get(id);
+          map.set(id, {
+            ...existing,
+            ...p,
+            id,
+            model_id: id,
+            name: p.name || existing?.name || id
+          });
+        }
+      });
+    }
+
+    if (Array.isArray(data?.finishedGoods)) {
+      data.finishedGoods.forEach((fg: any) => {
+        const id = String(fg.model || fg.id || "").trim();
+        if (id && !map.has(id)) {
+          map.set(id, {
+            id,
+            model_id: id,
+            name: fg.name || `Battery Model ${id}`,
+            category: "Finished Goods Blueprints",
+            type: "Battery Pack",
+            price: 0
+          });
+        }
+      });
+    }
+
+    return Array.from(map.values());
+  }, [data?.products, data?.finishedGoods]);
 
   // Sub-table searching/filtering
   const filteredProcureItems = inventory.filter((item: any) => {
@@ -1740,6 +1824,15 @@ export const Inventory: React.FC = () => {
               >
                 <Upload size={14} className="text-primary-400" />
                 Upload Records
+              </button>
+
+              <button
+                onClick={handleAddNewRmClick}
+                className="px-4 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer shadow-md text-white font-sans"
+                title="Register a new Raw Material entry with MINIMUM STOCK (ROL) and REORDER LEVEL"
+              >
+                <Plus size={14} />
+                Register New Material
               </button>
             </div>
           </div>
@@ -2875,6 +2968,32 @@ export const Inventory: React.FC = () => {
                       onChange={(e) => setRack(e.target.value)}
                       placeholder="A-1"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono uppercase text-slate-800 shadow-3xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Stock Threshold Group */}
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">MINIMUM STOCK (ROL)</label>
+                    <input
+                      type="number"
+                      required
+                      value={newMinStock}
+                      onChange={(e) => setNewMinStock(Number(e.target.value))}
+                      placeholder="100"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono text-slate-800 shadow-3xs"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">REORDER LEVEL</label>
+                    <input
+                      type="number"
+                      required
+                      value={newReorderLevel}
+                      onChange={(e) => setNewReorderLevel(Number(e.target.value))}
+                      placeholder="250"
+                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono text-slate-800 shadow-3xs"
                     />
                   </div>
                 </div>
@@ -4687,10 +4806,10 @@ export const Inventory: React.FC = () => {
                 </div>
                 <div className="text-left">
                   <h3 className="text-xl font-black font-sans text-slate-900 uppercase tracking-tight italic">
-                    Edit Material Registry Node
+                    {editRmItem.isNew ? 'Register New Raw Material Node' : 'Edit Material Registry Node'}
                   </h3>
                   <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">
-                    Update structural meta parameters and core stock ledger definitions for {editRmItem.id}
+                    {editRmItem.isNew ? 'Enter raw material meta parameters, MINIMUM STOCK (ROL), and REORDER LEVEL' : `Update structural meta parameters and core stock ledger definitions for ${editRmItem.id}`}
                   </p>
                 </div>
               </div>

@@ -566,18 +566,30 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       }
     } else if (urlStr.includes('/api/inventory')) {
       if ((method === 'POST' || method === 'PUT') && body) {
-        const { existingItemId, name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit } = body;
+        const { existingItemId, name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit, qcStatus, status, setExactQty } = body;
         let item: any;
         if (existingItemId) {
           item = db.inventory.find((i: any) => i.id === existingItemId);
           if (item) {
-            item.qty += Number(qty || 0);
+            if (setExactQty) {
+              item.qty = Number(qty || 0);
+            } else {
+              item.qty += Number(qty || 0);
+            }
+            if (name) item.name = name;
+            if (code) item.code = code;
+            if (category) item.category = category;
             if (supplier) item.supplier = supplier;
             if (batch) item.batch = batch;
             if (grn) item.grn = grn;
             if (typeof price !== 'undefined') item.price = Number(price);
             if (warehouse) item.warehouse = warehouse;
             if (rack) item.rack = rack;
+            if (qcStatus) item.qcStatus = qcStatus;
+            if (status) item.status = status;
+            if (unit) item.unit = unit;
+            if (typeof minStock !== 'undefined' && minStock !== null) item.minStock = Number(minStock);
+            if (typeof reorderLevel !== 'undefined' && reorderLevel !== null) item.reorderLevel = Number(reorderLevel);
           }
         } else {
           const safeId = "RM-" + (name || Date.now().toString()).toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 15);

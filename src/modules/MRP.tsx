@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   Cpu, 
   Settings, 
@@ -30,6 +30,74 @@ import { downloadReportDataAsPDF } from '../lib/pdfGenerator';
 
 export const MRP: React.FC = () => {
   const { data, loading, refetch } = useERPData();
+  const allProducts = useMemo(() => {
+    const defaultBase = [
+      { id: "72V30A", model_id: "72V30A", name: "E-Rickshaw Batteries (72V30A)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 45000, bom: [{ matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 }, { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }] },
+      { id: "BAT-AUTO-35", model_id: "BAT-AUTO-35", name: "Scooter Batteries (BAT-AUTO-35)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 32000, bom: [{ matId: "RM-CELLS", name: "Lithium Cells", qty: 150, unit: "Pcs", wastage: 1 }, { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }] },
+      { id: "PROD-EV-BIKE", model_id: "PROD-EV-BIKE", name: "Bike Batteries (PROD-EV-BIKE)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 38000, bom: [{ matId: "RM-CELLS", name: "Lithium Cells", qty: 180, unit: "Pcs", wastage: 1 }, { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }] },
+      { id: "BAT-VRLA-100", model_id: "BAT-VRLA-100", name: "12V 100Ah (BAT-VRLA-100)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "Solar Battery", price: 14000, bom: [{ matId: "RM-LEAD", name: "Lead Alloy", qty: 14, unit: "Kg", wastage: 2 }, { matId: "RM-OXIDE", name: "Lead Oxide", qty: 5, unit: "Kg", wastage: 2 }, { matId: "RM-ACID", name: "Sulfuric Acid", qty: 4.2, unit: "Ltr", wastage: 1 }] },
+      { id: "BAT-INV-150", model_id: "BAT-INV-150", name: "24V 150Ah (BAT-INV-150)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "Tubular Battery", price: 18500, bom: [{ matId: "RM-LEAD", name: "Lead Alloy", qty: 18, unit: "Kg", wastage: 2 }, { matId: "RM-OXIDE", name: "Lead Oxide", qty: 6.5, unit: "Kg", wastage: 2 }, { matId: "RM-ACID", name: "Sulfuric Acid", qty: 5.5, unit: "Ltr", wastage: 1 }] },
+      { id: "PROD-SOLAR-48VESS", model_id: "PROD-SOLAR-48VESS", name: "48V ESS Packs (PROD-SOLAR-48VESS)", category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY", type: "ESS Battery Pack", price: 75000, bom: [{ matId: "RM-CELLS", name: "Lithium Cells", qty: 320, unit: "Pcs", wastage: 1 }, { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }] },
+      { id: "PROD-ESS-TELECOM", model_id: "PROD-ESS-TELECOM", name: "Telecom Batteries (PROD-ESS-TELECOM)", category: "CATEGORY 3 — ESS / INDUSTRIAL BATTERY INVENTORY", type: "Industrial Pack", price: 85000, bom: [{ matId: "RM-CELLS", name: "Lithium Cells", qty: 400, unit: "Pcs", wastage: 1 }] }
+    ];
+
+    const map = new Map<string, any>();
+    defaultBase.forEach(p => map.set(p.id, p));
+
+    if (Array.isArray(data?.products)) {
+      data.products.forEach((p: any) => {
+        const id = String(p.id || p.model_id || "").trim();
+        if (id) {
+          const existing = map.get(id);
+          map.set(id, {
+            ...existing,
+            ...p,
+            id,
+            model_id: id,
+            name: p.name || existing?.name || id,
+            category: p.category || existing?.category || "Uncategorized Blueprints",
+            bom: Array.isArray(p.bom) ? p.bom : (existing?.bom || [])
+          });
+        }
+      });
+    }
+
+    if (Array.isArray(data?.finishedGoods)) {
+      data.finishedGoods.forEach((fg: any) => {
+        const id = String(fg.model || fg.id || "").trim();
+        if (id && !map.has(id)) {
+          map.set(id, {
+            id,
+            model_id: id,
+            name: fg.name || `Battery Model ${id}`,
+            category: "Finished Goods Blueprints",
+            type: "Battery Pack",
+            price: 0,
+            bom: []
+          });
+        }
+      });
+    }
+
+    if (Array.isArray(data?.productionHistory)) {
+      data.productionHistory.forEach((ph: any) => {
+        const id = String(ph.model || ph.modelId || "").trim();
+        if (id && !map.has(id)) {
+          map.set(id, {
+            id,
+            model_id: id,
+            name: ph.name || `Battery Model ${id}`,
+            category: "Production Models",
+            type: "Battery Pack",
+            price: 0,
+            bom: []
+          });
+        }
+      });
+    }
+
+    return Array.from(map.values());
+  }, [data?.products, data?.finishedGoods, data?.productionHistory]);
 
   // Unified list of categories combining data.categories, data.productCategories, and data.products
   const categoryNames = (() => {
@@ -73,12 +141,12 @@ export const MRP: React.FC = () => {
   const [productionQty, setProductionQty] = useState<number>(10);
 
   useEffect(() => {
-    if (data?.products && data.products.length > 0) {
-      if (!selectedModel || !data.products.some((p: any) => p.id === selectedModel || p.model_id === selectedModel)) {
-        setSelectedModel(data.products[0].id || data.products[0].model_id);
+    if (allProducts && allProducts.length > 0) {
+      if (!selectedModel || !allProducts.some((p: any) => p.id === selectedModel || p.model_id === selectedModel)) {
+        setSelectedModel(allProducts[0].id || allProducts[0].model_id);
       }
     }
-  }, [data?.products]);
+  }, [allProducts]);
   const [calculation, setCalculation] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -1202,7 +1270,7 @@ export const MRP: React.FC = () => {
                  </div>
               </div>
               <div className="divide-y divide-slate-50">
-                 {data?.products.map((product: any) => (
+                 {allProducts.map((product: any) => (
                     <div key={product.id} className="p-12 hover:bg-slate-50 transition-all group duration-500">
                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-10">
                           <div className="flex items-center space-x-6">
