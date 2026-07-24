@@ -70,7 +70,15 @@ export const MRP: React.FC = () => {
   })();
   const [activeTab, setActiveTab] = useState<'planning' | 'bom'>('planning');
   const [selectedModel, setSelectedModel] = useState('');
-  const [productionQty, setProductionQty] = useState<number>(0);
+  const [productionQty, setProductionQty] = useState<number>(10);
+
+  useEffect(() => {
+    if (data?.products && data.products.length > 0) {
+      if (!selectedModel || !data.products.some((p: any) => p.id === selectedModel || p.model_id === selectedModel)) {
+        setSelectedModel(data.products[0].id || data.products[0].model_id);
+      }
+    }
+  }, [data?.products]);
   const [calculation, setCalculation] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -912,40 +920,27 @@ export const MRP: React.FC = () => {
                              );
                            }
 
-                           const definedCategories = categoryNames;
                            const categorized: Record<string, any[]> = {};
-                           definedCategories.forEach((catName: string) => {
-                             categorized[catName] = [];
-                           });
-                           categorized["Uncategorized Blueprints"] = [];
-
                            products.forEach((p: any) => {
-                             const catName = p.category || "Uncategorized Blueprints";
+                             const catName = (p.category && String(p.category).trim()) || "Uncategorized Blueprints";
                              if (!categorized[catName]) {
                                categorized[catName] = [];
                              }
                              categorized[catName].push(p);
                            });
 
-                           const activeCategoryKeys = Object.keys(categorized).filter(k => categorized[k] && categorized[k].length > 0);
-
-                           if (activeCategoryKeys.length === 0) {
-                             return products.map((p: any) => (
-                               <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold py-1">
-                                 {p.name} [{p.id}] — {(p.bom || []).length} Components
-                               </option>
-                             ));
-                           }
-
-                           return activeCategoryKeys.map((catKey) => {
+                           return Object.keys(categorized).map((catKey) => {
                              const items = categorized[catKey] || [];
                              return (
-                               <optgroup key={catKey} label={catKey} className="font-sans font-black text-cyan-800 bg-slate-100 uppercase tracking-widest text-[9px] py-1">
-                                 {items.map((p: any) => (
-                                   <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold py-1">
-                                     {p.name} [{p.id}] — {(p.bom || []).length} Components
-                                   </option>
-                                 ))}
+                               <optgroup key={catKey} label={catKey}>
+                                 {items.map((p: any) => {
+                                   const pId = p.id || p.model_id;
+                                   return (
+                                     <option key={pId} value={pId} className="bg-white text-slate-900 font-sans font-bold py-1">
+                                       {p.name} [{pId}] — {(p.bom || []).length} Components
+                                     </option>
+                                   );
+                                 })}
                                </optgroup>
                              );
                            });
