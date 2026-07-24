@@ -1085,25 +1085,44 @@ export const Production: React.FC = () => {
                       <tbody className="divide-y divide-slate-100">
                         {data?.products
                           .find((p) => p.id === selectedModel)
-                          ?.bom.map((b: any) => (
-                            <tr key={b.matId}>
-                              <td className="px-8 py-6 text-[12px] font-black text-slate-900 uppercase tracking-widest">
-                                {b.name}
-                              </td>
-                              <td className="px-8 py-6 text-[10px] text-slate-400">
-                                {(b.qty * qty).toLocaleString()} {b.unit}
-                              </td>
-                              <td className="px-8 py-6 text-[10px] text-slate-400">
-                                {(
-                                  data?.inventory.find((i) => i.id === b.matId)
-                                    ?.qty || 0
-                                ).toLocaleString()}
-                              </td>
-                              <td className="px-8 py-6 text-right">
-                                <div className="inline-block h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]"></div>
-                              </td>
-                            </tr>
-                          ))}
+                          ?.bom.map((b: any, index: number) => {
+                            const catalogItem = data?.inventory?.find((i: any) => i.id === b.matId || i.code === b.matId);
+                            const componentName = b.name || b.materialName || b.componentName || b.matName || catalogItem?.name || (b.matId ? `Item (${b.matId})` : `Component ${index + 1}`);
+                            const unitStr = b.unit || catalogItem?.unit || 'Pcs';
+                            const requiredQty = (Number(b.qty) || 0) * qty;
+                            const availableQty = catalogItem?.qty !== undefined ? Number(catalogItem.qty) : 0;
+                            const hasSufficientStock = availableQty >= requiredQty;
+
+                            return (
+                              <tr key={b.matId || b.id || index}>
+                                <td className="px-8 py-6 text-[12px] font-black text-slate-900 uppercase tracking-widest">
+                                  <div>{componentName}</div>
+                                  {b.matId && (
+                                    <span className="block text-[8.5px] font-mono text-slate-400 font-bold normal-case mt-0.5">
+                                      Ref: {b.matId}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-8 py-6 text-[10px] text-slate-500 font-mono font-bold">
+                                  {requiredQty.toLocaleString()} {unitStr}
+                                </td>
+                                <td className="px-8 py-6 text-[10px] text-slate-500 font-mono font-bold">
+                                  {availableQty.toLocaleString()} {unitStr}
+                                </td>
+                                <td className="px-8 py-6 text-right">
+                                  <div
+                                    className={cn(
+                                      "inline-block h-2.5 w-2.5 rounded-full transition-all",
+                                      hasSufficientStock
+                                        ? "bg-emerald-500 shadow-[0_0_8px_#10b981]"
+                                        : "bg-red-500 shadow-[0_0_8px_#ef4444]"
+                                    )}
+                                    title={hasSufficientStock ? "Sufficient Stock" : "Stock Shortage"}
+                                  />
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>

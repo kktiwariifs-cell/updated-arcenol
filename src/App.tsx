@@ -223,8 +223,13 @@ export default function App() {
         'dealer-performance': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON],
         'regional-sales': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON],
         'alerts': Object.values(UserRole),
+        'inventory': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
         'inventory-hub': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'production': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
         'production-hub': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
+        'mrp': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
+        'finished-goods': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'storekeeper': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
         'crm': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON],
         'billing': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.BILLER],
         'warranty': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.WARRANTY_TEAM],
@@ -695,7 +700,33 @@ export default function App() {
                 {data?.businessProfile?.companyName || "Arcenol Energy Solutions"} Digital Ecosystem
               </h1>
               <p className="text-lg font-bold text-slate-900 truncate">
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Module
+                {activeTab === 'production-hub' || activeTab === 'production' 
+                  ? 'Manufacturing Floor & Production Hub'
+                  : activeTab === 'inventory-hub' || activeTab === 'inventory'
+                  ? 'Stores & Inventory Hub'
+                  : activeTab === 'mrp'
+                  ? 'MRP & Material Demand Planning'
+                  : activeTab === 'crm'
+                  ? 'CRM & Distributor Management'
+                  : activeTab === 'billing'
+                  ? 'Billing & Invoicing Accounts'
+                  : activeTab === 'warranty'
+                  ? 'Warranty & Claims Management'
+                  : activeTab === 'service'
+                  ? 'Service & Repair Center'
+                  : activeTab === 'management-kpi'
+                  ? 'Management KPI Overview'
+                  : activeTab === 'dealer-performance'
+                  ? 'Dealer Performance Tracking'
+                  : activeTab === 'regional-sales'
+                  ? 'Regional Sales Analytics'
+                  : activeTab === 'alerts'
+                  ? 'Operational System Alerts'
+                  : activeTab === 'user-manual'
+                  ? 'Operations & SOP User Manual'
+                  : activeTab === 'super-admin'
+                  ? 'Super Admin Control Center'
+                  : activeTab.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') + ' Module'}
               </p>
             </div>
           </div>
@@ -733,14 +764,17 @@ export default function App() {
           {activeTab === 'dealer-performance' && <DealerPerformance />}
           {activeTab === 'regional-sales' && <RegionalSales />}
           {activeTab === 'alerts' && <Alerts />}
-          {activeTab === 'inventory-hub' && <InventoryHub />}
-          {activeTab === 'production-hub' && <ManufacturingHub />}
+          {(activeTab === 'inventory-hub' || activeTab === 'inventory') && <InventoryHub />}
+          {(activeTab === 'production-hub' || activeTab === 'production') && <ManufacturingHub />}
+          {activeTab === 'mrp' && <MRP />}
+          {activeTab === 'finished-goods' && <FinishedGoods />}
+          {activeTab === 'storekeeper' && <StoreKeeperDashboard />}
           {activeTab === 'crm' && <CRM />}
           {activeTab === 'billing' && <Billing />}
           {activeTab === 'warranty' && <Warranty />}
           {activeTab === 'engagement' && <Engagement />}
           {activeTab === 'service' && <Service />}
-           {activeTab === 'analytics' && <Analytics />}
+          {activeTab === 'analytics' && <Analytics />}
           {activeTab === 'super-admin' && <SuperAdmin />}
         </div>
       </main>

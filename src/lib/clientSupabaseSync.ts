@@ -238,7 +238,20 @@ export async function hydrateDbFromSupabase(db: any) {
           id: String(b.model_id || b.id),
           name: b.name,
           category: b.category_group || b.category,
-          bom: Array.isArray(b.components) ? b.components : []
+          type: b.type || 'Battery',
+          price: Number(b.price || 0),
+          bom: Array.isArray(b.components)
+            ? b.components.map((comp: any) => {
+                const catalogItem = db.inventory?.find((i: any) => i.id === comp.matId || i.code === comp.matId);
+                return {
+                  matId: comp.matId || comp.id || comp.code || '',
+                  name: comp.name || comp.materialName || comp.componentName || comp.material_name || comp.title || catalogItem?.name || comp.matId || 'Raw Material Component',
+                  qty: Number(comp.qty || 1),
+                  unit: comp.unit || catalogItem?.unit || 'Pcs',
+                  wastage: Number(comp.wastage || 0)
+                };
+              })
+            : []
         }));
       }
     } catch (bomsCatchErr) {
@@ -266,8 +279,10 @@ export async function syncInventoryRecordToSupabase(item: any) {
       batch: item.batch || 'BATCH-01'
     };
     await supabase.from('inventory').upsert(payload, { onConflict: 'id' });
-  } catch (err) {
-    console.warn('Failed to sync inventory item to Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync inventory item to Supabase:', err);
+    }
   }
 }
 
@@ -288,16 +303,20 @@ export async function syncBulkInventoryToSupabase(items: any[]) {
       batch: item.batch || 'BATCH-01'
     }));
     await supabase.from('inventory').upsert(payloads, { onConflict: 'id' });
-  } catch (err) {
-    console.warn('Failed to bulk sync inventory to Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to bulk sync inventory to Supabase:', err);
+    }
   }
 }
 
 export async function deleteInventoryRecordFromSupabase(id: string) {
   try {
     await supabase.from('inventory').delete().eq('id', id);
-  } catch (err) {
-    console.warn('Failed to delete inventory item from Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to delete inventory item from Supabase:', err);
+    }
   }
 }
 
@@ -319,16 +338,20 @@ export async function syncLeadRecordToSupabase(lead: any) {
       remarks_log: lead.remarksLog || lead.remarks_log || []
     };
     await supabase.from('lead_inquiries').upsert(payload, { onConflict: 'id' });
-  } catch (err) {
-    console.warn('Failed to sync lead inquiry to Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync lead inquiry to Supabase:', err);
+    }
   }
 }
 
 export async function deleteLeadRecordFromSupabase(id: string) {
   try {
     await supabase.from('lead_inquiries').delete().eq('id', id);
-  } catch (err) {
-    console.warn('Failed to delete lead inquiry from Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to delete lead inquiry from Supabase:', err);
+    }
   }
 }
 
@@ -356,7 +379,9 @@ export async function syncBusinessProfileToSupabase(profile: any) {
       loginLeftImage: profile.loginLeftImage || ''
     };
     await supabase.from('arcenol_business_profile').upsert([payload], { onConflict: 'id' });
-  } catch (err) {
-    console.warn('Failed to sync business profile to Supabase:', err);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync business profile to Supabase:', err);
+    }
   }
 }

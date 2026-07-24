@@ -249,13 +249,18 @@ export async function batchUpsert(tableName: string, rows: any[]) {
       .upsert(rows)
       .select();
     if (error) {
-      console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, error.message);
+      if (!error.message?.includes('fetch failed') && !error.message?.includes('Failed to fetch')) {
+        console.warn(`[SupabaseSync] Notice upserting into ${tableName}:`, error.message);
+      }
       return { count: 0, error: error.message };
     }
     return { count: data?.length || rows.length };
   } catch (err: any) {
-    console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, err?.message || err);
-    return { count: 0, error: err?.message || 'fetch failed' };
+    const msg = err?.message || String(err);
+    if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {
+      console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, msg);
+    }
+    return { count: 0, error: msg };
   }
 }
 
@@ -268,11 +273,14 @@ export async function deleteRecord(tableName: string, id: string) {
       .from(tableName)
       .delete()
       .eq('id', id);
-    if (error) {
+    if (error && !error.message?.includes('fetch failed')) {
       console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, error.message);
     }
   } catch (err: any) {
-    console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, err?.message || err);
+    const msg = err?.message || String(err);
+    if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {
+      console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, msg);
+    }
   }
 }
 
@@ -282,42 +290,32 @@ export async function deleteRecord(tableName: string, id: string) {
 export async function syncAllERPToSupabase(db: any) {
   const results: Record<string, any> = {};
 
+  const tablesToSync: Array<{ name: string; rows: () => any[] }> = [
+    { name: 'inventory', rows: () => Array.isArray(db.inventory) ? db.inventory.map(mapInventory) : [] },
+    { name: 'lead_inquiries', rows: () => Array.isArray(db.leads) ? db.leads.map(mapLead) : [] },
+    { name: 'customers', rows: () => Array.isArray(db.dealers) ? db.dealers.map(mapCustomer) : [] },
+    { name: 'warehouses', rows: () => Array.isArray(db.warehouses) ? db.warehouses.map(mapWarehouse) : [] },
+    { name: 'graded_cells', rows: () => Array.isArray(db.gradedInventory) ? db.gradedInventory.map(mapGradedCell) : [] },
+    { name: 'wip_inventory', rows: () => Array.isArray(db.wipInventory) ? db.wipInventory.map(mapWip) : [] },
+    { name: 'invoices', rows: () => Array.isArray(db.invoices) ? db.invoices.map(mapInvoice) : [] },
+    { name: 'accounting_vouchers', rows: () => Array.isArray(db.vouchers) ? db.vouchers.map(mapVoucher) : [] },
+    { name: 'complaints', rows: () => Array.isArray(db.complaints) ? db.complaints.map(mapComplaint) : [] },
+    { name: 'arcenol_corporate_units', rows: () => Array.isArray(db.subsidiaries) ? db.subsidiaries.map(mapCorporateUnit) : [] },
+    { name: 'categories', rows: () => Array.isArray(db.categories) ? db.categories.map(mapCategory) : [] },
+    { name: 'arcenol_business_profile', rows: () => db.businessProfile ? [mapBusinessProfile(db.businessProfile)] : [] }
+  ];
+
   try {
-    if (Array.isArray(db.inventory)) {
-      results.inventory = await batchUpsert('inventory', db.inventory.map(mapInventory));
-    }
-    if (Array.isArray(db.leads)) {
-      results.lead_inquiries = await batchUpsert('lead_inquiries', db.leads.map(mapLead));
-    }
-    if (Array.isArray(db.dealers)) {
-      results.customers = await batchUpsert('customers', db.dealers.map(mapCustomer));
-    }
-    if (Array.isArray(db.warehouses)) {
-      results.warehouses = await batchUpsert('warehouses', db.warehouses.map(mapWarehouse));
-    }
-    if (Array.isArray(db.gradedInventory)) {
-      results.graded_cells = await batchUpsert('graded_cells', db.gradedInventory.map(mapGradedCell));
-    }
-    if (Array.isArray(db.wipInventory)) {
-      results.wip_inventory = await batchUpsert('wip_inventory', db.wipInventory.map(mapWip));
-    }
-    if (Array.isArray(db.invoices)) {
-      results.invoices = await batchUpsert('invoices', db.invoices.map(mapInvoice));
-    }
-    if (Array.isArray(db.vouchers)) {
-      results.accounting_vouchers = await batchUpsert('accounting_vouchers', db.vouchers.map(mapVoucher));
-    }
-    if (Array.isArray(db.complaints)) {
-      results.complaints = await batchUpsert('complaints', db.complaints.map(mapComplaint));
-    }
-    if (Array.isArray(db.subsidiaries)) {
-      results.arcenol_corporate_units = await batchUpsert('arcenol_corporate_units', db.subsidiaries.map(mapCorporateUnit));
-    }
-    if (Array.isArray(db.categories)) {
-      results.categories = await batchUpsert('categories', db.categories.map(mapCategory));
-    }
-    if (db.businessProfile) {
-      results.arcenol_business_profile = await batchUpsert('arcenol_business_profile', [mapBusinessProfile(db.businessProfile)]);
+    for (const item of tablesToSync) {
+      const rows = item.rows();
+      if (rows && rows.length > 0) {
+        const res = await batchUpsert(item.name, rows);
+        results[item.name] = res;
+        if (res.error && (res.error.includes('fetch failed') || res.error.includes('Failed to fetch'))) {
+          console.log(`[SupabaseSync] Remote Supabase connection offline; skipping remaining batch operations.`);
+          break;
+        }
+      }
     }
   } catch (err: any) {
     console.warn("[SupabaseSync] Error during syncAllERPToSupabase:", err?.message || err);
@@ -552,8 +550,21 @@ export async function hydrateFromSupabase(db: any) {
         db.products = boms.map((b: any) => ({
           id: String(b.model_id || b.id),
           name: b.name,
-          category: b.category_group,
-          bom: Array.isArray(b.components) ? b.components : []
+          category: b.category_group || b.category,
+          type: b.type || 'Battery',
+          price: Number(b.price || 0),
+          bom: Array.isArray(b.components)
+            ? b.components.map((comp: any) => {
+                const catalogItem = db.inventory?.find((i: any) => i.id === comp.matId || i.code === comp.matId);
+                return {
+                  matId: comp.matId || comp.id || comp.code || '',
+                  name: comp.name || comp.materialName || comp.componentName || comp.material_name || comp.title || catalogItem?.name || comp.matId || 'Raw Material Component',
+                  qty: Number(comp.qty || 1),
+                  unit: comp.unit || catalogItem?.unit || 'Pcs',
+                  wastage: Number(comp.wastage || 0)
+                };
+              })
+            : []
         }));
       }
     } catch (e) {}
