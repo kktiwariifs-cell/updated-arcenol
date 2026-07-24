@@ -1,4 +1,4 @@
-import { hydrateDbFromSupabase, syncInventoryRecordToSupabase, syncBulkInventoryToSupabase, deleteInventoryRecordFromSupabase, syncLeadRecordToSupabase, deleteLeadRecordFromSupabase } from './clientSupabaseSync';
+import { hydrateDbFromSupabase, syncInventoryRecordToSupabase, syncBulkInventoryToSupabase, deleteInventoryRecordFromSupabase, syncLeadRecordToSupabase, deleteLeadRecordFromSupabase, syncBusinessProfileToSupabase } from './clientSupabaseSync';
 
 const INITIAL_DB = {
   inventory: [] as any[],
@@ -349,10 +349,14 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       responseData = db;
     } else if (urlStr.includes('/api/business-profile')) {
       if (method === 'GET') {
+        if (!db.businessProfile?.logo) {
+          await hydrateDbFromSupabase(db);
+        }
         responseData = db.businessProfile;
       } else {
         db.businessProfile = { ...db.businessProfile, ...body };
         saveLocalDB(db);
+        syncBusinessProfileToSupabase(db.businessProfile).catch(err => console.warn('Supabase profile sync warning:', err));
         responseData = db.businessProfile;
       }
     } else if (urlStr.includes('/api/notifications/clear')) {
@@ -997,16 +1001,10 @@ if (typeof window !== 'undefined') {
           }
           return response;
         }
-        // If on static hosting without server, fallback to client mock
-        if (isStaticHosting) {
-          return await handleMockRequest(urlStr, init);
-        }
-        return response;
+        // If API route failed or returned HTML fallback (e.g. on Vercel/static host), fallback to client Supabase mock
+        return await handleMockRequest(urlStr, init);
       } catch (err) {
-        if (isStaticHosting) {
-          return await handleMockRequest(urlStr, init);
-        }
-        throw err;
+        return await handleMockRequest(urlStr, init);
       }
     }
     return originalFetch(input, init);

@@ -2,6 +2,40 @@ import { supabase } from './supabaseClient';
 
 export async function hydrateDbFromSupabase(db: any) {
   try {
+    // 0. Business Profile / Corporate Settings
+    try {
+      const { data: bp, error: bpErr } = await supabase
+        .from('arcenol_business_profile')
+        .select('*')
+        .eq('id', 'PRIMARY')
+        .maybeSingle();
+
+      if (!bpErr && bp) {
+        db.businessProfile = {
+          companyName: bp.companyName || bp.company_name || db.businessProfile?.companyName || 'Arcenol Energy Private Limited',
+          shortName: bp.shortName || bp.short_name || db.businessProfile?.shortName || 'ARCENOL',
+          establishedYear: bp.establishedYear || bp.established_year || db.businessProfile?.establishedYear || '2018',
+          industrySector: bp.industrySector || bp.industry_sector || db.businessProfile?.industrySector || 'Energy Storage',
+          contactEmail: bp.contactEmail || bp.contact_email || db.businessProfile?.contactEmail || 'ops-admin@arcenol.com',
+          phone: bp.phone || db.businessProfile?.phone || '+91 79 4028 9200',
+          website: bp.website || db.businessProfile?.website || 'www.arcenol.com',
+          cin: bp.cin || db.businessProfile?.cin || 'U31900GJ2018PTC102145',
+          gstin: bp.gstin || db.businessProfile?.gstin || '24AAHCA9192M1ZP',
+          address: bp.address || db.businessProfile?.address || 'Arcenol Tower, Gujarat',
+          manufacturingCapacity: bp.manufacturingCapacity || bp.manufacturing_capacity || db.businessProfile?.manufacturingCapacity || '12,000 MWh / Year',
+          leadAcidOutput: bp.leadAcidOutput || bp.lead_acid_output || db.businessProfile?.leadAcidOutput || '260,000 MT / Year',
+          depotsCount: Number(bp.depotsCount || bp.depots_count || db.businessProfile?.depotsCount || 5),
+          primaryRegion: bp.primaryRegion || bp.primary_region || db.businessProfile?.primaryRegion || 'WEST_SOUTH',
+          complianceOfficer: bp.complianceOfficer || bp.compliance_officer || db.businessProfile?.complianceOfficer || 'Dr. Ananya Sharma',
+          nodePassphrase: bp.nodePassphrase || bp.node_passphrase || db.businessProfile?.nodePassphrase || 'ARC-NODE-SECURE',
+          logo: bp.logo || db.businessProfile?.logo || '',
+          loginLeftImage: bp.loginLeftImage || bp.login_left_image || db.businessProfile?.loginLeftImage || ''
+        };
+      }
+    } catch (profileErr) {
+      console.warn('[Client Supabase Sync] Business profile hydration warning:', profileErr);
+    }
+
     // 1. Inventory
     const { data: inv, error: invErr } = await supabase.from('inventory').select('*');
     if (!invErr && inv && inv.length > 0) {
@@ -245,5 +279,34 @@ export async function deleteLeadRecordFromSupabase(id: string) {
     await supabase.from('lead_inquiries').delete().eq('id', id);
   } catch (err) {
     console.warn('Failed to delete lead inquiry from Supabase:', err);
+  }
+}
+
+export async function syncBusinessProfileToSupabase(profile: any) {
+  try {
+    const payload = {
+      id: 'PRIMARY',
+      companyName: profile.companyName || 'Arcenol Energy Private Limited',
+      shortName: profile.shortName || 'ARCENOL',
+      establishedYear: profile.establishedYear || '2018',
+      industrySector: profile.industrySector || 'Energy Storage',
+      contactEmail: profile.contactEmail || 'ops-admin@arcenol.com',
+      phone: profile.phone || '+91 79 4028 9200',
+      website: profile.website || 'www.arcenol.com',
+      cin: profile.cin || 'U31900GJ2018PTC102145',
+      gstin: profile.gstin || '24AAHCA9192M1ZP',
+      address: profile.address || 'Arcenol Tower, Gujarat',
+      manufacturingCapacity: profile.manufacturingCapacity || '12,000 MWh / Year',
+      leadAcidOutput: profile.leadAcidOutput || '260,000 MT / Year',
+      depotsCount: Number(profile.depotsCount || 5),
+      primaryRegion: profile.primaryRegion || 'WEST_SOUTH',
+      complianceOfficer: profile.complianceOfficer || 'Dr. Ananya Sharma',
+      nodePassphrase: profile.nodePassphrase || 'ARC-NODE-SECURE',
+      logo: profile.logo || '',
+      loginLeftImage: profile.loginLeftImage || ''
+    };
+    await supabase.from('arcenol_business_profile').upsert([payload], { onConflict: 'id' });
+  } catch (err) {
+    console.warn('Failed to sync business profile to Supabase:', err);
   }
 }

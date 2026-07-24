@@ -12,6 +12,7 @@ import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { useAuthStore, UserRole, User } from '../store/authStore';
 import { supabase, SupabaseBridge } from '../lib/supabase';
+import { syncBusinessProfileToSupabase } from '../lib/clientSupabaseSync';
 
 export const SuperAdmin: React.FC = () => {
   const { data, refetch } = useERPData();
@@ -487,6 +488,7 @@ export const SuperAdmin: React.FC = () => {
       // 2. Also back up the corporate profile to Supabase (catch and log warnings gracefully)
       try {
         await SupabaseBridge.saveBusinessProfile(formData);
+        await syncBusinessProfileToSupabase(formData);
       } catch (sbErr) {
         console.warn("Supabase profile save deferred/failed (acceptable if database is not set up):", sbErr);
       }
