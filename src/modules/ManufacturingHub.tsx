@@ -27,7 +27,7 @@ export const ManufacturingHub: React.FC = () => {
                 MANUFACTURING & PLAN HUB
               </h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 font-sans">
-                Real-time active assembly lines, cell grading trackers, and material demand shortages
+                Real-time active assembly lines, cell grading trackers, and material demand planning
               </p>
             </div>
           </div>
@@ -37,7 +37,7 @@ export const ManufacturingHub: React.FC = () => {
         <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 self-start md:self-center shrink-0">
           {[
             { id: "floor", label: "Assembly Floor WIP", icon: Activity },
-            { id: "mrp", label: "MRP Materials Shortages", icon: Cpu }
+            { id: "mrp", label: "MRP & Material Demand", icon: Cpu }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;

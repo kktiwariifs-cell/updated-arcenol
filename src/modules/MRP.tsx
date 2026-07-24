@@ -412,7 +412,7 @@ export const MRP: React.FC = () => {
   };
 
   const triggerDuplicateModal = (sourceId: string) => {
-    const prod = data?.products.find((p: any) => p.id === sourceId);
+    const prod = (data?.products || []).find((p: any) => p.id === sourceId);
     if (!prod) return;
     setDuplicateSourceId(sourceId);
     setDuplicateNewId(`${sourceId}-COPY`);
@@ -497,7 +497,7 @@ export const MRP: React.FC = () => {
   const updateBOMItem = (idx: number, field: string, value: any) => {
     const newBOM = [...editingProduct.bom];
     if (field === 'matId') {
-      const invItem = data?.inventory.find((i: any) => i.id === value);
+      const invItem = (data?.inventory || []).find((i: any) => i.id === value);
       const codeTag = invItem?.code ? `[${invItem.code}] ` : (invItem?.id ? `[${invItem.id}] ` : '');
       const formattedDefaultName = invItem ? `${codeTag}${invItem.name}` : '';
       newBOM[idx] = { 
@@ -1056,24 +1056,24 @@ export const MRP: React.FC = () => {
             {/* Smart Purchase Suggestions */}
             <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-4xl shadow-slate-200/40">
                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center">
-                  <TrendingUp size={16} className="mr-3 text-primary-500" /> Procure Alerts
+                  <TrendingUp size={16} className="mr-3 text-primary-500" /> Material Demand & Reorder Alerts
                </h3>
                <div className="space-y-4">
-                  {data?.inventory.filter((i:any) => (i.qty - (i.reservedQty || 0)) < (i.minStock || 500)).map((item: any) => (
+                  {(data?.inventory || []).filter((i:any) => (i.qty - (i.reservedQty || 0)) < (i.minStock || 500)).map((item: any) => (
                     <div key={item.id} className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-between group hover:bg-white hover:border-primary-100 transition-all shadow-sm">
                        <div>
                           <p className="text-xs font-black text-slate-900 uppercase tracking-tight italic">{item.name}</p>
-                          <p className="text-[9px] font-black text-red-500 uppercase tracking-widest mt-1">Shortfall: <span className="font-mono">{(item.minStock || 500) - (item.qty - (item.reservedQty || 0))}</span> UNITS</p>
+                          <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Reorder Demand: <span className="font-mono">{(item.minStock || 500) - (item.qty - (item.reservedQty || 0))}</span> UNITS Short of Safety Threshold</p>
                        </div>
-                       <button onClick={() => alert(`Purchase Order initiated for ${item.name}`)} className="h-10 w-10 bg-white border border-slate-200 text-primary-600 rounded-xl flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-sm active:scale-90">
+                       <button onClick={() => alert(`Purchase Order initiated for ${item.name}`)} className="h-10 w-10 bg-white border border-slate-200 text-primary-600 rounded-xl flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-sm active:scale-90" title="Trigger Reorder Purchase Order">
                           <Plus size={18} />
                        </button>
                     </div>
                   ))}
-                  {data?.inventory.filter((i:any) => (i.qty - (i.reservedQty || 0)) < (i.minStock || 500)).length === 0 && (
+                  {(data?.inventory || []).filter((i:any) => (i.qty - (i.reservedQty || 0)) < (i.minStock || 500)).length === 0 && (
                     <div className="text-center py-12 bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
                        <CheckCircle2 size={40} className="mx-auto text-primary-600 opacity-20 mb-4" />
-                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Inventory states balanced</p>
+                       <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">Inventory states balanced — No Material Demand Shortfalls</p>
                     </div>
                   )}
                </div>
@@ -1230,7 +1230,7 @@ export const MRP: React.FC = () => {
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {[
-                { label: 'Active Matrix Builds', value: data?.products.length, icon: CheckCircle2, color: 'text-primary-600', bColor: 'bg-primary-50' },
+                { label: 'Active Matrix Builds', value: (data?.products || []).length, icon: CheckCircle2, color: 'text-primary-600', bColor: 'bg-primary-50' },
                 { label: 'System Margin Loss', value: '4.8%', icon: Zap, color: 'text-amber-600', bColor: 'bg-amber-50' },
                 { label: 'Alt-Map Depth', value: '15%', icon: Layers, color: 'text-blue-600', bColor: 'bg-blue-50' },
                 { label: 'Stable Revision', value: 'v3.2', icon: ShieldAlert, color: 'text-emerald-600', bColor: 'bg-emerald-50' },
@@ -1316,7 +1316,7 @@ export const MRP: React.FC = () => {
                        </div>
                        
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                          {product.bom.map((item: any, idx: number) => (
+                          {(product.bom || []).map((item: any, idx: number) => (
                              <div key={idx} className="p-6 rounded-[2rem] bg-white border border-slate-100 shadow-sm flex flex-col justify-between hover:border-primary-600 transition-all group/item cursor-crosshair">
                                 <div className="flex justify-between items-start mb-4">
                                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-tight italic truncate max-w-[60%]">{item.name}</p>
@@ -1337,7 +1337,7 @@ export const MRP: React.FC = () => {
                        </div>
                     </div>
                  ))}
-                 {data?.products.length === 0 && (
+                 {(data?.products || []).length === 0 && (
                    <div className="p-40 text-center">
                       <Cpu size={64} className="mx-auto text-slate-200 mb-8 opacity-20" />
                       <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.4em]">No architectural nodes found in blueprint engine</p>
