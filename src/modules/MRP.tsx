@@ -903,15 +903,23 @@ export const MRP: React.FC = () => {
                        >
                          <option value="" className="bg-white text-slate-400">Select Battery Model Blueprint...</option>
                          {(() => {
+                           const products = data?.products || [];
+                           if (products.length === 0) {
+                             return (
+                               <option disabled value="" className="bg-white text-slate-400 font-sans italic py-1">
+                                 (No committed model blueprints found. Create one in BOM Architecture)
+                               </option>
+                             );
+                           }
+
                            const definedCategories = categoryNames;
-                           
                            const categorized: Record<string, any[]> = {};
                            definedCategories.forEach((catName: string) => {
                              categorized[catName] = [];
                            });
                            categorized["Uncategorized Blueprints"] = [];
 
-                           (data?.products || []).forEach((p: any) => {
+                           products.forEach((p: any) => {
                              const catName = p.category || "Uncategorized Blueprints";
                              if (!categorized[catName]) {
                                categorized[catName] = [];
@@ -919,31 +927,25 @@ export const MRP: React.FC = () => {
                              categorized[catName].push(p);
                            });
 
-                           const allCatKeys = [...definedCategories];
-                           Object.keys(categorized).forEach(k => {
-                             if (!allCatKeys.includes(k) && k !== "Uncategorized Blueprints") {
-                               allCatKeys.push(k);
-                             }
-                           });
-                           if (categorized["Uncategorized Blueprints"] && categorized["Uncategorized Blueprints"].length > 0) {
-                             allCatKeys.push("Uncategorized Blueprints");
+                           const activeCategoryKeys = Object.keys(categorized).filter(k => categorized[k] && categorized[k].length > 0);
+
+                           if (activeCategoryKeys.length === 0) {
+                             return products.map((p: any) => (
+                               <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold py-1">
+                                 {p.name} [{p.id}] — {(p.bom || []).length} Components
+                               </option>
+                             ));
                            }
 
-                           return allCatKeys.map((catKey) => {
+                           return activeCategoryKeys.map((catKey) => {
                              const items = categorized[catKey] || [];
                              return (
                                <optgroup key={catKey} label={catKey} className="font-sans font-black text-cyan-800 bg-slate-100 uppercase tracking-widest text-[9px] py-1">
-                                 {items.length > 0 ? (
-                                   items.map((p: any) => (
-                                     <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold py-1">
-                                       {p.name}
-                                     </option>
-                                   ))
-                                 ) : (
-                                   <option disabled value="" className="bg-white text-slate-400 font-sans italic py-1">
-                                     (No model blueprints in this category yet)
+                                 {items.map((p: any) => (
+                                   <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold py-1">
+                                     {p.name} [{p.id}] — {(p.bom || []).length} Components
                                    </option>
-                                 )}
+                                 ))}
                                </optgroup>
                              );
                            });

@@ -234,10 +234,11 @@ export async function hydrateDbFromSupabase(db: any) {
     try {
       const { data: boms } = await supabase.from('bom_blueprints').select('*');
       if (boms && boms.length > 0) {
-        db.products = boms.map((b: any) => ({
+        const fetchedProducts = boms.map((b: any) => ({
           id: String(b.model_id || b.id),
+          model_id: String(b.model_id || b.id),
           name: b.name,
-          category: b.category_group || b.category,
+          category: b.category_group || b.category || 'Uncategorized Blueprints',
           type: b.type || 'Battery',
           price: Number(b.price || 0),
           bom: Array.isArray(b.components)
@@ -253,6 +254,19 @@ export async function hydrateDbFromSupabase(db: any) {
               })
             : []
         }));
+
+        if (!db.products || db.products.length === 0) {
+          db.products = fetchedProducts;
+        } else {
+          const productMap = new Map<string, any>();
+          fetchedProducts.forEach((p: any) => productMap.set(p.id, p));
+          db.products.forEach((p: any) => {
+            if (!productMap.has(p.id)) {
+              productMap.set(p.id, p);
+            }
+          });
+          db.products = Array.from(productMap.values());
+        }
       }
     } catch (bomsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating bom_blueprints:', bomsCatchErr);

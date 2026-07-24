@@ -781,25 +781,41 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       const url = new URL(urlStr, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
       const modelId = url.searchParams.get('modelId');
       const qty = url.searchParams.get('qty');
-      const product = db.products.find((p: any) => p.id === modelId);
+      const reqModelId = String(modelId || '').trim();
+      const product = db.products.find((p: any) => 
+        String(p.id).trim() === reqModelId || 
+        String(p.model_id || '').trim() === reqModelId ||
+        p.name?.toLowerCase() === reqModelId.toLowerCase()
+      );
       if (!product) {
         status = 404;
-        responseData = { error: "Product not found" };
+        responseData = { error: "Product blueprint not found" };
       } else {
         const multiplier = Number(qty || 0);
         const requirements = (product.bom || []).map((item: any) => {
-          const perUnit = item.qty * (1 + ((item.wastage || 0) / 100));
+          const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
           const total = perUnit * multiplier;
-          const invItem = db.inventory.find((i: any) => i.id === item.matId);
+          const targetMatId = String(item.matId || item.id || '').trim();
+          const targetMatName = String(item.name || item.materialName || '').trim();
+          
+          const invItem = db.inventory.find((i: any) => 
+            String(i.id).trim() === targetMatId || 
+            String(i.code).trim() === targetMatId || 
+            (targetMatName && i.name?.toLowerCase() === targetMatName.toLowerCase()) ||
+            (targetMatId && i.name?.toLowerCase() === targetMatId.toLowerCase())
+          );
+          
+          const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+
           return {
             ...item,
             perUnit,
             requiredTotal: total,
-            available: invItem ? invItem.qty - invItem.reservedQty : 0,
-            deficient: Math.max(0, total - (invItem ? invItem.qty - invItem.reservedQty : 0))
+            available: avail,
+            deficient: Math.max(0, total - avail)
           };
         });
-        responseData = { modelId, modelName: product.name, qty: multiplier, requirements };
+        responseData = { modelId: product.id, modelName: product.name, qty: multiplier, requirements };
       }
     } else if (urlStr.includes('/api/products/')) {
       const parts = urlStr.split('/api/products/');

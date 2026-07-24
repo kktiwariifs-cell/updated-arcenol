@@ -18,7 +18,8 @@ import {
   mapWarehouse,
   mapBusinessProfile,
   mapCategory,
-  mapVoucher
+  mapVoucher,
+  mapBomBlueprint
 } from "./src/lib/serverSupabaseSync";
 
 async function startServer() {
@@ -480,62 +481,138 @@ async function startServer() {
   // MRP Calculation Endpoint
   app.get("/api/mrp/calculate", (req, res) => {
     const { modelId, qty } = req.query;
-    const product = db.products.find(p => p.id === modelId);
-    if (!product) return res.status(404).json({ error: "Product not found" });
+    const reqModelId = String(modelId || '').trim();
+    const product = db.products.find(p => 
+      String(p.id).trim() === reqModelId || 
+      String((p as any).model_id || '').trim() === reqModelId ||
+      p.name.toLowerCase() === reqModelId.toLowerCase()
+    );
+    if (!product) return res.status(404).json({ error: "Product model blueprint not found" });
 
-    const multiplier = Number(qty);
+    const multiplier = Number(qty || 0);
     const requirements = (product.bom || []).map(item => {
-      const perUnit = item.qty * (1 + ((item.wastage || 0) / 100));
+      const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
       const total = perUnit * multiplier;
-      const invItem = db.inventory.find(i => i.id === item.matId);
+      const targetMatId = String(item.matId || (item as any).id || '').trim();
+      const targetMatName = String(item.name || (item as any).materialName || '').trim();
       
+      const invItem = db.inventory.find(i => 
+        String(i.id).trim() === targetMatId || 
+        String(i.code).trim() === targetMatId || 
+        (targetMatName && i.name.toLowerCase() === targetMatName.toLowerCase()) ||
+        (targetMatId && i.name.toLowerCase() === targetMatId.toLowerCase())
+      );
+      
+      const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+
       return {
         ...item,
         perUnit,
         requiredTotal: total,
-        available: invItem ? invItem.qty - invItem.reservedQty : 0,
-        deficient: Math.max(0, total - (invItem ? invItem.qty - invItem.reservedQty : 0))
+        available: avail,
+        deficient: Math.max(0, total - avail)
       };
     });
 
-    res.json({ modelId, modelName: product.name, qty: multiplier, requirements });
+    res.json({ modelId: product.id, modelName: product.name, qty: multiplier, requirements });
   });
 
   // Product Management Endpoints
-  app.post("/api/products", (req, res) => {
+  app.post("/api/products", async (req, res) => {
     const { id, name, category, type, price, bom } = req.body;
-    if (db.products.find(p => p.id === id)) {
-      return res.status(400).json({ error: "Product ID already exists" });
+    let targetId = id ? String(id).trim() : '';
+    if (!targetId) {
+      targetId = `BAT-${Date.now()}`;
     }
-    const newProduct = { id, name, category: category || "Uncategorized Blueprints", type: type || "Battery", price, bom };
-    db.products.push(newProduct);
+    const newProduct = { 
+      id: targetId, 
+      model_id: targetId,
+      name: String(name || 'Battery Blueprint').trim(), 
+      category: category || "Uncategorized Blueprints", 
+      type: type || "Battery", 
+      price: Number(price || 0), 
+      bom: Array.isArray(bom) ? bom : [] 
+    };
+
+    const existingIdx = db.products.findIndex(p => String(p.id).trim() === targetId || String((p as any).model_id || '').trim() === targetId);
+    if (existingIdx !== -1) {
+      db.products[existingIdx] = newProduct;
+    } else {
+      db.products.push(newProduct);
+    }
+
+    try {
+      await batchUpsert('bom_blueprints', [mapBomBlueprint(newProduct)]);
+    } catch (err) {
+      console.warn("Supabase BOM upsert warning:", err);
+    }
+
     res.json(newProduct);
   });
 
-  app.put("/api/products/:id", (req, res) => {
+  app.put("/api/products/:id", async (req, res) => {
     const { id } = req.params;
-    const index = db.products.findIndex(p => p.id === id);
-    if (index === -1) return res.status(404).json({ error: "Product not found" });
-    db.products[index] = { ...db.products[index], ...req.body, id }; // Ensure ID hasn't changed
-    res.json(db.products[index]);
+    const targetId = String(id).trim();
+    let index = db.products.findIndex(p => String(p.id).trim() === targetId || String((p as any).model_id || '').trim() === targetId);
+    
+    const updatedProduct = {
+      id: targetId,
+      model_id: targetId,
+      name: req.body.name ? String(req.body.name).trim() : (index !== -1 ? db.products[index].name : 'Battery Blueprint'),
+      category: req.body.category || (index !== -1 ? db.products[index].category : "Uncategorized Blueprints"),
+      type: req.body.type || (index !== -1 ? db.products[index].type : "Battery"),
+      price: Number(req.body.price ?? (index !== -1 ? db.products[index].price : 0)),
+      bom: Array.isArray(req.body.bom) ? req.body.bom : (index !== -1 ? db.products[index].bom : [])
+    };
+
+    if (index !== -1) {
+      db.products[index] = updatedProduct;
+    } else {
+      db.products.push(updatedProduct);
+    }
+
+    try {
+      await batchUpsert('bom_blueprints', [mapBomBlueprint(updatedProduct)]);
+    } catch (err) {
+      console.warn("Supabase BOM update warning:", err);
+    }
+
+    res.json(updatedProduct);
   });
 
-  app.delete("/api/products/:id", (req, res) => {
+  app.delete("/api/products/:id", async (req, res) => {
     const { id } = req.params;
-    db.products = db.products.filter(p => p.id !== id);
+    const targetId = String(id).trim();
+    db.products = db.products.filter(p => String(p.id).trim() !== targetId && String((p as any).model_id || '').trim() !== targetId);
+    try {
+      await deleteRecord('bom_blueprints', targetId);
+    } catch (err) {
+      console.warn("Supabase delete BOM warning:", err);
+    }
     res.json({ success: true });
   });
 
-  app.post("/api/products/duplicate", (req, res) => {
+  app.post("/api/products/duplicate", async (req, res) => {
     const { sourceId, newId, newName } = req.body;
-    const source = db.products.find(p => p.id === sourceId);
-    if (!source) return res.status(404).json({ error: "Source product not found" });
-    if (db.products.find(p => p.id === newId)) return res.status(400).json({ error: "Target ID exists" });
+    const srcId = String(sourceId || '').trim();
+    const source = db.products.find(p => String(p.id).trim() === srcId || String((p as any).model_id || '').trim() === srcId);
+    if (!source) return res.status(404).json({ error: "Source product blueprint not found" });
+
+    const targetNewId = String(newId || '').trim() || `${srcId}-COPY`;
+    const targetNewName = String(newName || '').trim() || `Copy of ${source.name}`;
 
     const clone = JSON.parse(JSON.stringify(source));
-    clone.id = newId;
-    clone.name = newName;
+    clone.id = targetNewId;
+    clone.model_id = targetNewId;
+    clone.name = targetNewName;
     db.products.push(clone);
+
+    try {
+      await batchUpsert('bom_blueprints', [mapBomBlueprint(clone)]);
+    } catch (err) {
+      console.warn("Supabase BOM duplicate warning:", err);
+    }
+
     res.json(clone);
   });
 
