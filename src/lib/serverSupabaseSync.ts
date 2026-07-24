@@ -243,27 +243,36 @@ export function mapBusinessProfile(p: any) {
  */
 export async function batchUpsert(tableName: string, rows: any[]) {
   if (!rows || rows.length === 0) return { count: 0 };
-  const { data, error } = await supabaseServerClient
-    .from(tableName)
-    .upsert(rows)
-    .select();
-  if (error) {
-    console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, error.message);
-    return { count: 0, error: error.message };
+  try {
+    const { data, error } = await supabaseServerClient
+      .from(tableName)
+      .upsert(rows)
+      .select();
+    if (error) {
+      console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, error.message);
+      return { count: 0, error: error.message };
+    }
+    return { count: data?.length || rows.length };
+  } catch (err: any) {
+    console.warn(`[SupabaseSync] Warning upserting into ${tableName}:`, err?.message || err);
+    return { count: 0, error: err?.message || 'fetch failed' };
   }
-  return { count: data?.length || rows.length };
 }
 
 /**
  * Delete item from Supabase
  */
 export async function deleteRecord(tableName: string, id: string) {
-  const { error } = await supabaseServerClient
-    .from(tableName)
-    .delete()
-    .eq('id', id);
-  if (error) {
-    console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, error.message);
+  try {
+    const { error } = await supabaseServerClient
+      .from(tableName)
+      .delete()
+      .eq('id', id);
+    if (error) {
+      console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, error.message);
+    }
+  } catch (err: any) {
+    console.warn(`[SupabaseSync] Warning deleting from ${tableName}:`, err?.message || err);
   }
 }
 
@@ -273,44 +282,48 @@ export async function deleteRecord(tableName: string, id: string) {
 export async function syncAllERPToSupabase(db: any) {
   const results: Record<string, any> = {};
 
-  if (Array.isArray(db.inventory)) {
-    results.inventory = await batchUpsert('inventory', db.inventory.map(mapInventory));
-  }
-  if (Array.isArray(db.leads)) {
-    results.lead_inquiries = await batchUpsert('lead_inquiries', db.leads.map(mapLead));
-  }
-  if (Array.isArray(db.dealers)) {
-    results.customers = await batchUpsert('customers', db.dealers.map(mapCustomer));
-  }
-  if (Array.isArray(db.warehouses)) {
-    results.warehouses = await batchUpsert('warehouses', db.warehouses.map(mapWarehouse));
-  }
-  if (Array.isArray(db.gradedInventory)) {
-    results.graded_cells = await batchUpsert('graded_cells', db.gradedInventory.map(mapGradedCell));
-  }
-  if (Array.isArray(db.wipInventory)) {
-    results.wip_inventory = await batchUpsert('wip_inventory', db.wipInventory.map(mapWip));
-  }
-  if (Array.isArray(db.invoices)) {
-    results.invoices = await batchUpsert('invoices', db.invoices.map(mapInvoice));
-  }
-  if (Array.isArray(db.vouchers)) {
-    results.accounting_vouchers = await batchUpsert('accounting_vouchers', db.vouchers.map(mapVoucher));
-  }
-  if (Array.isArray(db.complaints)) {
-    results.complaints = await batchUpsert('complaints', db.complaints.map(mapComplaint));
-  }
-  if (Array.isArray(db.subsidiaries)) {
-    results.arcenol_corporate_units = await batchUpsert('arcenol_corporate_units', db.subsidiaries.map(mapCorporateUnit));
-  }
-  if (Array.isArray(db.categories)) {
-    results.categories = await batchUpsert('categories', db.categories.map(mapCategory));
-  }
-  if (db.businessProfile) {
-    results.arcenol_business_profile = await batchUpsert('arcenol_business_profile', [mapBusinessProfile(db.businessProfile)]);
+  try {
+    if (Array.isArray(db.inventory)) {
+      results.inventory = await batchUpsert('inventory', db.inventory.map(mapInventory));
+    }
+    if (Array.isArray(db.leads)) {
+      results.lead_inquiries = await batchUpsert('lead_inquiries', db.leads.map(mapLead));
+    }
+    if (Array.isArray(db.dealers)) {
+      results.customers = await batchUpsert('customers', db.dealers.map(mapCustomer));
+    }
+    if (Array.isArray(db.warehouses)) {
+      results.warehouses = await batchUpsert('warehouses', db.warehouses.map(mapWarehouse));
+    }
+    if (Array.isArray(db.gradedInventory)) {
+      results.graded_cells = await batchUpsert('graded_cells', db.gradedInventory.map(mapGradedCell));
+    }
+    if (Array.isArray(db.wipInventory)) {
+      results.wip_inventory = await batchUpsert('wip_inventory', db.wipInventory.map(mapWip));
+    }
+    if (Array.isArray(db.invoices)) {
+      results.invoices = await batchUpsert('invoices', db.invoices.map(mapInvoice));
+    }
+    if (Array.isArray(db.vouchers)) {
+      results.accounting_vouchers = await batchUpsert('accounting_vouchers', db.vouchers.map(mapVoucher));
+    }
+    if (Array.isArray(db.complaints)) {
+      results.complaints = await batchUpsert('complaints', db.complaints.map(mapComplaint));
+    }
+    if (Array.isArray(db.subsidiaries)) {
+      results.arcenol_corporate_units = await batchUpsert('arcenol_corporate_units', db.subsidiaries.map(mapCorporateUnit));
+    }
+    if (Array.isArray(db.categories)) {
+      results.categories = await batchUpsert('categories', db.categories.map(mapCategory));
+    }
+    if (db.businessProfile) {
+      results.arcenol_business_profile = await batchUpsert('arcenol_business_profile', [mapBusinessProfile(db.businessProfile)]);
+    }
+  } catch (err: any) {
+    console.warn("[SupabaseSync] Error during syncAllERPToSupabase:", err?.message || err);
   }
 
-  console.log("[SupabaseSync] Sync completed successfully across tables:", Object.keys(results));
+  console.log("[SupabaseSync] Sync completed across tables:", Object.keys(results));
   return results;
 }
 
@@ -319,263 +332,304 @@ export async function syncAllERPToSupabase(db: any) {
  */
 export async function hydrateFromSupabase(db: any) {
   try {
-    const { data: inv } = await supabaseServerClient.from('inventory').select('*');
-    if (inv && inv.length > 0) {
-      const remoteItems = inv.map(i => ({
-        id: String(i.id),
-        name: i.name,
-        code: i.code || i.id,
-        category: i.category || 'RAW_MATERIAL',
-        qty: Number(i.qty || 0),
-        unit: i.unit || 'Kg',
-        supplier: i.supplier || 'Vendor',
-        warehouse: i.warehouse || 'Raw Hub',
-        rack: i.rack || 'A-1',
-        price: Number(i.price || 0),
-        grn: i.grn || 'GRN-01',
-        batch: i.batch || 'BATCH-01',
-        minStock: Number(i.min_stock ?? i.minStock ?? 100),
-        reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 250),
-        qcStatus: i.qc_status || i.qcStatus || 'APPROVED',
-        status: i.status || 'AVAILABLE',
-        reservedQty: Number(i.reserved_qty ?? i.reservedQty ?? 0),
-        date: i.date || (i.created_at ? i.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
-      }));
+    // 1. Inventory
+    try {
+      const { data: inv } = await supabaseServerClient.from('inventory').select('*');
+      if (inv && inv.length > 0) {
+        const remoteItems = inv.map(i => ({
+          id: String(i.id),
+          name: i.name,
+          code: i.code || i.id,
+          category: i.category || 'RAW_MATERIAL',
+          qty: Number(i.qty || 0),
+          unit: i.unit || 'Kg',
+          supplier: i.supplier || 'Vendor',
+          warehouse: i.warehouse || 'Raw Hub',
+          rack: i.rack || 'A-1',
+          price: Number(i.price || 0),
+          grn: i.grn || 'GRN-01',
+          batch: i.batch || 'BATCH-01',
+          minStock: Number(i.min_stock ?? i.minStock ?? 100),
+          reorderLevel: Number(i.reorder_level ?? i.reorderLevel ?? 250),
+          qcStatus: i.qc_status || i.qcStatus || 'APPROVED',
+          status: i.status || 'AVAILABLE',
+          reservedQty: Number(i.reserved_qty ?? i.reservedQty ?? 0),
+          date: i.date || (i.created_at ? i.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
+        }));
 
-      const remoteMap = new Map(remoteItems.map(item => [item.id, item]));
-      const updatedDbList = [...remoteItems];
-      if (Array.isArray(db.inventory)) {
-        db.inventory.forEach((localItem: any) => {
-          if (!remoteMap.has(localItem.id)) {
-            updatedDbList.push(localItem);
-          }
-        });
+        const remoteMap = new Map(remoteItems.map(item => [item.id, item]));
+        const updatedDbList = [...remoteItems];
+        if (Array.isArray(db.inventory)) {
+          db.inventory.forEach((localItem: any) => {
+            if (!remoteMap.has(localItem.id)) {
+              updatedDbList.push(localItem);
+            }
+          });
+        }
+        db.inventory = updatedDbList;
       }
-      db.inventory = updatedDbList;
-    }
+    } catch (e) {}
 
-    const { data: whs } = await supabaseServerClient.from('warehouses').select('*');
-    if (whs && whs.length > 0) {
-      db.warehouses = Array.from(new Set(whs.map(w => (typeof w === 'string' ? w : (w.name || String(w.id)))).filter(Boolean)));
-    }
+    // 2. Warehouses
+    try {
+      const { data: whs } = await supabaseServerClient.from('warehouses').select('*');
+      if (whs && whs.length > 0) {
+        db.warehouses = Array.from(new Set(whs.map(w => (typeof w === 'string' ? w : (w.name || String(w.id)))).filter(Boolean)));
+      }
+    } catch (e) {}
 
-    const { data: cells } = await supabaseServerClient.from('graded_cells').select('*');
-    if (cells && cells.length > 0) {
-      db.gradedInventory = cells.map(c => ({
-        id: String(c.id),
-        serial: c.serial,
-        name: `${c.grade || 'A'} Graded Cell`,
-        voltage: Number(c.voltage || 3.2),
-        ir: Number(c.ir || 7.5),
-        capacity: Number(c.capacity || 6000),
-        cycleCount: Number(c.cycle_count || 0),
-        temp: Number(c.temp || 25.0),
-        grade: c.grade || 'A',
-        engineer: c.engineer || 'Suresh P.',
-        usage: c.usage || 'EV PACKS',
-        supplier: c.supplier || 'Energy Plus',
-        parentId: c.parent_id
-      }));
-    }
+    // 3. Graded Cells
+    try {
+      const { data: cells } = await supabaseServerClient.from('graded_cells').select('*');
+      if (cells && cells.length > 0) {
+        db.gradedInventory = cells.map(c => ({
+          id: String(c.id),
+          serial: c.serial,
+          name: `${c.grade || 'A'} Graded Cell`,
+          voltage: Number(c.voltage || 3.2),
+          ir: Number(c.ir || 7.5),
+          capacity: Number(c.capacity || 6000),
+          cycleCount: Number(c.cycle_count || 0),
+          temp: Number(c.temp || 25.0),
+          grade: c.grade || 'A',
+          engineer: c.engineer || 'Suresh P.',
+          usage: c.usage || 'EV PACKS',
+          supplier: c.supplier || 'Energy Plus',
+          parentId: c.parent_id
+        }));
+      }
+    } catch (e) {}
 
-    const { data: wips } = await supabaseServerClient.from('wip_inventory').select('*');
-    if (wips && wips.length > 0) {
-      db.wipInventory = wips.map(w => ({
-        id: String(w.id),
-        name: w.name,
-        type: "Semi-Finished",
-        qty: Number(w.qty || 0),
-        stage: w.stage || 'WELDING',
-        lastUpdate: w.last_update || new Date().toISOString().split('T')[0],
-        components: Array.isArray(w.components) ? w.components : []
-      }));
-    }
+    // 4. WIP Inventory
+    try {
+      const { data: wips } = await supabaseServerClient.from('wip_inventory').select('*');
+      if (wips && wips.length > 0) {
+        db.wipInventory = wips.map(w => ({
+          id: String(w.id),
+          name: w.name,
+          type: "Semi-Finished",
+          qty: Number(w.qty || 0),
+          stage: w.stage || 'WELDING',
+          lastUpdate: w.last_update || new Date().toISOString().split('T')[0],
+          components: Array.isArray(w.components) ? w.components : []
+        }));
+      }
+    } catch (e) {}
 
-    const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
-    const { data: leads } = await supabaseServerClient.from('lead_inquiries').select('*');
-    if (leads && leads.length > 0) {
-      const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
-      const mappedLeads = leads.map(l => {
-        const idStr = String(l.id);
-        const existing = existingLeadsMap.get(idStr) as any;
-        return {
-          id: idStr,
-          company: l.company || existing?.company || 'Unnamed Lead',
-          category: l.category || existing?.category || 'Dealer',
-          leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
-          source: l.source || l.leadSource || existing?.source || 'Website',
-          contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
-          phone: l.mobile || l.phone || existing?.phone || '',
-          location: l.location || existing?.location || '',
-          followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
-          followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
-          requirement: l.requirement || existing?.requirement || '',
-          status: String(l.status || existing?.status || 'NEW').toUpperCase(),
-          notes: l.notes || existing?.notes || '',
-          remarksLog: Array.isArray(l.remarks_log) ? l.remarks_log : (Array.isArray(l.remarksLog) ? l.remarksLog : (existing?.remarksLog || []))
+    // 5. Lead Inquiries
+    try {
+      const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
+      const { data: leads } = await supabaseServerClient.from('lead_inquiries').select('*');
+      if (leads && leads.length > 0) {
+        const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
+        const mappedLeads = leads.map(l => {
+          const idStr = String(l.id);
+          const existing = existingLeadsMap.get(idStr) as any;
+          return {
+            id: idStr,
+            company: l.company || existing?.company || 'Unnamed Lead',
+            category: l.category || existing?.category || 'Dealer',
+            leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
+            source: l.source || l.leadSource || existing?.source || 'Website',
+            contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
+            phone: l.mobile || l.phone || existing?.phone || '',
+            location: l.location || existing?.location || '',
+            followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
+            followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
+            requirement: l.requirement || existing?.requirement || '',
+            status: String(l.status || existing?.status || 'NEW').toUpperCase(),
+            notes: l.notes || existing?.notes || '',
+            remarksLog: Array.isArray(l.remarks_log) ? l.remarks_log : (Array.isArray(l.remarksLog) ? l.remarksLog : (existing?.remarksLog || []))
+          };
+        });
+        const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+        db.leads = [...mappedLeads, ...localOnly];
+      }
+    } catch (e) {}
+
+    // 6. Customers
+    try {
+      const { data: custs } = await supabaseServerClient.from('customers').select('*');
+      if (custs && custs.length > 0) {
+        db.dealers = custs.map(c => ({
+          id: String(c.id),
+          company: c.name,
+          category: 'Tier 1 Dealer',
+          gstin: c.gstin,
+          phone: c.phone,
+          email: `${(c.name || 'dealer').toLowerCase().replace(/\s/g, '')}@partner.com`,
+          location: c.address,
+          city: c.branch || 'Headquarters',
+          state: 'Gujarat',
+          region: 'West',
+          contactPerson: c.contact_person,
+          status: 'ACTIVE'
+        }));
+      }
+    } catch (e) {}
+
+    // 7. Invoices
+    try {
+      const { data: invs } = await supabaseServerClient.from('invoices').select('*');
+      if (invs && invs.length > 0) {
+        db.invoices = invs.map(inv => ({
+          id: String(inv.id),
+          dealerId: inv.customer_id,
+          biller_signature: inv.biller_signature,
+          items: Array.isArray(inv.goods) ? inv.goods : [],
+          subtotal: Number(inv.subtotal || 0),
+          discount: Number(inv.discount || 0),
+          tax: Number(inv.gst || 0),
+          total: Number(inv.grand_total || 0),
+          payment_mode: inv.payment_mode || 'Credit',
+          status: inv.status || 'UNPAID',
+          date: inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }));
+      }
+    } catch (e) {}
+
+    // 8. Complaints
+    try {
+      const { data: cmps } = await supabaseServerClient.from('complaints').select('*');
+      if (cmps && cmps.length > 0) {
+        db.complaints = cmps.map(c => ({
+          id: String(c.id),
+          serial: c.serial,
+          type: c.type,
+          stage: c.stage,
+          status: c.status,
+          date: c.date,
+          resolvedDate: c.resolved_date,
+          notes: c.notes,
+          engineeringObservations: c.engineering_observations,
+          rootCause: c.root_cause,
+          engineer: c.engineer,
+          inspectionResult: c.inspection_result
+        }));
+      }
+    } catch (e) {}
+
+    // 9. Subsidiaries
+    try {
+      const { data: subs } = await supabaseServerClient.from('arcenol_corporate_units').select('*');
+      if (subs && subs.length > 0) {
+        db.subsidiaries = subs.map(s => ({
+          id: String(s.id),
+          name: s.name,
+          shortName: s.shortName || s.short_name || '',
+          type: s.type,
+          gstin: s.gstin,
+          cin: s.cin,
+          contactEmail: s.contactEmail || s.contact_email || '',
+          phone: s.phone,
+          website: s.website,
+          address: s.address,
+          capacity: s.capacity,
+          manager: s.manager,
+          status: s.status
+        }));
+      }
+    } catch (e) {}
+
+    // 10. Categories
+    try {
+      const { data: cats } = await supabaseServerClient.from('categories').select('*');
+      if (cats && cats.length > 0) {
+        db.categories = cats.map((c: any) => ({
+          id: String(c.id),
+          name: c.name,
+          code: c.code || `CAT-${c.name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '')}`,
+          description: c.description || ''
+        }));
+        db.productCategories = cats.map((c: any) => c.name);
+      }
+    } catch (e) {}
+
+    // 11. BOMs
+    try {
+      const { data: boms } = await supabaseServerClient.from('bom_blueprints').select('*');
+      if (boms && boms.length > 0) {
+        db.products = boms.map((b: any) => ({
+          id: String(b.model_id || b.id),
+          name: b.name,
+          category: b.category_group,
+          bom: Array.isArray(b.components) ? b.components : []
+        }));
+      }
+    } catch (e) {}
+
+    // 12. Vouchers
+    try {
+      const { data: vouchers } = await supabaseServerClient.from('accounting_vouchers').select('*');
+      if (vouchers && vouchers.length > 0) {
+        db.vouchers = vouchers.map((v: any) => ({
+          id: String(v.id),
+          voucherType: v.voucher_type,
+          partyName: v.party_name,
+          category: v.category,
+          amount: Number(v.amount || 0),
+          depositMode: v.deposit_mode,
+          settlementStatus: v.settlement_status,
+          paymentNotes: v.payment_notes,
+          date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+        }));
+        db.vyaparRecords = vouchers.map((v: any) => ({
+          id: String(v.id),
+          type: v.voucher_type || 'Payment-In',
+          partyId: 'external',
+          partyName: v.party_name,
+          date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          amount: Number(v.amount || 0),
+          mode: v.deposit_mode || 'Bank',
+          status: v.settlement_status || 'PAID',
+          remarks: v.payment_notes || '',
+          category: v.category || 'General'
+        }));
+      }
+    } catch (e) {}
+
+    // 13. Marketing
+    try {
+      const { data: camps } = await supabaseServerClient.from('marketing_campaigns').select('*');
+      if (camps && camps.length > 0 && db.engagement) {
+        db.engagement.campaigns = camps.map((m: any) => ({
+          id: String(m.id),
+          title: m.title,
+          desc: m.description,
+          category: m.category_group,
+          status: m.status
+        }));
+      }
+    } catch (e) {}
+
+    // 14. Business Profile
+    try {
+      const { data: bp } = await supabaseServerClient.from('arcenol_business_profile').select('*').eq('id', 'PRIMARY').maybeSingle();
+      if (bp) {
+        db.businessProfile = {
+          companyName: bp.companyName || db.businessProfile?.companyName || 'Arcenol Energy Private Limited',
+          shortName: bp.shortName || db.businessProfile?.shortName || 'ARCENOL',
+          establishedYear: bp.establishedYear || db.businessProfile?.establishedYear || '2018',
+          industrySector: bp.industrySector || db.businessProfile?.industrySector || 'Energy Storage',
+          contactEmail: bp.contactEmail || db.businessProfile?.contactEmail || 'ops-admin@arcenol.com',
+          phone: bp.phone || db.businessProfile?.phone || '+91 79 4028 9200',
+          website: bp.website || db.businessProfile?.website || 'www.arcenol.com',
+          cin: bp.cin || db.businessProfile?.cin || 'U31900GJ2018PTC102145',
+          gstin: bp.gstin || db.businessProfile?.gstin || '24AAHCA9192M1ZP',
+          address: bp.address || db.businessProfile?.address || 'Arcenol Tower, Gujarat',
+          manufacturingCapacity: bp.manufacturingCapacity || db.businessProfile?.manufacturingCapacity || '12,000 MWh / Year',
+          leadAcidOutput: bp.leadAcidOutput || db.businessProfile?.leadAcidOutput || '260,000 MT / Year',
+          depotsCount: Number(bp.depotsCount || db.businessProfile?.depotsCount || 5),
+          primaryRegion: bp.primaryRegion || db.businessProfile?.primaryRegion || 'WEST_SOUTH',
+          complianceOfficer: bp.complianceOfficer || db.businessProfile?.complianceOfficer || 'Dr. Ananya Sharma',
+          nodePassphrase: bp.nodePassphrase || db.businessProfile?.nodePassphrase || 'ARC-NODE-SECURE',
+          logo: bp.logo || db.businessProfile?.logo || '',
+          loginLeftImage: bp.loginLeftImage || db.businessProfile?.loginLeftImage || ''
         };
-      });
-      const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-      db.leads = [...mappedLeads, ...localOnly];
-    }
+      }
+    } catch (e) {}
 
-    const { data: custs } = await supabaseServerClient.from('customers').select('*');
-    if (custs && custs.length > 0) {
-      db.dealers = custs.map(c => ({
-        id: String(c.id),
-        company: c.name,
-        category: 'Tier 1 Dealer',
-        gstin: c.gstin,
-        phone: c.phone,
-        email: `${(c.name || 'dealer').toLowerCase().replace(/\s/g, '')}@partner.com`,
-        location: c.address,
-        city: c.branch || 'Headquarters',
-        state: 'Gujarat',
-        region: 'West',
-        contactPerson: c.contact_person,
-        status: 'ACTIVE'
-      }));
-    }
-
-    const { data: invs } = await supabaseServerClient.from('invoices').select('*');
-    if (invs && invs.length > 0) {
-      db.invoices = invs.map(inv => ({
-        id: String(inv.id),
-        dealerId: inv.customer_id,
-        biller_signature: inv.biller_signature,
-        items: Array.isArray(inv.goods) ? inv.goods : [],
-        subtotal: Number(inv.subtotal || 0),
-        discount: Number(inv.discount || 0),
-        tax: Number(inv.gst || 0),
-        total: Number(inv.grand_total || 0),
-        payment_mode: inv.payment_mode || 'Credit',
-        status: inv.status || 'UNPAID',
-        date: inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-      }));
-    }
-
-    const { data: cmps } = await supabaseServerClient.from('complaints').select('*');
-    if (cmps && cmps.length > 0) {
-      db.complaints = cmps.map(c => ({
-        id: String(c.id),
-        serial: c.serial,
-        type: c.type,
-        stage: c.stage,
-        status: c.status,
-        date: c.date,
-        resolvedDate: c.resolved_date,
-        notes: c.notes,
-        engineeringObservations: c.engineering_observations,
-        rootCause: c.root_cause,
-        engineer: c.engineer,
-        inspectionResult: c.inspection_result
-      }));
-    }
-
-    const { data: subs } = await supabaseServerClient.from('arcenol_corporate_units').select('*');
-    if (subs && subs.length > 0) {
-      db.subsidiaries = subs.map(s => ({
-        id: String(s.id),
-        name: s.name,
-        shortName: s.shortName || s.short_name || '',
-        type: s.type,
-        gstin: s.gstin,
-        cin: s.cin,
-        contactEmail: s.contactEmail || s.contact_email || '',
-        phone: s.phone,
-        website: s.website,
-        address: s.address,
-        capacity: s.capacity,
-        manager: s.manager,
-        status: s.status
-      }));
-    }
-
-    const { data: cats } = await supabaseServerClient.from('categories').select('*');
-    if (cats && cats.length > 0) {
-      db.categories = cats.map((c: any) => ({
-        id: String(c.id),
-        name: c.name,
-        code: c.code || `CAT-${c.name.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '')}`,
-        description: c.description || ''
-      }));
-      db.productCategories = cats.map((c: any) => c.name);
-    }
-
-    const { data: boms } = await supabaseServerClient.from('bom_blueprints').select('*');
-    if (boms && boms.length > 0) {
-      db.products = boms.map((b: any) => ({
-        id: String(b.model_id || b.id),
-        name: b.name,
-        category: b.category_group,
-        bom: Array.isArray(b.components) ? b.components : []
-      }));
-    }
-
-    const { data: vouchers } = await supabaseServerClient.from('accounting_vouchers').select('*');
-    if (vouchers && vouchers.length > 0) {
-      db.vouchers = vouchers.map((v: any) => ({
-        id: String(v.id),
-        voucherType: v.voucher_type,
-        partyName: v.party_name,
-        category: v.category,
-        amount: Number(v.amount || 0),
-        depositMode: v.deposit_mode,
-        settlementStatus: v.settlement_status,
-        paymentNotes: v.payment_notes,
-        date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
-      }));
-      db.vyaparRecords = vouchers.map((v: any) => ({
-        id: String(v.id),
-        type: v.voucher_type || 'Payment-In',
-        partyId: 'external',
-        partyName: v.party_name,
-        date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-        amount: Number(v.amount || 0),
-        mode: v.deposit_mode || 'Bank',
-        status: v.settlement_status || 'PAID',
-        remarks: v.payment_notes || '',
-        category: v.category || 'General'
-      }));
-    }
-
-    const { data: camps } = await supabaseServerClient.from('marketing_campaigns').select('*');
-    if (camps && camps.length > 0 && db.engagement) {
-      db.engagement.campaigns = camps.map((m: any) => ({
-        id: String(m.id),
-        title: m.title,
-        desc: m.description,
-        category: m.category_group,
-        status: m.status
-      }));
-    }
-
-    const { data: bp } = await supabaseServerClient.from('arcenol_business_profile').select('*').eq('id', 'PRIMARY').maybeSingle();
-    if (bp) {
-      db.businessProfile = {
-        companyName: bp.companyName,
-        shortName: bp.shortName,
-        establishedYear: bp.establishedYear,
-        industrySector: bp.industrySector,
-        contactEmail: bp.contactEmail,
-        phone: bp.phone,
-        website: bp.website,
-        cin: bp.cin,
-        gstin: bp.gstin,
-        address: bp.address,
-        manufacturingCapacity: bp.manufacturingCapacity,
-        leadAcidOutput: bp.leadAcidOutput,
-        depotsCount: Number(bp.depotsCount || 5),
-        primaryRegion: bp.primaryRegion,
-        complianceOfficer: bp.complianceOfficer,
-        nodePassphrase: bp.nodePassphrase,
-        logo: bp.logo,
-        loginLeftImage: bp.loginLeftImage
-      };
-    }
-
-    console.log("[SupabaseSync] Successfully hydrated local database state from Supabase remote tables.");
   } catch (err: any) {
-    console.warn("[SupabaseSync] Hydration warning:", err.message);
+    console.warn("[SupabaseSync] Hydration warning:", err?.message || err);
   }
 }

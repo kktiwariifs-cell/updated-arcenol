@@ -1073,7 +1073,7 @@ export const Billing: React.FC = () => {
                       subtitle: "GSTIN: 24AAACA0405R1ZX | Registered Entity: Arcenol Energies",
                       headers: ["Metric Component", "Base Value (₹)", "Tax Rate (%)", "Calculated GST (₹)"],
                       rows: [
-                        ["Outward Sales GST Collected", formatCurrency(invoicesList.reduce((acc, i) => acc + (i.total || 0), 0)), "18%", formatCurrency(gstOutwardCollected)],
+                        ["Outward Sales GST Collected", formatCurrency((data?.invoices || []).reduce((acc: number, i: any) => acc + (i.total || 0), 0)), "18%", formatCurrency(gstOutwardCollected)],
                         ["Inward Purchase Input Tax Credit", formatCurrency(vyaparRecords.filter(r => r.type === 'Purchase').reduce((acc, r) => acc + (r.amount || 0), 0)), "18%", formatCurrency(gstInwardCredit)],
                         ["Net Payable GST Tax Liability", "-", "-", formatCurrency(gstNetLiability)]
                       ],

@@ -76,15 +76,25 @@ export const SuperAdmin: React.FC = () => {
           if (active && remoteProfile) {
             setFormData(prev => ({
               ...prev,
-              ...remoteProfile
+              companyName: remoteProfile.companyName || prev.companyName,
+              shortName: remoteProfile.shortName || prev.shortName,
+              establishedYear: remoteProfile.establishedYear || prev.establishedYear,
+              industrySector: remoteProfile.industrySector || prev.industrySector,
+              contactEmail: remoteProfile.contactEmail || prev.contactEmail,
+              phone: remoteProfile.phone || prev.phone,
+              website: remoteProfile.website || prev.website,
+              cin: remoteProfile.cin || prev.cin,
+              gstin: remoteProfile.gstin || prev.gstin,
+              address: remoteProfile.address || prev.address,
+              manufacturingCapacity: remoteProfile.manufacturingCapacity || prev.manufacturingCapacity,
+              leadAcidOutput: remoteProfile.leadAcidOutput || prev.leadAcidOutput,
+              depotsCount: remoteProfile.depotsCount || prev.depotsCount,
+              primaryRegion: remoteProfile.primaryRegion || prev.primaryRegion,
+              complianceOfficer: remoteProfile.complianceOfficer || prev.complianceOfficer,
+              nodePassphrase: remoteProfile.nodePassphrase || prev.nodePassphrase,
+              logo: remoteProfile.logo || prev.logo,
+              loginLeftImage: remoteProfile.loginLeftImage || prev.loginLeftImage
             }));
-            
-            // Keep local Express server cache in sync with the fetched Supabase profile
-            await fetch('/api/business-profile', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(remoteProfile)
-            });
           }
         } catch (profileErr) {
           console.warn("Supabase initial load profile error (acceptable if table not initialized):", profileErr);
@@ -318,31 +328,81 @@ export const SuperAdmin: React.FC = () => {
     document.getElementById('logo-file-input')?.click();
   };
 
-  const handleLogoFile = (file: File) => {
+  const compressAndResizeImage = (file: File, maxWidth: number, maxHeight: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onerror = () => resolve('');
+      reader.onload = (e) => {
+        const rawResult = e.target?.result as string;
+        if (!rawResult) {
+          resolve('');
+          return;
+        }
+        if (file.type === 'image/svg+xml') {
+          resolve(rawResult);
+          return;
+        }
+        const img = new Image();
+        img.onerror = () => resolve(rawResult);
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+              resolve(rawResult);
+              return;
+            }
+
+            ctx.drawImage(img, 0, 0, width, height);
+            const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(resizedBase64 || rawResult);
+          } catch (e) {
+            resolve(rawResult);
+          }
+        };
+        img.src = rawResult;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleLogoFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setErrorMessage('Corporate logo must be an image file (PNG, JPG, SVG, WebP).');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 5000);
       return;
     }
-    if (file.size > 500 * 1024) {
-      setErrorMessage('Corporate logo file is too large. Max file size: 500KB.');
+
+    const base64 = await compressAndResizeImage(file, 512, 512);
+    if (!base64) {
+      setErrorMessage('Failed to process image file.');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 5000);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      setFormData(prev => ({
-        ...prev,
-        logo: base64
-      }));
-      setIsEditable(true); // Automatically enable full edit mode on logo upload
-      setSaveStatus('idle');
-    };
-    reader.readAsDataURL(file);
+    setFormData(prev => ({
+      ...prev,
+      logo: base64
+    }));
+    setIsEditable(true); // Automatically enable full edit mode on logo upload
+    setSaveStatus('idle');
   };
 
   const handleLeftImgDragOver = (e: React.DragEvent) => {
@@ -373,31 +433,28 @@ export const SuperAdmin: React.FC = () => {
     document.getElementById('login-left-img-input')?.click();
   };
 
-  const handleLeftImgFile = (file: File) => {
+  const handleLeftImgFile = async (file: File) => {
     if (!file.type.startsWith('image/')) {
       setErrorMessage('Login left image must be an image file (PNG, JPG, SVG, WebP).');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 5000);
       return;
     }
-    if (file.size > 1.5 * 1024 * 1024) {
-      setErrorMessage('Login left image file is too large. Max file size: 1.5MB.');
+
+    const base64 = await compressAndResizeImage(file, 1280, 800);
+    if (!base64) {
+      setErrorMessage('Failed to process login left image file.');
       setSaveStatus('error');
       setTimeout(() => setSaveStatus('idle'), 5000);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const base64 = e.target?.result as string;
-      setFormData(prev => ({
-        ...prev,
-        loginLeftImage: base64
-      }));
-      setIsEditable(true);
-      setSaveStatus('idle');
-    };
-    reader.readAsDataURL(file);
+    setFormData(prev => ({
+      ...prev,
+      loginLeftImage: base64
+    }));
+    setIsEditable(true);
+    setSaveStatus('idle');
   };
 
   const handleSubmitProfile = async (e: React.FormEvent) => {
@@ -407,6 +464,11 @@ export const SuperAdmin: React.FC = () => {
     setErrorMessage('');
 
     try {
+      // Backup in localStorage immediately on browser side
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('arcenol_business_profile_backup', JSON.stringify(formData));
+      }
+
       // 1. Save to Express server cache
       const response = await fetch('/api/business-profile', {
         method: 'POST',
@@ -430,7 +492,7 @@ export const SuperAdmin: React.FC = () => {
       }
 
       setSaveStatus('success');
-      setHasInitialized(false); // Enable a fresh sync from server with the newly saved values
+      setHasInitialized(true); // Retain active form state
       
       // Auto dismiss success toast
       setTimeout(() => {

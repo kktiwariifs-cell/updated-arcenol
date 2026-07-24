@@ -290,13 +290,15 @@ export const CRM: React.FC = () => {
   };
 
   const handlePrintCRMReport = () => {
+    const dealersList = data?.dealers || [];
+    const leadsList = data?.leads || [];
     downloadReportDataAsPDF({
       title: `CRM ${activeSubTab === 'dealers' ? 'Certified Partners' : 'Enquiries & Pipeline'} Report`,
-      subtitle: `Total Records Logged: ${activeSubTab === 'dealers' ? dealers.length : leads.length}`,
+      subtitle: `Total Records Logged: ${activeSubTab === 'dealers' ? dealersList.length : leadsList.length}`,
       headers: ["Company / Contact", "Category", "Location / Region", "Status", "Contact Details"],
       rows: activeSubTab === 'dealers' 
-        ? dealers.map((d: any) => [d.company || 'Partner', d.category || 'Tier 1 Dealer', d.location || 'India', d.status || 'ACTIVE', `${d.phone || 'N/A'} (${d.contactPerson || 'Rep'})`])
-        : leads.map((l: any) => [l.company || 'Lead Entry', l.category || 'Enquiry', l.location || 'India', l.status || 'NEW', `${l.phone || 'N/A'} (${l.contactPerson || 'N/A'})`]),
+        ? dealersList.map((d: any) => [d.company || 'Partner', d.category || 'Tier 1 Dealer', d.location || 'India', d.status || 'ACTIVE', `${d.phone || 'N/A'} (${d.contactPerson || 'Rep'})`])
+        : leadsList.map((l: any) => [l.company || 'Lead Entry', l.category || 'Enquiry', l.location || 'India', l.status || 'NEW', `${l.phone || 'N/A'} (${l.contactPerson || 'N/A'})`]),
       filename: `CRM_${activeSubTab}_Report.pdf`
     });
   };

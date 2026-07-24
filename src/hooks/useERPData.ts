@@ -35,6 +35,16 @@ if (typeof window !== 'undefined') {
   if (saved) {
     try {
       cachedData = JSON.parse(saved);
+      const profileBackup = localStorage.getItem('arcenol_business_profile_backup');
+      if (profileBackup && cachedData) {
+        const bp = JSON.parse(profileBackup);
+        cachedData.businessProfile = {
+          ...cachedData.businessProfile,
+          ...bp,
+          logo: cachedData.businessProfile?.logo || bp?.logo || '',
+          loginLeftImage: cachedData.businessProfile?.loginLeftImage || bp?.loginLeftImage || ''
+        };
+      }
       cachedLoading = false;
     } catch (e) {}
   }
@@ -49,6 +59,26 @@ const performFetch = async () => {
       return;
     }
     const json = await res.json();
+    
+    // Ensure logo and settings are backed up and merged seamlessly
+    if (typeof window !== 'undefined' && json) {
+      const profileBackup = localStorage.getItem('arcenol_business_profile_backup');
+      if (profileBackup) {
+        try {
+          const bp = JSON.parse(profileBackup);
+          json.businessProfile = {
+            ...json.businessProfile,
+            ...bp,
+            logo: json.businessProfile?.logo || bp?.logo || '',
+            loginLeftImage: json.businessProfile?.loginLeftImage || bp?.loginLeftImage || ''
+          };
+        } catch (e) {}
+      }
+      if (json.businessProfile) {
+        localStorage.setItem('arcenol_business_profile_backup', JSON.stringify(json.businessProfile));
+      }
+    }
+
     cachedData = json;
     cachedLoading = false;
 
