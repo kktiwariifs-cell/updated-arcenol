@@ -969,6 +969,125 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
       {/* ==================== INTERACTIVE WAREHOUSE CAPACITY MAP MODAL ==================== */}
       {showCapacityMap && (() => {
         const currentCapWh = selectedCapacityWarehouse || (warehouses && warehouses.length > 0 ? warehouses[0] : '');
+
+        // Helper to collect all stock items belonging to a warehouse depot
+        const getAllWarehouseItems = (whName: string) => {
+          const rawItems = (data?.inventory || [])
+            .filter((i: any) => i.warehouse === whName && i.status !== 'INACTIVE')
+            .map((i: any) => ({
+              ...i,
+              itemType: 'RAW_MATERIAL',
+              displayName: i.name,
+              displayCode: i.code || i.id,
+              displayQty: i.qty || 0,
+              displayUnit: i.unit || 'Pcs',
+              displayPrice: i.price || 0,
+              qcStatus: i.qcStatus || 'APPROVED'
+            }));
+
+          const fgItems = (data?.finishedGoods || [])
+            .filter((f: any) => f.warehouse === whName)
+            .map((f: any) => ({
+              ...f,
+              id: f.id || f.serial,
+              name: f.model ? `Battery Pack (${f.model})` : f.name || 'Finished Battery Pack',
+              code: f.serial || f.batch || f.id,
+              qty: 1,
+              unit: 'Pack',
+              price: f.price || 35000,
+              itemType: 'FINISHED_GOOD',
+              displayName: f.model ? `Pack ${f.model}` : f.serial,
+              displayCode: f.serial || f.batch,
+              displayQty: 1,
+              displayUnit: 'Pack',
+              displayPrice: f.price || 35000,
+              qcStatus: f.status === 'READY' ? 'APPROVED' : f.status === 'HOLD' ? 'UNDER_QC' : 'REJECTED'
+            }));
+
+          return [...rawItems, ...fgItems];
+        };
+
+        // Helper to construct compartment map for grid layout
+        const buildCompartmentMap = (whItems: any[], racksCount: number, slotsCount: number) => {
+          const map: Record<string, any> = {};
+          const unmapped: any[] = [];
+          const maxRackLetter = String.fromCharCode(64 + racksCount);
+
+          whItems.forEach((item) => {
+            let assigned = false;
+            if (item.rack) {
+              const rawRack = item.rack.trim().toUpperCase();
+
+              // Case 1: Exact match A1, B2, C3 etc.
+              const matchExact = rawRack.match(/^([A-Z])([0-9]+)$/);
+              if (matchExact) {
+                const letter = matchExact[1];
+                const slotNum = parseInt(matchExact[2], 10);
+                if (letter >= 'A' && letter <= maxRackLetter && slotNum >= 1 && slotNum <= slotsCount) {
+                  const code = `${letter}${slotNum}`;
+                  if (!map[code]) {
+                    map[code] = item;
+                    assigned = true;
+                  }
+                }
+              }
+
+              // Case 2: BIN-01, BIN-15, S-01, L1, S1 etc.
+              if (!assigned) {
+                let targetLetter = '';
+                let targetNum = 0;
+
+                if (rawRack.startsWith('BIN-') || rawRack.startsWith('BIN')) {
+                  const numStr = rawRack.replace(/[^0-9]/g, '');
+                  const num = parseInt(numStr, 10) || 1;
+                  const rIndex = Math.floor((num - 1) / slotsCount);
+                  const rLetter = String.fromCharCode(66 + (rIndex % (racksCount - 1))); // start B
+                  const sNum = ((num - 1) % slotsCount) + 1;
+                  targetLetter = rLetter <= maxRackLetter ? rLetter : 'A';
+                  targetNum = sNum;
+                } else if (rawRack.startsWith('L')) {
+                  targetLetter = 'D';
+                  targetNum = parseInt(rawRack.replace(/[^0-9]/g, ''), 10) || 1;
+                } else if (rawRack.startsWith('S')) {
+                  targetLetter = 'E';
+                  targetNum = parseInt(rawRack.replace(/[^0-9]/g, ''), 10) || 1;
+                }
+
+                if (targetLetter && targetLetter >= 'A' && targetLetter <= maxRackLetter && targetNum >= 1 && targetNum <= slotsCount) {
+                  const code = `${targetLetter}${targetNum}`;
+                  if (!map[code]) {
+                    map[code] = item;
+                    assigned = true;
+                  }
+                }
+              }
+            }
+
+            if (!assigned) {
+              unmapped.push(item);
+            }
+          });
+
+          // Fallback: place remaining unmapped items in open grid slots
+          if (unmapped.length > 0) {
+            for (let r = 0; r < racksCount; r++) {
+              const letter = String.fromCharCode(65 + r);
+              for (let s = 1; s <= slotsCount; s++) {
+                const code = `${letter}${s}`;
+                if (!map[code] && unmapped.length > 0) {
+                  const itemToPlace = unmapped.shift();
+                  map[code] = itemToPlace;
+                }
+              }
+            }
+          }
+
+          return map;
+        };
+
+        const currentWhItems = getAllWarehouseItems(currentCapWh);
+        const compartmentMap = buildCompartmentMap(currentWhItems, numRacks, numSlots);
+
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 overflow-y-auto select-none" id="capacity-map-modal">
             <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col my-8 animate-in zoom-in-95 duration-300">
@@ -1008,10 +1127,9 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                        <div className="space-y-2">
                           {warehouses.map((wh: string, idx: number) => {
                              const isSelected = currentCapWh === wh;
-                             const warehouseValue = inventory
-                                .filter((i: any) => i.warehouse === wh)
-                                .reduce((acc: number, item: any) => acc + (item.qty * (item.price || 0)), 0);
-                             const activeCount = inventory.filter((i: any) => i.warehouse === wh && i.status !== 'INACTIVE').length;
+                             const whItems = getAllWarehouseItems(wh);
+                             const warehouseValue = whItems.reduce((acc: number, item: any) => acc + (item.qty * (item.price || 0)), 0);
+                             const activeCount = whItems.length;
                              return (
                                 <button
                                    key={wh}
@@ -1063,19 +1181,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
 
                        {/* Calculate exact occupancies */}
                        {(() => {
-                          const whItems = inventory.filter((i: any) => i.warehouse === currentCapWh);
-                          // Standardize matching - let's count unique valid rack codes of form A1, B4, C3, etc.
-                          const gridOccupiedItems = whItems.filter((i: any) => {
-                             if (!i.rack || i.status === 'INACTIVE') return false;
-                             const rClean = i.rack.trim().toUpperCase();
-                             const maxLetter = String.fromCharCode(64 + numRacks);
-                             const match = rClean.match(/^([A-Z])([0-9]+)$/);
-                             if (!match) return false;
-                             const rLetter = match[1];
-                             const rNum = parseInt(match[2], 10);
-                             return rLetter >= 'A' && rLetter <= maxLetter && rNum >= 1 && rNum <= numSlots;
-                          });
-                          const occupiedSlots = gridOccupiedItems.length;
+                          const occupiedSlots = Object.keys(compartmentMap).length;
                           const totalSlots = numRacks * numSlots;
                           const pct = Math.min(100, Math.round((occupiedSlots / totalSlots) * 100));
                           
@@ -1203,20 +1309,6 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
 
                        {/* The Dynamic Interactive Grid */}
                        {(() => {
-                          const whItems = inventory.filter((i: any) => i.warehouse === currentCapWh && i.status !== 'INACTIVE');
-                          
-                          // Let's create an active compartment map
-                          // key: e.g. "A1", value: full item object
-                          const compartmentMap: Record<string, any> = {};
-                          
-                          whItems.forEach((item: any) => {
-                             if (item.rack) {
-                                const cleanR = item.rack.trim().toUpperCase();
-                                compartmentMap[cleanR] = item;
-                             }
-                          });
-
-                          // Visual grid: iterate over Racks (A to F) and for each render slots (1 to 8)
                           const racks = Array.from({ length: numRacks }, (_, i) => String.fromCharCode(65 + i));
                           const slots = Array.from({ length: numSlots }, (_, i) => i + 1);
 
@@ -1232,7 +1324,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                <span className="text-base font-black leading-none">{rackCode}</span>
                                             </div>
 
-                                            {/* Racks list 1 to 8 slots */}
+                                            {/* Racks list slots */}
                                             <div className="flex-1 grid gap-2" style={{ gridTemplateColumns: `repeat(${numSlots}, minmax(0, 1fr))` }}>
                                                {slots.map((slotNum) => {
                                                   const slotCode = `${rackCode}${slotNum}`;
@@ -1265,7 +1357,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                            setSelectedItem(hasItem || { _emptySlotCode: slotCode, _emptyWarehouse: currentCapWh });
                                                         }}
                                                         className={cn(
-                                                           "h-12 rounded-xl border flex flex-col items-center justify-center text-[10px] font-black transition-all font-mono hover:scale-105 active:scale-95 shadow-3xs relative group",
+                                                           "h-12 rounded-xl border flex flex-col items-center justify-center text-[10px] font-black transition-all font-mono hover:scale-105 active:scale-95 shadow-3xs relative group cursor-pointer",
                                                            slotStyles,
                                                            isSelected ? "ring-2 ring-primary-600 scale-105 shadow-md bg-sky-50 border-sky-350" : ""
                                                         )}
@@ -1283,17 +1375,17 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                         )}
 
                                                         {/* Beautiful tooltips */}
-                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-slate-905 text-white text-[9.5px] rounded-lg p-2.5 w-44 shadow-xl border border-slate-700 pointer-events-none select-none text-left">
-                                                           <div className="font-black flex justify-between">
-                                                              <span>Compartment: {slotCode}</span>
+                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-30 bg-slate-905 text-white text-[9.5px] rounded-lg p-2.5 w-48 shadow-xl border border-slate-700 pointer-events-none select-none text-left">
+                                                           <div className="font-black flex justify-between items-center pb-1 border-b border-slate-800">
+                                                              <span>Bay Unit: {slotCode}</span>
                                                               <span>{qcText}</span>
                                                            </div>
                                                            {hasItem ? (
                                                               <div className="mt-1 space-y-0.5 font-medium">
                                                                  <p className="text-white truncate font-black">{hasItem.name}</p>
-                                                                 <p className="text-slate-400">SKU: {hasItem.code}</p>
-                                                                 <p className="text-white font-black text-indigo-200">Qty: {hasItem.qty.toLocaleString()} {hasItem.unit}</p>
-                                                                 <p className="text-emerald-400 font-bold">Val: {formatCurrency(hasItem.qty * (hasItem.price || 0))}</p>
+                                                                 <p className="text-slate-400">SKU/Serial: {hasItem.code}</p>
+                                                                 <p className="text-white font-black text-indigo-200">Qty: {(hasItem.qty || 1).toLocaleString()} {hasItem.unit || 'Pcs'}</p>
+                                                                 <p className="text-emerald-400 font-bold">Val: {formatCurrency((hasItem.qty || 1) * (hasItem.price || 0))}</p>
                                                               </div>
                                                            ) : (
                                                               <p className="mt-1 text-slate-400 font-semibold">Ready for bin storage assignment.</p>
