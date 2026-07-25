@@ -4,7 +4,13 @@ const INITIAL_DB = {
   inventory: [] as any[],
   gradedInventory: [] as any[],
   wipInventory: [] as any[],
-  wipStages: ["WELDING", "BMS_MOUNTING", "TESTING", "CASING", "GRADING", "QUALITY_CHECK"],
+  wipStages: [
+    "CELL_SORTING_&_MATRIX_ALIGNMENT",
+    "SPOT_WELDING_&_BUSBAR_JOINING",
+    "BMS_WIRING_&_SOLDERING",
+    "CASING_&_POTTING",
+    "QUALITY_CHECK"
+  ],
   processingLogs: [] as any[],
   production: [] as any[],
   productionPlans: [] as any[],

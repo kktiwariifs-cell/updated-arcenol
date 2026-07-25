@@ -126,7 +126,13 @@ export const Production: React.FC = () => {
     }
   };
 
-  const stagesList: string[] = data?.wipStages || ["WELDING", "BMS_MOUNTING", "TESTING", "CASING", "GRADING", "QUALITY_CHECK"];
+  const stagesList: string[] = data?.wipStages || [
+    "CELL_SORTING_&_MATRIX_ALIGNMENT",
+    "SPOT_WELDING_&_BUSBAR_JOINING",
+    "BMS_WIRING_&_SOLDERING",
+    "CASING_&_POTTING",
+    "QUALITY_CHECK"
+  ];
 
   // Grading State
   const [selectedRaw, setSelectedRaw] = useState<any>(null);
@@ -392,6 +398,123 @@ export const Production: React.FC = () => {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ASSEMBLY & WIP LINE STAGES ARCHITECTURE DISPLAY */}
+          <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 p-8 md:p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden border border-slate-700/50 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-700/60 pb-6">
+              <div>
+                <div className="flex items-center space-x-3 mb-2">
+                  <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <Factory size={22} />
+                  </span>
+                  <div>
+                    <h3 className="text-xl md:text-2xl font-black italic tracking-tight uppercase text-white">
+                      Assembly & WIP Line Pipeline Stages
+                    </h3>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Standard Battery Assembly Workflow & Process Control Milestones
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-mono font-black uppercase tracking-wider">
+                  4 Active Process Nodes
+                </span>
+              </div>
+            </div>
+
+            {/* 4 Interactive Assembly Stages Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {[
+                {
+                  stageNum: "Stage 1",
+                  title: "Cell Sorting & Matrix Alignment",
+                  code: "CELL_SORTING_&_MATRIX_ALIGNMENT",
+                  icon: Layers,
+                  color: "from-blue-500/20 to-indigo-500/10 border-blue-500/40 text-blue-400",
+                  badgeBg: "bg-blue-500 text-slate-950",
+                  desc: "Group matched cells into series/parallel arrangements based on capacity and internal resistance grading.",
+                  activeCount: wipInventory.filter((w: any) => w.stage === "CELL_SORTING_&_MATRIX_ALIGNMENT").length
+                },
+                {
+                  stageNum: "Stage 2",
+                  title: "Spot Welding & Busbar Joining",
+                  code: "SPOT_WELDING_&_BUSBAR_JOINING",
+                  icon: Zap,
+                  color: "from-amber-500/20 to-orange-500/10 border-amber-500/40 text-amber-400",
+                  badgeBg: "bg-amber-500 text-slate-950",
+                  desc: "Weld nickel strips; log weld resistance parameters on IoT-connected PLCs.",
+                  activeCount: wipInventory.filter((w: any) => w.stage === "SPOT_WELDING_&_BUSBAR_JOINING" || w.stage === "WELDING").length
+                },
+                {
+                  stageNum: "Stage 3",
+                  title: "BMS Wiring & Soldering",
+                  code: "BMS_WIRING_&_SOLDERING",
+                  icon: Cpu,
+                  color: "from-purple-500/20 to-pink-500/10 border-purple-500/40 text-purple-400",
+                  badgeBg: "bg-purple-500 text-slate-950",
+                  desc: "Connect Smart BMS wiring harnesses, balance leads, and NTC thermal sensors.",
+                  activeCount: wipInventory.filter((w: any) => w.stage === "BMS_WIRING_&_SOLDERING" || w.stage === "BMS_MOUNTING").length
+                },
+                {
+                  stageNum: "Stage 4",
+                  title: "Casing & Potting",
+                  code: "CASING_&_POTTING",
+                  icon: Box,
+                  color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/40 text-emerald-400",
+                  badgeBg: "bg-emerald-500 text-slate-950",
+                  desc: "Enclose battery packs in IP67 aluminum or stainless-steel housings with polyurethane resin potting.",
+                  activeCount: wipInventory.filter((w: any) => w.stage === "CASING_&_POTTING" || w.stage === "CASING").length
+                }
+              ].map((stg) => {
+                const Icon = stg.icon;
+                return (
+                  <div 
+                    key={stg.stageNum} 
+                    className={cn(
+                      "bg-gradient-to-br p-6 rounded-3xl border flex flex-col justify-between space-y-4 transition-all duration-300 hover:scale-[1.02] shadow-lg",
+                      stg.color
+                    )}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className={cn("px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider font-mono", stg.badgeBg)}>
+                          {stg.stageNum}
+                        </span>
+                        <Icon size={20} className="opacity-80" />
+                      </div>
+
+                      <h4 className="text-sm font-black italic uppercase tracking-tight text-white mb-2 leading-snug">
+                        {stg.title}
+                      </h4>
+
+                      <p className="text-[10.5px] font-medium text-slate-300 leading-relaxed">
+                        {stg.desc}
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-700/50 flex items-center justify-between">
+                      <div className="text-[9px] font-mono font-bold uppercase text-slate-400">
+                        Active WIP Batches: <span className="text-white font-black">{stg.activeCount}</span>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setWipInitialStage(stg.code);
+                          setWipStep(2);
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[9px] font-black uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer active:scale-95"
+                      >
+                        Start <ArrowRight size={10} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

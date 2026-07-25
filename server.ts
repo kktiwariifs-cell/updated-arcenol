@@ -44,10 +44,18 @@ async function startServer() {
       { id: "g2", serial: "CELL-B-002", name: "3.2V 102Ah", supplier: "Energy Plus", grade: "B", voltage: 3.28, ir: 7.1, capacity: 5800, cycleCount: 0, temp: 25.0, date: "2024-05-18", engineer: "Suresh P.", usage: "Economy Products" },
     ],
     wipInventory: [
-      { id: "wip-01", name: "Cell Pack Assembly", type: "Semi-Finished", qty: 12, stage: "WELDING", lastUpdate: "2024-05-18", components: [{ matId: "RM-CELLS", qty: 2400 }] },
-      { id: "wip-02", name: "BMS Mounted Pack", type: "Semi-Finished", qty: 5, stage: "BMS_MOUNTING", lastUpdate: "2024-05-18", components: [{ matId: "RM-CELLS", qty: 1000 }, { matId: "RM-BMS-72V", qty: 5 }] },
+      { id: "wip-01", name: "Cell Pack Assembly (72V 30Ah)", type: "Semi-Finished", qty: 12, stage: "CELL_SORTING_&_MATRIX_ALIGNMENT", lastUpdate: "2026-07-24", components: [{ matId: "RM-CELLS", qty: 2400 }] },
+      { id: "wip-02", name: "Spot Welded Pack Matrix", type: "Semi-Finished", qty: 8, stage: "SPOT_WELDING_&_BUSBAR_JOINING", lastUpdate: "2026-07-24", components: [{ matId: "RM-CELLS", qty: 1600 }] },
+      { id: "wip-03", name: "BMS Mounted Pack", type: "Semi-Finished", qty: 5, stage: "BMS_WIRING_&_SOLDERING", lastUpdate: "2026-07-24", components: [{ matId: "RM-CELLS", qty: 1000 }, { matId: "RM-BMS-72V", qty: 5 }] },
+      { id: "wip-04", name: "Encapsulated Casing Pack", type: "Semi-Finished", qty: 4, stage: "CASING_&_POTTING", lastUpdate: "2026-07-24", components: [{ matId: "RM-CELLS", qty: 800 }] },
     ],
-    wipStages: ["WELDING", "BMS_MOUNTING", "TESTING", "CASING", "GRADING", "QUALITY_CHECK"],
+    wipStages: [
+      "CELL_SORTING_&_MATRIX_ALIGNMENT",
+      "SPOT_WELDING_&_BUSBAR_JOINING",
+      "BMS_WIRING_&_SOLDERING",
+      "CASING_&_POTTING",
+      "QUALITY_CHECK"
+    ],
     processingLogs: [],
     production: [],
     productionPlans: [] as any[],
@@ -1922,7 +1930,13 @@ async function startServer() {
     if (stage) {
       const normalStage = String(stage).toUpperCase().trim().replace(/\s+/g, '_');
       if (!db.wipStages) {
-        db.wipStages = ["WELDING", "BMS_MOUNTING", "TESTING", "CASING", "GRADING", "QUALITY_CHECK"];
+        db.wipStages = [
+          "CELL_SORTING_&_MATRIX_ALIGNMENT",
+          "SPOT_WELDING_&_BUSBAR_JOINING",
+          "BMS_WIRING_&_SOLDERING",
+          "CASING_&_POTTING",
+          "QUALITY_CHECK"
+        ];
       }
       if (!db.wipStages.includes(normalStage)) {
         db.wipStages.push(normalStage);
