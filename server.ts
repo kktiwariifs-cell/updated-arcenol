@@ -61,6 +61,76 @@ async function startServer() {
       { id: "fg7", model: "BAT-INV-150", serial: "ARC-INV-2024-445566", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2024-05-16", status: "READY" },
       { id: "fg8", model: "BAT-VRLA-100", serial: "ARC-VRLA-2024-778899", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2024-05-17", status: "READY" },
     ],
+    purchaseOrders: [
+      {
+        id: "PO-2026-081",
+        materialId: "RM-CELLS",
+        materialName: "Lithium Cells (3.7V 3Ah)",
+        category: "Cells",
+        vendor: "Energy Plus Ltd",
+        vendorContact: "+91 98765 43210",
+        qty: 10000,
+        unit: "Pcs",
+        unitCost: 250,
+        totalAmount: 2500000,
+        orderDate: "2026-07-20",
+        estimatedDelivery: "2026-07-28",
+        status: "In Transit",
+        trackingNumber: "TRK-EP-99812",
+        remarks: "Priority supply for 72V30A E-Rickshaw Battery Batch A3"
+      },
+      {
+        id: "PO-2026-082",
+        materialId: "RM-BMS-72V",
+        materialName: "Smart BMS (72V 50A)",
+        category: "Electronics",
+        vendor: "TechCircuit Electronics",
+        vendorContact: "+91 91234 56789",
+        qty: 500,
+        unit: "Pcs",
+        unitCost: 2500,
+        totalAmount: 1250000,
+        orderDate: "2026-07-22",
+        estimatedDelivery: "2026-07-29",
+        status: "Pending Supplier Confirmation",
+        trackingNumber: "TRK-TC-4401",
+        remarks: "Order confirmed via supplier EDI, awaiting dispatch tag."
+      },
+      {
+        id: "PO-2026-083",
+        materialId: "RM-LEAD",
+        materialName: "Lead Alloy",
+        category: "RAW_MATERIAL",
+        vendor: "Global Metals Corp",
+        vendorContact: "+91 99887 76655",
+        qty: 5000,
+        unit: "Kg",
+        unitCost: 180,
+        totalAmount: 900000,
+        orderDate: "2026-07-18",
+        estimatedDelivery: "2026-07-25",
+        status: "Arrived at Gate",
+        trackingNumber: "TRK-GM-1002",
+        remarks: "Truck MH-12-PQ-8891 at Gate 2. Pending GRN & QC test."
+      },
+      {
+        id: "PO-2026-080",
+        materialId: "RM-ACID",
+        materialName: "Sulfuric Acid",
+        category: "RAW_MATERIAL",
+        vendor: "Chemical Ltd",
+        vendorContact: "+91 98980 12345",
+        qty: 2000,
+        unit: "Ltr",
+        unitCost: 45,
+        totalAmount: 90000,
+        orderDate: "2026-07-10",
+        estimatedDelivery: "2026-07-15",
+        status: "GRN Received",
+        trackingNumber: "TRK-CH-0092",
+        remarks: "Received and verified into Raw Hub Rack A1 under GRN-R-03"
+      }
+    ],
     productionHistory: [
       { id: "ph1", model: "72V30A", qty: 2, serials: ["ARC-72V30A-2024-000101", "ARC-72V30A-2024-000102"], date: "2024-05-10", status: "COMPLETED" }
     ],
@@ -1286,6 +1356,95 @@ async function startServer() {
     batchUpsert('inventory', [mapInventory(item)]).catch(err => console.warn("Supabase inventory sync warning:", err));
 
     res.json(item);
+  });
+
+  // Purchase Orders APIs
+  app.get("/api/purchase-orders", (req, res) => {
+    res.json(db.purchaseOrders || []);
+  });
+
+  app.post("/api/purchase-orders", (req, res) => {
+    const { materialId, materialName, category, vendor, vendorContact, qty, unit, unitCost, estimatedDelivery, remarks, trackingNumber } = req.body;
+    const poId = `PO-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+    
+    const newPO = {
+      id: poId,
+      materialId: materialId || `RM-${Date.now()}`,
+      materialName: materialName || "Raw Material",
+      category: category || "RAW_MATERIAL",
+      vendor: vendor || "Arcenol Supply Partner",
+      vendorContact: vendorContact || "+91 98765 00000",
+      qty: Number(qty || 100),
+      unit: unit || "Pcs",
+      unitCost: Number(unitCost || 100),
+      totalAmount: Number(qty || 100) * Number(unitCost || 100),
+      orderDate: new Date().toISOString().split('T')[0],
+      estimatedDelivery: estimatedDelivery || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+      status: "Pending Supplier Confirmation",
+      trackingNumber: trackingNumber || `TRK-ARC-${Math.floor(1000 + Math.random() * 9000)}`,
+      remarks: remarks || "Generated via MRP Reorder Request"
+    };
+
+    if (!db.purchaseOrders) db.purchaseOrders = [];
+    db.purchaseOrders.unshift(newPO);
+
+    // Push notification
+    db.notifications.unshift({
+      id: `n-${Date.now()}`,
+      type: "SYSTEM",
+      title: `New PO Created: ${poId}`,
+      message: `Purchase Order ${poId} generated for ${newPO.materialName} (${newPO.qty} ${newPO.unit}) to ${newPO.vendor}.`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json(newPO);
+  });
+
+  app.patch("/api/purchase-orders/:id/status", (req, res) => {
+    const { id } = req.params;
+    const { status, remarks } = req.body;
+
+    if (!db.purchaseOrders) db.purchaseOrders = [];
+    const po = db.purchaseOrders.find((p: any) => p.id === id);
+    if (!po) return res.status(404).json({ error: "Purchase Order not found" });
+
+    po.status = status;
+    if (remarks) po.remarks = remarks;
+
+    // If status is "GRN Received", add or update the inventory quantity
+    if (status === "GRN Received") {
+      let invItem = db.inventory.find((i: any) => i.id === po.materialId || i.code === po.materialId || (i.name && i.name.toLowerCase() === po.materialName.toLowerCase()));
+      if (invItem) {
+        invItem.qty += Number(po.qty || 0);
+        invItem.grn = `GRN-${po.id}`;
+      } else {
+        invItem = {
+          id: po.materialId || `RM-${Date.now()}`,
+          name: po.materialName,
+          code: `CD-${Math.floor(100 + Math.random() * 900)}`,
+          category: po.category || "RAW_MATERIAL",
+          supplier: po.vendor,
+          batch: `B-PO-${po.id}`,
+          qty: Number(po.qty || 0),
+          status: "ACTIVE",
+          reservedQty: 0,
+          minStock: 100,
+          reorderLevel: 250,
+          warehouse: "Raw Hub",
+          rack: "A1",
+          grn: `GRN-${po.id}`,
+          date: new Date().toISOString().split('T')[0],
+          price: Number(po.unitCost || 0),
+          unit: po.unit || "Pcs",
+          qcStatus: "APPROVED"
+        };
+        db.inventory.push(invItem);
+      }
+    }
+
+    res.json(po);
   });
 
   app.post("/api/inventory/bulk", (req, res) => {

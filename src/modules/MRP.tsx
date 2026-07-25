@@ -1112,7 +1112,36 @@ export const MRP: React.FC = () => {
                           <p className="text-xs font-black text-slate-900 uppercase tracking-tight italic">{item.name}</p>
                           <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mt-1">Reorder Demand: <span className="font-mono">{(item.minStock || 500) - (item.qty - (item.reservedQty || 0))}</span> UNITS Short of Safety Threshold</p>
                        </div>
-                       <button onClick={() => alert(`Purchase Order initiated for ${item.name}`)} className="h-10 w-10 bg-white border border-slate-200 text-primary-600 rounded-xl flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-sm active:scale-90" title="Trigger Reorder Purchase Order">
+                       <button 
+                          onClick={async () => {
+                             const shortQty = Math.max(100, (item.minStock || 500) - (item.qty - (item.reservedQty || 0)));
+                             try {
+                                const res = await fetch('/api/purchase-orders', {
+                                   method: 'POST',
+                                   headers: { 'Content-Type': 'application/json' },
+                                   body: JSON.stringify({
+                                      materialId: item.id,
+                                      materialName: item.name,
+                                      category: item.category || 'RAW_MATERIAL',
+                                      vendor: item.supplier || 'Arcenol Premium Supply Partner',
+                                      vendorContact: '+91 98765 43210',
+                                      qty: shortQty * 2,
+                                      unit: item.unit || 'Pcs',
+                                      unitCost: item.price || 150,
+                                      estimatedDelivery: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+                                      remarks: `Auto-generated Reorder PO from MRP Demand Shortfall`
+                                   })
+                                });
+                                const po = await res.json();
+                                alert(`✅ Purchase Order ${po.id} Generated Successfully!\n\nMaterial: ${po.materialName}\nVendor: ${po.vendor}\nQuantity: ${po.qty} ${po.unit}\nEstimated Delivery: ${po.estimatedDelivery}\nStatus: ${po.status}\n\nTrack progress in Inventory Module -> Purchase Orders (POs) tab.`);
+                                refetch();
+                             } catch (e) {
+                                alert(`Purchase Order initiated for ${item.name}`);
+                             }
+                          }} 
+                          className="h-10 w-10 bg-white border border-slate-200 text-primary-600 rounded-xl flex items-center justify-center hover:bg-primary-600 hover:text-white transition-all shadow-sm active:scale-90 cursor-pointer" 
+                          title="Trigger Reorder Purchase Order"
+                       >
                           <Plus size={18} />
                        </button>
                     </div>

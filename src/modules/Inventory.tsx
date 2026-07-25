@@ -6,7 +6,7 @@ import {
   Activity, ShieldCheck, Zap, Layers, Microscope, QrCode, Trash2,
   Database, Boxes, Thermometer, Beaker, TrendingUp, Calendar, MapPin, X,
   ClipboardList, ArrowRight, Printer, CheckCircle2, Sliders, RefreshCw, AlertCircle, Edit, Save,
-  Upload, FileSpreadsheet, FileText, Check, Loader2
+  Upload, FileSpreadsheet, FileText, Check, Loader2, ShoppingCart, Truck, Clock, Phone, Building2
 } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { cn, formatCurrency } from '../lib/utils';
@@ -21,10 +21,171 @@ import {
 export const Inventory: React.FC = () => {
   const { user } = useAuthStore();
   const { data, loading, refetch } = useERPData();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories'>('dashboard');
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [isSyncing, setIsSyncing] = useState(false);
+
+  // Purchase Order Management States
+  const [poSearch, setPoSearch] = useState('');
+  const [poStatusFilter, setPoStatusFilter] = useState<'ALL' | 'Pending Supplier Confirmation' | 'In Transit' | 'Arrived at Gate' | 'GRN Received'>('ALL');
+  const [isCreatePoModalOpen, setIsCreatePoModalOpen] = useState(false);
+  const [poMaterialId, setPoMaterialId] = useState('');
+  const [poMaterialName, setPoMaterialName] = useState('');
+  const [poCategory, setPoCategory] = useState('RAW_MATERIAL');
+  const [poVendor, setPoVendor] = useState('');
+  const [poVendorContact, setPoVendorContact] = useState('');
+  const [poQty, setPoQty] = useState<number>(1000);
+  const [poUnit, setPoUnit] = useState('Pcs');
+  const [poUnitCost, setPoUnitCost] = useState<number>(150);
+  const [poEstDelivery, setPoEstDelivery] = useState('');
+  const [poRemarks, setPoRemarks] = useState('');
+  const [poIsSubmitting, setPoIsSubmitting] = useState(false);
+
+  // Purchase Orders Data Memorandum
+  const purchaseOrdersList = useMemo(() => {
+    if (Array.isArray(data?.purchaseOrders) && data.purchaseOrders.length > 0) {
+      return data.purchaseOrders;
+    }
+    return [
+      {
+        id: "PO-2026-081",
+        materialId: "RM-CELLS",
+        materialName: "Lithium Cells (3.7V 3Ah)",
+        category: "Cells",
+        vendor: "Energy Plus Ltd",
+        vendorContact: "+91 98765 43210",
+        qty: 10000,
+        unit: "Pcs",
+        unitCost: 250,
+        totalAmount: 2500000,
+        orderDate: "2026-07-20",
+        estimatedDelivery: "2026-07-28",
+        status: "In Transit",
+        trackingNumber: "TRK-EP-99812",
+        remarks: "Priority supply for 72V30A E-Rickshaw Battery Batch A3"
+      },
+      {
+        id: "PO-2026-082",
+        materialId: "RM-BMS-72V",
+        materialName: "Smart BMS (72V 50A)",
+        category: "Electronics",
+        vendor: "TechCircuit Electronics",
+        vendorContact: "+91 91234 56789",
+        qty: 500,
+        unit: "Pcs",
+        unitCost: 2500,
+        totalAmount: 1250000,
+        orderDate: "2026-07-22",
+        estimatedDelivery: "2026-07-29",
+        status: "Pending Supplier Confirmation",
+        trackingNumber: "TRK-TC-4401",
+        remarks: "Order confirmed via supplier EDI, awaiting dispatch tag."
+      },
+      {
+        id: "PO-2026-083",
+        materialId: "RM-LEAD",
+        materialName: "Lead Alloy",
+        category: "RAW_MATERIAL",
+        vendor: "Global Metals Corp",
+        vendorContact: "+91 99887 76655",
+        qty: 5000,
+        unit: "Kg",
+        unitCost: 180,
+        totalAmount: 900000,
+        orderDate: "2026-07-18",
+        estimatedDelivery: "2026-07-25",
+        status: "Arrived at Gate",
+        trackingNumber: "TRK-GM-1002",
+        remarks: "Truck MH-12-PQ-8891 at Gate 2. Pending GRN & QC test."
+      },
+      {
+        id: "PO-2026-080",
+        materialId: "RM-ACID",
+        materialName: "Sulfuric Acid",
+        category: "RAW_MATERIAL",
+        vendor: "Chemical Ltd",
+        vendorContact: "+91 98980 12345",
+        qty: 2000,
+        unit: "Ltr",
+        unitCost: 45,
+        totalAmount: 90000,
+        orderDate: "2026-07-10",
+        estimatedDelivery: "2026-07-15",
+        status: "GRN Received",
+        trackingNumber: "TRK-CH-0092",
+        remarks: "Received and verified into Raw Hub Rack A1 under GRN-R-03"
+      }
+    ];
+  }, [data?.purchaseOrders]);
+
+  const filteredPurchaseOrders = useMemo(() => {
+    return purchaseOrdersList.filter((po: any) => {
+      const matchesSearch = !poSearch || 
+        po.id.toLowerCase().includes(poSearch.toLowerCase()) ||
+        po.materialName.toLowerCase().includes(poSearch.toLowerCase()) ||
+        po.vendor.toLowerCase().includes(poSearch.toLowerCase()) ||
+        (po.trackingNumber && po.trackingNumber.toLowerCase().includes(poSearch.toLowerCase()));
+      const matchesStatus = poStatusFilter === 'ALL' || po.status === poStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [purchaseOrdersList, poSearch, poStatusFilter]);
+
+  const handleUpdatePoStatus = async (poId: string, newStatus: string) => {
+    try {
+      const res = await fetch(`/api/purchase-orders/${poId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        alert(`✅ Purchase Order ${poId} status updated to "${newStatus}"!${newStatus === 'GRN Received' ? '\nStock has been automatically ingested into inventory.' : ''}`);
+        refetch();
+      }
+    } catch (err) {
+      alert(`Failed to update status for ${poId}`);
+    }
+  };
+
+  const handleCreatePO = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!poMaterialName || !poVendor) {
+      alert('Please enter Material Name and Vendor Name');
+      return;
+    }
+    setPoIsSubmitting(true);
+    try {
+      const res = await fetch('/api/purchase-orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          materialId: poMaterialId || `RM-${Date.now()}`,
+          materialName: poMaterialName,
+          category: poCategory,
+          vendor: poVendor,
+          vendorContact: poVendorContact,
+          qty: poQty,
+          unit: poUnit,
+          unitCost: poUnitCost,
+          estimatedDelivery: poEstDelivery || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+          remarks: poRemarks
+        })
+      });
+      if (res.ok) {
+        alert(`✅ Purchase Order created successfully!`);
+        setIsCreatePoModalOpen(false);
+        setPoMaterialName('');
+        setPoVendor('');
+        setPoVendorContact('');
+        setPoRemarks('');
+        refetch();
+      }
+    } catch (err) {
+      alert('Error creating Purchase Order');
+    } finally {
+      setPoIsSubmitting(false);
+    }
+  };
 
   // Category Management States
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
@@ -1430,6 +1591,7 @@ export const Inventory: React.FC = () => {
       <div className="flex space-x-1 p-1 bg-slate-100/80 rounded-[2rem] border border-slate-200/50 w-full overflow-x-auto whitespace-nowrap scrollbar-none shadow-inner">
         {[
           { id: 'dashboard', label: 'Inventory Overview & KPI', icon: BarChart3 },
+          { id: 'pos', label: 'Purchase Orders (POs)', icon: ShoppingCart },
           { id: 'raw', label: 'Raw Master Registry', icon: Package },
           { id: 'graded', label: 'Cell Grading Lab', icon: Zap },
           { id: 'mrp', label: 'MRP BOM Allocator', icon: ClipboardList },
@@ -1668,6 +1830,246 @@ export const Inventory: React.FC = () => {
               >
                 Trigger Purchase ROL
               </button>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* TAB: PURCHASE ORDERS & VENDOR SUPPLY TRACKING */}
+      {activeTab === 'pos' && (
+        <div className="animate-in fade-in duration-500 space-y-8">
+          
+          {/* Header Banner */}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200/80 shadow-sm relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <span className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100">
+                  <ShoppingCart size={22} />
+                </span>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Purchase Orders & Vendor Supply Tracking</h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inward Logistics, Vendor Confirmations, Gate Entries & GRN Inspection Records</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => {
+                  downloadReportDataAsPDF({
+                    title: "Purchase Orders & Vendor Supply Report",
+                    subtitle: "Arcenol Energy Solutions — Inward Logistics & Supply Commitments",
+                    headers: ["PO ID", "Material Component", "Vendor", "Qty & Unit", "Total Value", "Status", "Estimated Delivery"],
+                    rows: filteredPurchaseOrders.map((p: any) => [
+                      p.id,
+                      p.materialName,
+                      p.vendor,
+                      `${p.qty} ${p.unit}`,
+                      `₹${(p.totalAmount || (p.qty * p.unitCost) || 0).toLocaleString()}`,
+                      p.status,
+                      p.estimatedDelivery
+                    ]),
+                    filename: `Purchase_Orders_Report_${new Date().toISOString().split('T')[0]}.pdf`
+                  });
+                }}
+                className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest transition-all italic flex items-center gap-2"
+              >
+                <Download size={14} /> Export Report PDF
+              </button>
+              <button
+                onClick={() => setIsCreatePoModalOpen(true)}
+                className="px-6 py-3.5 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary-500/20 transition-all active:scale-95 italic flex items-center gap-2"
+              >
+                <Plus size={16} /> + Create Purchase Order
+              </button>
+            </div>
+          </div>
+
+          {/* Metric Cards Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Active POs</p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight italic">{purchaseOrdersList.length}</p>
+              <p className="text-[9px] font-bold text-slate-400 mt-1">Inward Pipeline</p>
+            </div>
+
+            <div className="bg-amber-50/50 p-6 rounded-[2rem] border border-amber-100 shadow-sm">
+              <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-1">Pending Confirmation</p>
+              <p className="text-2xl font-black text-amber-700 tracking-tight italic">{purchaseOrdersList.filter((p: any) => p.status === 'Pending Supplier Confirmation').length}</p>
+              <p className="text-[9px] font-bold text-amber-600/70 mt-1">Awaiting Supplier EDI</p>
+            </div>
+
+            <div className="bg-blue-50/50 p-6 rounded-[2rem] border border-blue-100 shadow-sm">
+              <p className="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1">In Transit</p>
+              <p className="text-2xl font-black text-blue-700 tracking-tight italic">{purchaseOrdersList.filter((p: any) => p.status === 'In Transit').length}</p>
+              <p className="text-[9px] font-bold text-blue-600/70 mt-1">On Highway Trucks</p>
+            </div>
+
+            <div className="bg-purple-50/50 p-6 rounded-[2rem] border border-purple-100 shadow-sm">
+              <p className="text-[9px] font-black text-purple-600 uppercase tracking-widest mb-1">Arrived at Gate</p>
+              <p className="text-2xl font-black text-purple-700 tracking-tight italic">{purchaseOrdersList.filter((p: any) => p.status === 'Arrived at Gate').length}</p>
+              <p className="text-[9px] font-bold text-purple-600/70 mt-1">Pending QC Entry</p>
+            </div>
+
+            <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100 shadow-sm">
+              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">GRN Received</p>
+              <p className="text-2xl font-black text-emerald-700 tracking-tight italic">{purchaseOrdersList.filter((p: any) => p.status === 'GRN Received').length}</p>
+              <p className="text-[9px] font-bold text-emerald-600/70 mt-1">Stock Ingested</p>
+            </div>
+          </div>
+
+          {/* Search and Status Filter Toolbar */}
+          <div className="bg-white p-4 rounded-[2rem] border border-slate-200/80 flex flex-wrap items-center justify-between gap-4 shadow-sm">
+            <div className="flex-1 min-w-[280px] relative">
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search PO ID, Material, Vendor, Tracking #"
+                value={poSearch}
+                onChange={e => setPoSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {[
+                { id: 'ALL', label: 'All POs' },
+                { id: 'Pending Supplier Confirmation', label: 'Pending Confirmation' },
+                { id: 'In Transit', label: 'In Transit' },
+                { id: 'Arrived at Gate', label: 'Arrived at Gate' },
+                { id: 'GRN Received', label: 'GRN Received' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setPoStatusFilter(f.id as any)}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
+                    poStatusFilter === f.id
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* PO Cards Table */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200/80 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                    <th className="p-5 pl-8">PO Reference & Date</th>
+                    <th className="p-5">Material Component</th>
+                    <th className="p-5">Vendor Details</th>
+                    <th className="p-5 text-right">Order Quantity</th>
+                    <th className="p-5 text-right">Total Commitment</th>
+                    <th className="p-5">Est. Delivery</th>
+                    <th className="p-5">Status & Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
+                  {filteredPurchaseOrders.map((po: any) => (
+                    <tr key={po.id} className="hover:bg-slate-50/60 transition-all">
+                      <td className="p-5 pl-8">
+                        <div className="font-mono font-black text-slate-900 text-xs italic">{po.id}</div>
+                        <div className="text-[10px] text-slate-400 font-bold mt-0.5">{po.orderDate}</div>
+                        {po.trackingNumber && (
+                          <div className="inline-block mt-1 px-2 py-0.5 bg-slate-100 rounded text-[9px] font-mono text-slate-600">{po.trackingNumber}</div>
+                        )}
+                      </td>
+                      <td className="p-5">
+                        <p className="font-black text-slate-900 uppercase italic text-xs">{po.materialName}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{po.category}</p>
+                      </td>
+                      <td className="p-5">
+                        <div className="font-black text-slate-800 flex items-center gap-1.5">
+                          <Building2 size={13} className="text-slate-400" />
+                          {po.vendor}
+                        </div>
+                        {po.vendorContact && (
+                          <div className="text-[10px] text-slate-500 font-mono flex items-center gap-1 mt-0.5">
+                            <Phone size={10} className="text-slate-400" />
+                            {po.vendorContact}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-5 text-right">
+                        <div className="font-mono font-black text-slate-900 text-sm">{po.qty.toLocaleString()}</div>
+                        <div className="text-[9px] font-bold text-slate-400 uppercase">{po.unit}</div>
+                      </td>
+                      <td className="p-5 text-right">
+                        <div className="font-mono font-black text-primary-600 text-sm">
+                          ₹{(po.totalAmount || (po.qty * po.unitCost) || 0).toLocaleString()}
+                        </div>
+                        <div className="text-[9px] text-slate-400">@ ₹{po.unitCost}/{po.unit}</div>
+                      </td>
+                      <td className="p-5">
+                        <div className="font-mono font-black text-slate-800 text-xs flex items-center gap-1.5">
+                          <Calendar size={13} className="text-slate-400" />
+                          {po.estimatedDelivery}
+                        </div>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">{po.remarks || 'Standard Order'}</p>
+                      </td>
+                      <td className="p-5">
+                        <div className="flex flex-col gap-2">
+                          <span className={cn(
+                            "inline-flex items-center px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider w-fit",
+                            po.status === 'Pending Supplier Confirmation' && "bg-amber-100 text-amber-800 border border-amber-200",
+                            po.status === 'In Transit' && "bg-blue-100 text-blue-800 border border-blue-200",
+                            po.status === 'Arrived at Gate' && "bg-purple-100 text-purple-800 border border-purple-200",
+                            po.status === 'GRN Received' && "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          )}>
+                            {po.status === 'In Transit' && <Truck size={12} className="mr-1.5" />}
+                            {po.status === 'Pending Supplier Confirmation' && <Clock size={12} className="mr-1.5" />}
+                            {po.status === 'Arrived at Gate' && <ShieldCheck size={12} className="mr-1.5" />}
+                            {po.status === 'GRN Received' && <CheckCircle2 size={12} className="mr-1.5" />}
+                            {po.status}
+                          </span>
+
+                          {/* Action Status Progression Buttons */}
+                          {po.status === 'Pending Supplier Confirmation' && (
+                            <button
+                              onClick={() => handleUpdatePoStatus(po.id, 'In Transit')}
+                              className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm cursor-pointer"
+                            >
+                              Dispatch Order (In Transit)
+                            </button>
+                          )}
+                          {po.status === 'In Transit' && (
+                            <button
+                              onClick={() => handleUpdatePoStatus(po.id, 'Arrived at Gate')}
+                              className="px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm cursor-pointer"
+                            >
+                              Mark Arrived at Gate
+                            </button>
+                          )}
+                          {po.status === 'Arrived at Gate' && (
+                            <button
+                              onClick={() => handleUpdatePoStatus(po.id, 'GRN Received')}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle2 size={12} /> Post QC GRN & Ingest Stock
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {filteredPurchaseOrders.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="p-12 text-center text-slate-400">
+                        <ShoppingCart size={40} className="mx-auto opacity-20 mb-3" />
+                        <p className="text-xs font-black uppercase tracking-widest">No Purchase Orders Found</p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -5357,6 +5759,153 @@ export const Inventory: React.FC = () => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CREATE PURCHASE ORDER */}
+      {isCreatePoModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
+                  <ShoppingCart size={20} />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight italic">Generate Purchase Order (PO)</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Inward Raw Material Supply Requisition</p>
+                </div>
+              </div>
+              <button onClick={() => setIsCreatePoModalOpen(false)} className="p-2 text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreatePO} className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Material Component Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lithium Cells (3.7V 3Ah) or Smart BMS 72V"
+                  value={poMaterialName}
+                  onChange={e => setPoMaterialName(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendor / Supplier Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Energy Plus Ltd"
+                    value={poVendor}
+                    onChange={e => setPoVendor(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendor Contact Phone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. +91 98765 43210"
+                    value={poVendorContact}
+                    onChange={e => setPoVendorContact(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Quantity *</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={poQty}
+                    onChange={e => setPoQty(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Unit</label>
+                  <input
+                    type="text"
+                    value={poUnit}
+                    onChange={e => setPoUnit(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Unit Cost (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={poUnitCost}
+                    onChange={e => setPoUnitCost(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Est. Delivery Date</label>
+                  <input
+                    type="date"
+                    value={poEstDelivery}
+                    onChange={e => setPoEstDelivery(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Category</label>
+                  <select
+                    value={poCategory}
+                    onChange={e => setPoCategory(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+                  >
+                    <option value="RAW_MATERIAL">Raw Material</option>
+                    <option value="Cells">Cells</option>
+                    <option value="Electronics">Electronics (BMS)</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Order Remarks / Specification</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Grade A 3.2V 100Ah LiFePO4 cells with test certificates required."
+                  value={poRemarks}
+                  onChange={e => setPoRemarks(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20 resize-none"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsCreatePoModalOpen(false)}
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={poIsSubmitting}
+                  className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {poIsSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Issue Purchase Order
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
