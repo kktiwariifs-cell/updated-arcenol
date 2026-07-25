@@ -531,11 +531,58 @@ export const MRP: React.FC = () => {
     setIsCalculating(true);
     try {
       const resp = await fetch(`/api/mrp/calculate?modelId=${selectedModel}&qty=${productionQty}`);
+      if (!resp.ok) {
+        const prod = (allProducts || []).find((p: any) => p.id === selectedModel || p.model_id === selectedModel);
+        if (prod) {
+          const reqs = (prod.bom || []).map((item: any) => {
+            const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
+            const total = perUnit * Number(productionQty || 0);
+            const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
+            const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+            return {
+              ...item,
+              perUnit,
+              requiredTotal: total,
+              available: avail,
+              deficient: Math.max(0, total - avail)
+            };
+          });
+          setCalculation({ modelId: prod.id, modelName: prod.name, qty: productionQty, requirements: reqs });
+          setIsCalculated(true);
+          return;
+        }
+        setCalculation(null);
+        return;
+      }
       const res = await resp.json();
-      setCalculation(res);
-      setIsCalculated(true);
+      if (res && Array.isArray(res.requirements)) {
+        setCalculation(res);
+        setIsCalculated(true);
+      } else {
+        setCalculation(null);
+      }
     } catch (err) {
-      console.error(err);
+      console.error("MRP calculation error:", err);
+      const prod = (allProducts || []).find((p: any) => p.id === selectedModel || p.model_id === selectedModel);
+      if (prod) {
+        const reqs = (prod.bom || []).map((item: any) => {
+          const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
+          const total = perUnit * Number(productionQty || 0);
+          const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
+          const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+          return {
+            ...item,
+            perUnit,
+            requiredTotal: total,
+            available: avail,
+            deficient: Math.max(0, total - avail)
+          };
+        });
+        setCalculation({ modelId: prod.id, modelName: prod.name, qty: productionQty, requirements: reqs });
+        setIsCalculated(true);
+      } else {
+        setCalculation(null);
+      }
     } finally {
       setIsCalculating(false);
     }
@@ -1082,7 +1129,7 @@ export const MRP: React.FC = () => {
 
           {/* Requirements Matrix Section */}
           <div className="lg:col-span-2 bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm flex flex-col justify-start">
-            {!calculation ? (
+            {!calculation || !Array.isArray(calculation.requirements) ? (
                <div className="flex flex-col h-full justify-between">
                  <div className="p-8 border-b border-indigo-100 bg-[#f8fafc] flex justify-between items-center flex-wrap gap-4">
                    <div className="text-left">
@@ -1107,26 +1154,26 @@ export const MRP: React.FC = () => {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12 pb-8 border-b border-slate-100">
                        <div>
                           <div className="flex items-center space-x-3 mb-2">
-                             <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{calculation.modelName}</h3>
+                             <h3 className="text-3xl font-black text-slate-900 tracking-tighter uppercase italic">{calculation.modelName || 'Selected Model'}</h3>
                              <span className="px-3 py-1 bg-primary-600 text-white text-[9px] font-black rounded-lg tracking-widest">BATCH V1</span>
                           </div>
-                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Simulated Construction: <span className="text-primary-600 italic">{calculation.qty} UNITS</span></p>
+                          <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Simulated Construction: <span className="text-primary-600 italic">{calculation.qty || 0} UNITS</span></p>
                        </div>
                        <div className="flex flex-wrap items-center gap-3">
                           <button
                             onClick={() => {
                               downloadReportDataAsPDF({
                                 title: `MRP Allocation & Materials Requirement Plan`,
-                                subtitle: `Target Product: ${calculation.modelName} | Target Quantity: ${calculation.qty} Units`,
+                                subtitle: `Target Product: ${calculation.modelName || 'Model'} | Target Quantity: ${calculation.qty || 0} Units`,
                                 headers: ["Raw Material Component", "Req Per Unit", "Total Required", "Available Stock", "Shortfall / Status"],
-                                rows: (calculation.materials || []).map((m: any) => [
+                                rows: (calculation.materials || calculation.requirements || []).map((m: any) => [
                                   m.name,
                                   `${m.perUnit || 1} ${m.unit || 'Kg'}`,
-                                  `${m.required || 0} ${m.unit || 'Kg'}`,
+                                  `${m.requiredTotal || m.required || 0} ${m.unit || 'Kg'}`,
                                   `${m.available || 0} ${m.unit || 'Kg'}`,
-                                  m.shortfall > 0 ? `DEFICIT: ${m.shortfall} ${m.unit}` : 'READY'
+                                  (m.deficient || m.shortfall || 0) > 0 ? `DEFICIT: ${m.deficient || m.shortfall} ${m.unit || 'Units'}` : 'READY'
                                 ]),
-                                filename: `MRP_Allocation_${calculation.modelName.replace(/\s+/g, '_')}.pdf`
+                                filename: `MRP_Allocation_${(calculation.modelName || 'Plan').replace(/\s+/g, '_')}.pdf`
                               });
                             }}
                             className="px-6 py-3.5 rounded-2xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 italic flex items-center gap-2 cursor-pointer"
@@ -1151,13 +1198,13 @@ export const MRP: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                        <div className="p-8 rounded-[2.5rem] bg-slate-50/50 border border-slate-100 flex items-center space-x-6">
-                          <div className={cn("h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl", calculation.requirements.some((r:any) => r.deficient > 0) ? 'bg-red-500 shadow-red-500/20' : 'bg-primary-600 shadow-primary-600/20')}>
-                             {calculation.requirements.some((r:any) => r.deficient > 0) ? <ShieldAlert size={32} /> : <CheckCircle2 size={32} />}
+                          <div className={cn("h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-white shadow-2xl", (calculation.requirements || []).some((r:any) => (r.deficient || 0) > 0) ? 'bg-red-500 shadow-red-500/20' : 'bg-primary-600 shadow-primary-600/20')}>
+                             {(calculation.requirements || []).some((r:any) => (r.deficient || 0) > 0) ? <ShieldAlert size={32} /> : <CheckCircle2 size={32} />}
                           </div>
                           <div>
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Availability State</p>
-                             <p className={cn("text-lg font-black uppercase tracking-widest italic", calculation.requirements.some((r:any) => r.deficient > 0) ? 'text-red-600' : 'text-primary-600')}>
-                                {calculation.requirements.some((r:any) => r.deficient > 0) 
+                             <p className={cn("text-lg font-black uppercase tracking-widest italic", (calculation.requirements || []).some((r:any) => (r.deficient || 0) > 0) ? 'text-red-600' : 'text-primary-600')}>
+                                {(calculation.requirements || []).some((r:any) => (r.deficient || 0) > 0) 
                                    ? 'Critical Stock Missing' 
                                    : 'Infrastructure Ready'}
                              </p>
@@ -1169,7 +1216,7 @@ export const MRP: React.FC = () => {
                           </div>
                           <div>
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Valuation Delta</p>
-                             <p className="text-2xl font-black text-slate-900 italic tracking-tighter">₹{calculation.requirements.reduce((a:number, b:any) => a + (b.requiredTotal * 100), 0).toLocaleString()}</p>
+                             <p className="text-2xl font-black text-slate-900 italic tracking-tighter">₹{(calculation.requirements || []).reduce((a:number, b:any) => a + ((b.requiredTotal || 0) * 100), 0).toLocaleString()}</p>
                           </div>
                        </div>
                     </div>
@@ -1186,18 +1233,18 @@ export const MRP: React.FC = () => {
                             </tr>
                          </thead>
                          <tbody className="divide-y divide-slate-50 text-[12px] font-black text-slate-900">
-                            {calculation.requirements.map((req: any, idx: number) => (
+                            {(calculation.requirements || []).map((req: any, idx: number) => (
                                <tr key={idx} className="hover:bg-slate-50 transition-all group">
                                   <td className="px-6 py-6 group-hover:text-primary-600 transition-colors uppercase tracking-tight">{req.name}</td>
-                                  <td className="px-6 py-6 text-center text-slate-400 font-bold">{Number(req.perUnit.toFixed(4))}</td>
-                                  <td className="px-6 py-6 text-slate-900 italic">{Number(req.requiredTotal.toFixed(4))} <span className="text-[9px] text-slate-400 not-italic uppercase ml-1 font-black">{req.unit}</span></td>
-                                  <td className={cn("px-6 py-6 font-black italic", req.available < req.requiredTotal ? 'text-red-500' : 'text-primary-600')}>
-                                     {Number(req.available.toFixed(4))} {req.unit}
+                                  <td className="px-6 py-6 text-center text-slate-400 font-bold">{Number((req.perUnit || 0).toFixed(4))}</td>
+                                  <td className="px-6 py-6 text-slate-900 italic">{Number((req.requiredTotal || 0).toFixed(4))} <span className="text-[9px] text-slate-400 not-italic uppercase ml-1 font-black">{req.unit}</span></td>
+                                  <td className={cn("px-6 py-6 font-black italic", (req.available || 0) < (req.requiredTotal || 0) ? 'text-red-500' : 'text-primary-600')}>
+                                     {Number((req.available || 0).toFixed(4))} {req.unit}
                                   </td>
                                   <td className="px-6 py-6 text-right">
-                                     {req.deficient > 0 ? (
+                                     {(req.deficient || 0) > 0 ? (
                                         <div className="inline-flex px-4 py-1.5 bg-red-50 text-red-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-red-100 shadow-sm">
-                                           Missing {Number(req.deficient.toFixed(4))}
+                                           Missing {Number((req.deficient || 0).toFixed(4))}
                                         </div>
                                      ) : (
                                         <div className="inline-flex px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-100 shadow-sm">
@@ -1205,7 +1252,7 @@ export const MRP: React.FC = () => {
                                         </div>
                                      )}
                                   </td>
-                                </tr>
+                               </tr>
                             ))}
                          </tbody>
                       </table>
