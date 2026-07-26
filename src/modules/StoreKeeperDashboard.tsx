@@ -1429,7 +1429,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
 
                                  {/* Handle miscellaneous/custom rack formats */}
                                 {(() => {
-                                   const nonGridItems = whItems.filter((i: any) => {
+                                   const nonGridItems = currentWhItems.filter((i: any) => {
                                       if (!i.rack) return true;
                                       const rClean = i.rack.trim().toUpperCase();
                                       const maxLetter = String.fromCharCode(64 + numRacks);
