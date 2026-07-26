@@ -1470,7 +1470,13 @@ async function startServer() {
           date: new Date().toISOString().split('T')[0],
           price: Number(po.unitCost || 0),
           unit: po.unit || "Pcs",
-          qcStatus: "APPROVED"
+          qcStatus: "APPROVED",
+          challanNo: `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+          vehicleNo: "GJ-01-AB-1234",
+          eWayBill: `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+          exciseSlip: `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
+          acceptedQty: Number(po.qty || 0),
+          damagedQty: 0
         };
         db.inventory.push(invItem);
       }
@@ -1512,7 +1518,13 @@ async function startServer() {
         date: item.date || new Date().toISOString().split('T')[0],
         price: Number(item.price || 0),
         unit: item.unit || "Pcs",
-        qcStatus: item.qcStatus || "APPROVED"
+        qcStatus: item.qcStatus || "APPROVED",
+        challanNo: item.challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        vehicleNo: item.vehicleNo || "GJ-01-AB-1234",
+        eWayBill: item.eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        exciseSlip: item.exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
+        acceptedQty: Number(item.acceptedQty || item.qty || 0),
+        damagedQty: Number(item.damagedQty || 0)
       };
 
       db.inventory.push(newItem);
