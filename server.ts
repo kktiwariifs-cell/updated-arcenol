@@ -1983,6 +1983,53 @@ async function startServer() {
     }
   });
 
+  app.put("/api/production/wip/stages", (req, res) => {
+    const { oldStage, newStage } = req.body;
+    if (!oldStage || !newStage) {
+      return res.status(400).json({ error: "MISSING_DATA", message: "Both oldStage and newStage are required" });
+    }
+    const formattedNewStage = String(newStage).toUpperCase().trim().replace(/\s+/g, '_');
+    if (!db.wipStages) {
+      db.wipStages = [
+        "CELL_SORTING_&_MATRIX_ALIGNMENT",
+        "SPOT_WELDING_&_BUSBAR_JOINING",
+        "BMS_WIRING_&_SOLDERING",
+        "CASING_&_POTTING",
+        "QUALITY_CHECK"
+      ];
+    }
+    
+    // Replace in wipStages
+    const idx = db.wipStages.indexOf(oldStage);
+    if (idx !== -1) {
+      db.wipStages[idx] = formattedNewStage;
+    } else if (!db.wipStages.includes(formattedNewStage)) {
+      db.wipStages.push(formattedNewStage);
+    }
+
+    // Update all WIP inventory items carrying the old stage
+    db.wipInventory.forEach((wip: any) => {
+      if (wip.stage === oldStage) {
+        wip.stage = formattedNewStage;
+        wip.lastUpdate = new Date().toISOString().split('T')[0];
+        batchUpsert('wip_inventory', [mapWip(wip)]).catch(err => console.warn("Supabase WIP sync warning:", err));
+      }
+    });
+
+    res.json({ success: true, oldStage, newStage: formattedNewStage, stages: db.wipStages });
+  });
+
+  app.delete("/api/production/wip/stages", (req, res) => {
+    const stageToDelete = req.query.stage || req.body.stage;
+    if (!stageToDelete) {
+      return res.status(400).json({ error: "MISSING_STAGE", message: "Stage parameter is required" });
+    }
+    if (db.wipStages) {
+      db.wipStages = db.wipStages.filter((st: string) => st !== stageToDelete);
+    }
+    res.json({ success: true, deletedStage: stageToDelete, stages: db.wipStages });
+  });
+
   app.post("/api/production/wip/update-stage", (req, res) => {
     const { wipId, stage } = req.body;
     const wipItem = db.wipInventory.find((w: any) => w.id === wipId);

@@ -76,6 +76,50 @@ export const Production: React.FC = () => {
   const [newStageName, setNewStageName] = useState("");
   const [stageError, setStageError] = useState("");
   const [isCreatingStage, setIsCreatingStage] = useState(false);
+  const [editingStageKey, setEditingStageKey] = useState<string | null>(null);
+  const [editingStageValue, setEditingStageValue] = useState("");
+
+  const handleUpdateWipStageName = async (oldStage: string) => {
+    setStageError("");
+    const normalized = editingStageValue.trim().toUpperCase().replace(/\s+/g, '_');
+    if (!normalized) return;
+    if (!/^[A-Z0-9_]+$/.test(normalized)) {
+      setStageError("Codes must contain only uppercase letters, numbers, & underscores");
+      return;
+    }
+    try {
+      const res = await fetch("/api/production/wip/stages", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldStage, newStage: normalized }),
+      });
+      if (res.ok) {
+        setEditingStageKey(null);
+        setEditingStageValue("");
+        refetch();
+      } else {
+        setStageError("Error renaming process stage");
+      }
+    } catch (err) {
+      setStageError("Network error renaming stage");
+    }
+  };
+
+  const handleDeleteWipStage = async (stageToDelete: string) => {
+    if (!confirm(`Are you sure you want to delete stage "${stageToDelete}" from registry?`)) return;
+    try {
+      const res = await fetch(`/api/production/wip/stages?stage=${encodeURIComponent(stageToDelete)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        refetch();
+      } else {
+        setStageError("Error deleting stage");
+      }
+    } catch (err) {
+      setStageError("Network error deleting stage");
+    }
+  };
 
   const [selectedWipCommitments, setSelectedWipCommitments] = useState<any | null>(null);
 
@@ -585,16 +629,74 @@ export const Production: React.FC = () => {
                   <label className="block text-[10px] font-black text-[#7c1d3c] uppercase tracking-[0.2em]">
                     Pipeline Process Stages ({stagesList.length})
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {stagesList.map((stg: string) => (
-                      <div 
-                        key={stg} 
-                        className="bg-white/90 hover:bg-white border border-[#7c1d3c]/20 text-[#3c0c1b] px-4 py-2.5 rounded-2xl text-[10px] font-black tracking-widest uppercase flex items-center gap-2 transition-all font-mono shadow-sm"
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full bg-[#7c1d3c] shadow-[0_0_8px_rgba(124,29,60,0.6)] animate-pulse"></span>
-                        {stg.replace(/_/g, ' ')}
-                      </div>
-                    ))}
+                  <div className="flex flex-wrap gap-2.5">
+                    {stagesList.map((stg: string) => {
+                      const isEditing = editingStageKey === stg;
+                      return (
+                        <div 
+                          key={stg} 
+                          className="bg-white/95 hover:bg-white border border-[#7c1d3c]/25 text-[#3c0c1b] px-3.5 py-2 rounded-2xl text-[10px] font-black tracking-widest uppercase flex items-center gap-2 transition-all font-mono shadow-sm group"
+                        >
+                          <span className="h-2 w-2 rounded-full bg-[#7c1d3c] shadow-[0_0_8px_rgba(124,29,60,0.6)] shrink-0"></span>
+                          
+                          {isEditing ? (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="text"
+                                value={editingStageValue}
+                                onChange={(e) => setEditingStageValue(e.target.value)}
+                                className="bg-white border border-[#7c1d3c] text-[#7c1d3c] px-2 py-0.5 rounded-lg text-[10px] font-black font-mono uppercase outline-none w-36"
+                                autoFocus
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateWipStageName(stg)}
+                                title="Save stage name"
+                                className="p-1 bg-[#7c1d3c] text-white rounded-md hover:bg-[#62142d] transition-colors"
+                              >
+                                <CheckCircle2 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingStageKey(null);
+                                  setEditingStageValue("");
+                                }}
+                                title="Cancel"
+                                className="p-1 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 transition-colors"
+                              >
+                                <X size={13} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <span className="text-[#3c0c1b]">{stg.replace(/_/g, ' ')}</span>
+                              <div className="flex items-center gap-1 ml-1">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingStageKey(stg);
+                                    setEditingStageValue(stg);
+                                  }}
+                                  title="Edit Stage Name"
+                                  className="p-1 text-slate-400 hover:text-[#7c1d3c] hover:bg-[#7c1d3c]/10 rounded-lg transition-colors"
+                                >
+                                  <Edit size={12} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteWipStage(stg)}
+                                  title="Delete Stage from Registry"
+                                  className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                                >
+                                  <Trash2 size={12} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
                 <div className="bg-white/90 p-6 rounded-3xl border border-[#7c1d3c]/15 shadow-sm">
