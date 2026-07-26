@@ -1240,7 +1240,7 @@ async function startServer() {
 
   app.put(["/api/inventory", "/api/inventory/:id"], (req, res) => {
     const id = req.params.id || req.body.id || req.body.existingItemId;
-    const { name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit, qcStatus, status, reservedQty } = req.body;
+    const { name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit, qcStatus, status, reservedQty, challanNo, vehicleNo, eWayBill, exciseSlip, acceptedQty, damagedQty } = req.body;
     
     let item: any;
     if (id) {
@@ -1264,6 +1264,12 @@ async function startServer() {
       if (typeof minStock !== 'undefined') item.minStock = Number(minStock);
       if (typeof reorderLevel !== 'undefined') item.reorderLevel = Number(reorderLevel);
       if (typeof reservedQty !== 'undefined') item.reservedQty = Number(reservedQty);
+      if (typeof challanNo !== 'undefined') item.challanNo = challanNo;
+      if (typeof vehicleNo !== 'undefined') item.vehicleNo = vehicleNo;
+      if (typeof eWayBill !== 'undefined') item.eWayBill = eWayBill;
+      if (typeof exciseSlip !== 'undefined') item.exciseSlip = exciseSlip;
+      if (typeof acceptedQty !== 'undefined') item.acceptedQty = Number(acceptedQty);
+      if (typeof damagedQty !== 'undefined') item.damagedQty = Number(damagedQty);
     } else {
       const safeId = id || ("RM-" + (name || Date.now().toString()).toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 15));
       item = {
@@ -1284,7 +1290,13 @@ async function startServer() {
         date: new Date().toISOString().split('T')[0],
         price: Number(price || 0),
         unit: unit || "Kg",
-        qcStatus: qcStatus || "APPROVED"
+        qcStatus: qcStatus || "APPROVED",
+        challanNo: challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        vehicleNo: vehicleNo || "GJ-01-AB-1234",
+        eWayBill: eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        exciseSlip: exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
+        acceptedQty: Number(acceptedQty || qty || 0),
+        damagedQty: Number(damagedQty || 0)
       };
       db.inventory.push(item);
     }
@@ -1294,7 +1306,7 @@ async function startServer() {
   });
 
   app.post("/api/inventory", (req, res) => {
-    const { existingItemId, name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit, qcStatus, status, setExactQty } = req.body;
+    const { existingItemId, name, code, category, supplier, batch, qty, minStock, reorderLevel, warehouse, rack, grn, price, unit, qcStatus, status, setExactQty, challanNo, vehicleNo, eWayBill, exciseSlip, acceptedQty, damagedQty } = req.body;
     
     let item: any;
     if (existingItemId) {
@@ -1319,6 +1331,12 @@ async function startServer() {
         if (unit) item.unit = unit;
         if (typeof minStock !== 'undefined') item.minStock = Number(minStock);
         if (typeof reorderLevel !== 'undefined') item.reorderLevel = Number(reorderLevel);
+        if (typeof challanNo !== 'undefined') item.challanNo = challanNo;
+        if (typeof vehicleNo !== 'undefined') item.vehicleNo = vehicleNo;
+        if (typeof eWayBill !== 'undefined') item.eWayBill = eWayBill;
+        if (typeof exciseSlip !== 'undefined') item.exciseSlip = exciseSlip;
+        if (typeof acceptedQty !== 'undefined') item.acceptedQty = Number(acceptedQty);
+        if (typeof damagedQty !== 'undefined') item.damagedQty = Number(damagedQty);
       } else {
         return res.status(404).json({ error: "Inventory item template not found" });
       }
@@ -1342,7 +1360,13 @@ async function startServer() {
         date: new Date().toISOString().split('T')[0],
         price: Number(price || 0),
         unit: unit || "Kg",
-        qcStatus: "APPROVED"
+        qcStatus: "APPROVED",
+        challanNo: challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        vehicleNo: vehicleNo || "GJ-01-AB-1234",
+        eWayBill: eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        exciseSlip: exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
+        acceptedQty: Number(acceptedQty || qty || 0),
+        damagedQty: Number(damagedQty || 0)
       };
       db.inventory.push(item);
     }

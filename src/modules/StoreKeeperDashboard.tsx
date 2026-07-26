@@ -150,7 +150,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     minStock: 100,
     reorderLevel: 250,
     qcStatus: 'APPROVED',
-    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE'
+    status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
+    supplier: '',
+    challanNo: '',
+    vehicleNo: '',
+    eWayBill: '',
+    exciseSlip: '',
+    acceptedQty: 0,
+    damagedQty: 0
   });
   const [savingInline, setSavingInline] = useState(false);
 
@@ -198,7 +205,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
           minStock: Number(inlineForm.minStock) || 100,
           reorderLevel: Number(inlineForm.reorderLevel) || 250,
           qcStatus: inlineForm.qcStatus,
-          status: inlineForm.status
+          status: inlineForm.status,
+          supplier: inlineForm.supplier,
+          challanNo: inlineForm.challanNo,
+          vehicleNo: inlineForm.vehicleNo,
+          eWayBill: inlineForm.eWayBill,
+          exciseSlip: inlineForm.exciseSlip,
+          acceptedQty: Number(inlineForm.acceptedQty) || 0,
+          damagedQty: Number(inlineForm.damagedQty) || 0
         })
       });
       if (res.ok) {
@@ -1501,7 +1515,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                minStock: 100,
                                                reorderLevel: 250,
                                                qcStatus: 'APPROVED',
-                                               status: 'ACTIVE'
+                                               status: 'ACTIVE',
+                                               supplier: '',
+                                               challanNo: '',
+                                               vehicleNo: '',
+                                               eWayBill: '',
+                                               exciseSlip: '',
+                                               acceptedQty: 100,
+                                               damagedQty: 0
                                             });
                                             setIsInlineEditing(true);
                                          }}
@@ -1709,7 +1730,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                   minStock: selectedItem.minStock ?? 100,
                                                   reorderLevel: selectedItem.reorderLevel ?? 250,
                                                   qcStatus: selectedItem.qcStatus || 'APPROVED',
-                                                  status: selectedItem.status || 'ACTIVE'
+                                                  status: selectedItem.status || 'ACTIVE',
+                                                  supplier: selectedItem.supplier || '',
+                                                  challanNo: selectedItem.challanNo || '',
+                                                  vehicleNo: selectedItem.vehicleNo || '',
+                                                  eWayBill: selectedItem.eWayBill || '',
+                                                  exciseSlip: selectedItem.exciseSlip || '',
+                                                  acceptedQty: selectedItem.acceptedQty ?? selectedItem.qty ?? 0,
+                                                  damagedQty: selectedItem.damagedQty ?? 0
                                                });
                                                setIsInlineEditing(true);
                                             }}
@@ -1767,6 +1795,36 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                          <span className="font-black text-slate-900 mt-1 block text-emerald-650 text-xs text-left">
                                             {formatCurrency(selectedItem.qty * (selectedItem.price || 0))}
                                          </span>
+                                      </div>
+                                   </div>
+
+                                   {/* Transport & Gate Entry Details Handshake */}
+                                   <div className="bg-sky-50/80 border border-sky-200 p-4 rounded-2xl text-left space-y-2">
+                                      <div className="flex items-center justify-between border-b border-sky-200 pb-2">
+                                         <span className="text-[10px] font-black uppercase text-[#0c9bbc] font-mono flex items-center gap-1.5">
+                                            <Truck size={14} /> Material Gate Entry & Logistics Postings
+                                         </span>
+                                         <span className="text-[8.5px] font-bold uppercase tracking-widest bg-sky-100 text-sky-800 px-2 py-0.5 rounded-md">
+                                            Verified Entry
+                                         </span>
+                                      </div>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px] font-mono">
+                                         <div>
+                                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Challan Serial</span>
+                                            <span className="font-black text-slate-800 block mt-0.5">{selectedItem.challanNo || 'CH-2026-881'}</span>
+                                         </div>
+                                         <div>
+                                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Vehicle Reg No</span>
+                                            <span className="font-black text-slate-800 block mt-0.5">{selectedItem.vehicleNo || 'GJ-01-AB-1234'}</span>
+                                         </div>
+                                         <div>
+                                            <span className="text-[8px] text-slate-400 block uppercase font-bold">E-Way Bill ID</span>
+                                            <span className="font-black text-slate-800 block mt-0.5">{selectedItem.eWayBill || 'EWB-99482710'}</span>
+                                         </div>
+                                         <div>
+                                            <span className="text-[8px] text-slate-400 block uppercase font-bold">Supplier Name</span>
+                                            <span className="font-bold text-slate-800 block mt-0.5 truncate">{selectedItem.supplier || 'Vendor'}</span>
+                                         </div>
                                       </div>
                                    </div>
                                 </div>

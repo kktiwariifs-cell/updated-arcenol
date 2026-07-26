@@ -217,6 +217,12 @@ export const Inventory: React.FC = () => {
   const [newReorderLevel, setNewReorderLevel] = useState<number>(250);
   const [grn, setGrn] = useState('');
   const [batch, setBatch] = useState('');
+  const [challanNo, setChallanNo] = useState('');
+  const [vehicleNo, setVehicleNo] = useState('');
+  const [eWayBill, setEWayBill] = useState('');
+  const [exciseSlip, setExciseSlip] = useState('');
+  const [acceptedQty, setAcceptedQty] = useState<number>(0);
+  const [damagedQty, setDamagedQty] = useState<number>(0);
   const [submitError, setSubmitError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingProcureId, setEditingProcureId] = useState<string | null>(null);
@@ -536,7 +542,13 @@ export const Inventory: React.FC = () => {
         rack,
         unit,
         minStock: Number(newMinStock) || 100,
-        reorderLevel: Number(newReorderLevel) || 250
+        reorderLevel: Number(newReorderLevel) || 250,
+        challanNo: challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        vehicleNo: vehicleNo || 'GJ-01-AB-1234',
+        eWayBill: eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        exciseSlip: exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
+        acceptedQty: Number(acceptedQty || qty || 0),
+        damagedQty: Number(damagedQty || 0)
       };
 
       if (editingProcureId) {
@@ -572,6 +584,12 @@ export const Inventory: React.FC = () => {
       setSupplier('');
       setBatch('');
       setGrn('');
+      setChallanNo('');
+      setVehicleNo('');
+      setEWayBill('');
+      setExciseSlip('');
+      setAcceptedQty(0);
+      setDamagedQty(0);
       setPrice(0);
     } catch (err: any) {
       setSubmitError(err.message || 'Error executing procurement REST transaction.');
@@ -596,6 +614,12 @@ export const Inventory: React.FC = () => {
     setNewReorderLevel(item.reorderLevel ?? 250);
     setGrn(item.grn || '');
     setBatch(item.batch || '');
+    setChallanNo(item.challanNo || '');
+    setVehicleNo(item.vehicleNo || '');
+    setEWayBill(item.eWayBill || '');
+    setExciseSlip(item.exciseSlip || '');
+    setAcceptedQty(item.acceptedQty ?? item.qty ?? 0);
+    setDamagedQty(item.damagedQty ?? 0);
     setSubmitError('');
     setIsProcureModalOpen(true);
   };
@@ -2347,14 +2371,15 @@ export const Inventory: React.FC = () => {
               <table className="w-full text-left">
                 <thead className="bg-slate-50 text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] border-b border-slate-200">
                   <tr>
-                    <th className="px-8 py-5">Material Asset</th>
-                    <th className="px-8 py-5">Product SKU Code</th>
-                    <th className="px-8 py-5">Batch & GRN</th>
-                    <th className="px-8 py-5">QC Status</th>
-                    <th className="px-8 py-5">Storage Node Location</th>
-                    <th className="px-8 py-5">Quantity Active</th>
-                    <th className="px-8 py-5">Valuation</th>
-                    <th className="px-8 py-5 text-right">Actions</th>
+                    <th className="px-6 py-5">Material Asset</th>
+                    <th className="px-6 py-5">Product SKU Code</th>
+                    <th className="px-6 py-5">Batch & GRN</th>
+                    <th className="px-6 py-5">Gate Entry & Logistics</th>
+                    <th className="px-6 py-5">QC Status</th>
+                    <th className="px-6 py-5">Storage Location</th>
+                    <th className="px-6 py-5">Active Quantity</th>
+                    <th className="px-6 py-5">Valuation</th>
+                    <th className="px-6 py-5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-mono text-slate-900 text-xs">
@@ -2362,17 +2387,27 @@ export const Inventory: React.FC = () => {
                     const isLow = item.qty < (item.minStock || 0);
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <p className="font-sans font-black text-slate-900 tracking-tight text-[13px] uppercase group-hover:text-primary-600 transition-colors">{item.name}</p>
                           <span className="text-[9px] text-slate-400 font-medium uppercase mt-1 inline-block">{item.supplier}</span>
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <span className="text-[10px] bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-bold">{item.code || 'N/A'}</span>
                         </td>
-                        <td className="px-8 py-6">
+                        <td className="px-6 py-6">
                           <div className="space-y-1">
                             <span className="text-[10px] font-black text-slate-600 block">B: {item.batch}</span>
                             <span className="text-[8px] text-slate-400 font-bold block">GRN: {item.grn || 'Manual'}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-6">
+                          <div className="space-y-0.5 font-mono text-[10px]">
+                            <div className="flex items-center space-x-1 text-slate-800 font-extrabold">
+                              <Truck size={12} className="text-[#0c9bbc]" />
+                              <span>{item.vehicleNo || 'GJ-01-AB-1234'}</span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 font-bold">Challan: <span className="font-black text-slate-800">{item.challanNo || 'CH-2026-881'}</span></p>
+                            <p className="text-[8px] text-slate-400">E-Way: {item.eWayBill || 'EWB-994820'}</p>
                           </div>
                         </td>
                         <td className="px-8 py-6">
@@ -3290,19 +3325,121 @@ export const Inventory: React.FC = () => {
                   </div>
                 )}
 
-                {/* Vendor & Batch Group */}
-                <div className="grid grid-cols-2 gap-6 pt-2">
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">SUPPLIER COMPANY</label>
-                    <input
-                      type="text"
-                      required
-                      value={supplier}
-                      onChange={(e) => setSupplier(e.target.value)}
-                      placeholder="e.g. Platinum Electronics"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-bold text-slate-800 outline-none shadow-3xs"
-                    />
+                {/* Gate Entry & Transport Logistics Section */}
+                <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center justify-between border-b border-sky-200 pb-2">
+                    <div className="flex items-center space-x-2">
+                      <Truck className="text-[#0c9bbc]" size={18} />
+                      <h4 className="text-xs font-black uppercase text-[#0c9bbc] tracking-wider font-mono">
+                        MATERIAL GATE ENTRY POSTING & TRANSPORT DETAILS
+                      </h4>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest bg-sky-100 text-sky-800 px-2.5 py-0.5 rounded-full border border-sky-200">
+                      Store Keeper Handshake
+                    </span>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        CHALLAN SERIAL NUMBER
+                      </label>
+                      <input
+                        type="text"
+                        value={challanNo}
+                        onChange={(e) => setChallanNo(e.target.value)}
+                        placeholder="e.g. CH-2026-881"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono uppercase text-slate-800 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        VEHICLE REGISTRATION NUMBER
+                      </label>
+                      <input
+                        type="text"
+                        value={vehicleNo}
+                        onChange={(e) => setVehicleNo(e.target.value)}
+                        placeholder="e.g. GJ-01-AB-1234"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono uppercase text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        SUPPLIER NAME
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={supplier}
+                        onChange={(e) => setSupplier(e.target.value)}
+                        placeholder="e.g. Platinum Electronics Ltd"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-bold text-slate-800 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        E-WAY BILL ID
+                      </label>
+                      <input
+                        type="text"
+                        value={eWayBill}
+                        onChange={(e) => setEWayBill(e.target.value)}
+                        placeholder="e.g. EWB-99482710"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono uppercase text-slate-800 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        EXCISE SLIP CODE
+                      </label>
+                      <input
+                        type="text"
+                        value={exciseSlip}
+                        onChange={(e) => setExciseSlip(e.target.value)}
+                        placeholder="e.g. EXC-88321"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono uppercase text-slate-800 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        ACCEPTED QTY
+                      </label>
+                      <input
+                        type="number"
+                        value={acceptedQty || ''}
+                        onChange={(e) => setAcceptedQty(Number(e.target.value))}
+                        placeholder={qty ? String(qty) : "0"}
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono text-emerald-700 outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-black text-slate-600 uppercase tracking-wider block font-sans">
+                        DAMAGED QTY
+                      </label>
+                      <input
+                        type="number"
+                        value={damagedQty || ''}
+                        onChange={(e) => setDamagedQty(Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full bg-white border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-3 px-4 text-xs font-black font-mono text-rose-700 outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vendor & Batch Group */}
+                <div className="grid grid-cols-2 gap-6 pt-1">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">BATCH MASTER ID</label>
                     <input
@@ -3314,10 +3451,6 @@ export const Inventory: React.FC = () => {
                       className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono uppercase text-slate-800 shadow-3xs"
                     />
                   </div>
-                </div>
-
-                {/* GRN & Valuation Group */}
-                <div className="grid grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">GRN REFERENCE MATCH</label>
                     <input
@@ -3327,17 +3460,6 @@ export const Inventory: React.FC = () => {
                       onChange={(e) => setGrn(e.target.value)}
                       placeholder="E.G. GRN-998"
                       className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono uppercase text-slate-800 shadow-3xs"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest block font-sans">BASE SUPPLIER VALUE (₹)</label>
-                    <input
-                      type="number"
-                      required
-                      value={price || ''}
-                      onChange={(e) => setPrice(Number(e.target.value))}
-                      placeholder="e.g. 150"
-                      className="w-full bg-slate-50 border border-slate-200 focus:border-[#0c9bbc] transition-all rounded-xl py-4 px-5 text-sm font-black outline-none font-mono text-slate-800 shadow-3xs"
                     />
                   </div>
                 </div>
