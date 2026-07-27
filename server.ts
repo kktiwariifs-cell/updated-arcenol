@@ -594,9 +594,11 @@ async function startServer() {
       );
       
       const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+      const category = invItem?.category || (item as any).category || (item as any).type || "RAW MATERIAL";
 
       return {
         ...item,
+        category,
         perUnit,
         requiredTotal: total,
         available: avail,

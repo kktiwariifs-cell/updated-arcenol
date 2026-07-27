@@ -1476,10 +1476,8 @@ export const Inventory: React.FC = () => {
   }, [data?.products, data?.finishedGoods]);
 
   useEffect(() => {
-    if (products && products.length > 0) {
-      if (!mrpProductModel || !products.some((p: any) => p.id === mrpProductModel || p.model_id === mrpProductModel)) {
-        setMrpProductModel(products[0].id || products[0].model_id || '72V30A');
-      }
+    if (products && products.length > 0 && !mrpProductModel) {
+      setMrpProductModel(products[0].id || products[0].model_id || '72V30A');
     }
   }, [products, mrpProductModel]);
 
@@ -2876,11 +2874,26 @@ export const Inventory: React.FC = () => {
                       }}
                       className="w-full bg-white border border-slate-300 rounded-xl py-3.5 px-4 pr-10 text-xs font-black text-slate-900 outline-none cursor-pointer uppercase appearance-none shadow-xs"
                     >
-                      {products.map((p: any) => (
-                        <option key={p.id} value={p.id} className="bg-white">
-                          {p.name} ({p.type})
-                        </option>
-                      ))}
+                      {(() => {
+                        const categorized: Record<string, any[]> = {};
+                        (products || []).forEach((p: any) => {
+                          const catName = (p.category && String(p.category).trim()) || "General Battery Blueprints";
+                          if (!categorized[catName]) {
+                            categorized[catName] = [];
+                          }
+                          categorized[catName].push(p);
+                        });
+
+                        return Object.keys(categorized).map((catKey) => (
+                          <optgroup key={catKey} label={catKey} className="font-bold text-slate-500 bg-slate-50">
+                            {categorized[catKey].map((p: any) => (
+                              <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold">
+                                {p.name} [{p.id}] {p.type ? `(${p.type})` : ''}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ));
+                      })()}
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400 text-[10px]">
                       ▼
@@ -2938,6 +2951,7 @@ export const Inventory: React.FC = () => {
                     <thead className="bg-[#f8fafc] text-slate-500 text-[8.5px] font-black uppercase tracking-widest border-b border-slate-200">
                       <tr>
                         <th className="px-6 py-4">BOM Component Name</th>
+                        <th className="px-6 py-4">Category</th>
                         <th className="px-6 py-4">Per Unit Qty</th>
                         <th className="px-6 py-4">Required Batch Qty</th>
                         <th className="px-6 py-4">Current Available</th>
@@ -2952,6 +2966,11 @@ export const Inventory: React.FC = () => {
                             <td className="px-6 py-4">
                               <p className="font-sans font-black text-slate-900 uppercase">{reqm.name}</p>
                               <span className="text-[8px] text-slate-400 font-bold block">CODE REF: {reqm.matId}</span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 font-black text-[9px] uppercase tracking-wider rounded-md border border-slate-200/80">
+                                {reqm.category || 'RAW MATERIAL'}
+                              </span>
                             </td>
                             <td className="px-6 py-4 font-black">{reqm.perUnit.toFixed(2)} {reqm.unit}</td>
                             <td className="px-6 py-4 font-black text-slate-800 italic">{reqm.requiredTotal.toLocaleString()} {reqm.unit}</td>

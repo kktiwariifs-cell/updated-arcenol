@@ -141,12 +141,10 @@ export const MRP: React.FC = () => {
   const [productionQty, setProductionQty] = useState<number>(10);
 
   useEffect(() => {
-    if (allProducts && allProducts.length > 0) {
-      if (!selectedModel || !allProducts.some((p: any) => p.id === selectedModel || p.model_id === selectedModel)) {
-        setSelectedModel(allProducts[0].id || allProducts[0].model_id);
-      }
+    if (allProducts && allProducts.length > 0 && !selectedModel) {
+      setSelectedModel(allProducts[0].id || allProducts[0].model_id);
     }
-  }, [allProducts]);
+  }, [allProducts, selectedModel]);
   const [calculation, setCalculation] = useState<any>(null);
   const [isCalculating, setIsCalculating] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
@@ -539,8 +537,10 @@ export const MRP: React.FC = () => {
             const total = perUnit * Number(productionQty || 0);
             const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
             const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+            const category = invItem?.category || (item as any).category || (item as any).type || "RAW MATERIAL";
             return {
               ...item,
+              category,
               perUnit,
               requiredTotal: total,
               available: avail,
@@ -570,8 +570,10 @@ export const MRP: React.FC = () => {
           const total = perUnit * Number(productionQty || 0);
           const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
           const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+          const category = invItem?.category || (item as any).category || (item as any).type || "RAW MATERIAL";
           return {
             ...item,
+            category,
             perUnit,
             requiredTotal: total,
             available: avail,
@@ -1247,14 +1249,15 @@ export const MRP: React.FC = () => {
                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Valuation Delta</p>
                              <p className="text-2xl font-black text-slate-900 italic tracking-tighter">₹{(calculation.requirements || []).reduce((a:number, b:any) => a + ((b.requiredTotal || 0) * 100), 0).toLocaleString()}</p>
                           </div>
-                       </div>
-                    </div>
+                        </div>
+                     </div>
 
-                    <div className="overflow-x-auto">
+                     <div className="overflow-x-auto">
                       <table className="w-full text-left font-mono">
                          <thead className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] border-b border-slate-100">
                             <tr>
                                <th className="px-6 py-6">Component Artifact</th>
+                               <th className="px-6 py-6">Category</th>
                                <th className="px-6 py-6 text-center">Net Matrix</th>
                                <th className="px-6 py-6">Target Requirement</th>
                                <th className="px-6 py-6">Operational Stock</th>
@@ -1264,7 +1267,15 @@ export const MRP: React.FC = () => {
                          <tbody className="divide-y divide-slate-50 text-[12px] font-black text-slate-900">
                             {(calculation.requirements || []).map((req: any, idx: number) => (
                                <tr key={idx} className="hover:bg-slate-50 transition-all group">
-                                  <td className="px-6 py-6 group-hover:text-primary-600 transition-colors uppercase tracking-tight">{req.name}</td>
+                                  <td className="px-6 py-6 group-hover:text-primary-600 transition-colors uppercase tracking-tight">
+                                     <span className="block font-black">{req.name}</span>
+                                     {req.matId && <span className="text-[9px] text-slate-400 font-bold block mt-0.5">REF: {req.matId}</span>}
+                                  </td>
+                                  <td className="px-6 py-6">
+                                     <span className="inline-block px-2.5 py-1 bg-slate-100 text-slate-700 font-black text-[9.5px] uppercase tracking-wider rounded-md border border-slate-200/80">
+                                        {req.category || 'RAW MATERIAL'}
+                                     </span>
+                                  </td>
                                   <td className="px-6 py-6 text-center text-slate-400 font-bold">{Number((req.perUnit || 0).toFixed(4))}</td>
                                   <td className="px-6 py-6 text-slate-900 italic">{Number((req.requiredTotal || 0).toFixed(4))} <span className="text-[9px] text-slate-400 not-italic uppercase ml-1 font-black">{req.unit}</span></td>
                                   <td className={cn("px-6 py-6 font-black italic", (req.available || 0) < (req.requiredTotal || 0) ? 'text-red-500' : 'text-primary-600')}>
@@ -1285,8 +1296,8 @@ export const MRP: React.FC = () => {
                             ))}
                          </tbody>
                       </table>
+                       </div>
                     </div>
-                  </div>
 
                   <div className="p-8 rounded-[2.5rem] border border-primary-100 bg-primary-50/30 flex items-start space-x-5">
                      <div className="h-10 w-10 rounded-xl bg-white border border-primary-100 flex items-center justify-center text-primary-600 shadow-md shrink-0">
