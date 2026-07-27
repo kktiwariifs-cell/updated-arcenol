@@ -1436,6 +1436,29 @@ async function startServer() {
     res.json(newPO);
   });
 
+  app.put("/api/purchase-orders/:id", (req, res) => {
+    const { id } = req.params;
+    if (!db.purchaseOrders) db.purchaseOrders = [];
+    const index = db.purchaseOrders.findIndex((p: any) => p.id === id);
+    if (index === -1) return res.status(404).json({ error: "Purchase Order not found" });
+
+    const updated = {
+      ...db.purchaseOrders[index],
+      ...req.body,
+      id,
+      totalAmount: (Number(req.body.qty ?? db.purchaseOrders[index].qty)) * (Number(req.body.unitCost ?? db.purchaseOrders[index].unitCost))
+    };
+    db.purchaseOrders[index] = updated;
+    res.json(updated);
+  });
+
+  app.delete("/api/purchase-orders/:id", (req, res) => {
+    const { id } = req.params;
+    if (!db.purchaseOrders) db.purchaseOrders = [];
+    db.purchaseOrders = db.purchaseOrders.filter((p: any) => p.id !== id);
+    res.json({ success: true, id });
+  });
+
   app.patch("/api/purchase-orders/:id/status", (req, res) => {
     const { id } = req.params;
     const { status, remarks } = req.body;

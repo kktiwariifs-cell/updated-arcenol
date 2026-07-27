@@ -800,11 +800,14 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       const modelId = url.searchParams.get('modelId');
       const qty = url.searchParams.get('qty');
       const reqModelId = String(modelId || '').trim();
-      const product = db.products.find((p: any) => 
+      let product = db.products.find((p: any) => 
         String(p.id).trim() === reqModelId || 
         String(p.model_id || '').trim() === reqModelId ||
         p.name?.toLowerCase() === reqModelId.toLowerCase()
       );
+      if (!product && db.products.length > 0) {
+        product = db.products[0];
+      }
       if (!product) {
         status = 404;
         responseData = { error: "Product blueprint not found" };

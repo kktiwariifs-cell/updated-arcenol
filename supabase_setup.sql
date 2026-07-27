@@ -349,6 +349,96 @@ CREATE TABLE IF NOT EXISTS public.arcenol_business_profile (
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+-- -------------------------------------------------------------------------
+-- TABLE 19: PURCHASE ORDERS (GENERATE PURCHASE ORDER / INWARD REQUISITIONS)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.purchase_orders (
+  id text PRIMARY KEY,
+  material_id text,
+  material_name text NOT NULL,
+  category text DEFAULT 'RAW_MATERIAL',
+  vendor text NOT NULL,
+  vendor_contact text,
+  qty numeric DEFAULT 0.00,
+  unit text DEFAULT 'Pcs',
+  unit_cost numeric DEFAULT 0.00,
+  total_amount numeric DEFAULT 0.00,
+  order_date text,
+  estimated_delivery text,
+  status text DEFAULT 'Pending Supplier Confirmation',
+  tracking_number text,
+  remarks text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS material_id text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS material_name text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS category text DEFAULT 'RAW_MATERIAL';
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS vendor text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS vendor_contact text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS qty numeric DEFAULT 0.00;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS unit text DEFAULT 'Pcs';
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS unit_cost numeric DEFAULT 0.00;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS total_amount numeric DEFAULT 0.00;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS order_date text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS estimated_delivery text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS status text DEFAULT 'Pending Supplier Confirmation';
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS tracking_number text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS remarks text;
+ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
+-- -------------------------------------------------------------------------
+-- TABLE 20: PROCUREMENT ENTRIES (INVENTORY PROCUREMENT REGISTER & GATE ENTRIES)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.procurement_entries (
+  id text PRIMARY KEY,
+  procurement_mode text DEFAULT 'RESTOCK EXISTING ITEM',
+  matcher_sku text,
+  material_name text NOT NULL,
+  code_reference text,
+  category text DEFAULT 'RAW_MATERIAL',
+  unit text DEFAULT 'Kg',
+  challan_number text,
+  vehicle_number text,
+  supplier_name text,
+  eway_bill text,
+  excise_slip text,
+  accepted_qty numeric DEFAULT 0.00,
+  damaged_qty numeric DEFAULT 0.00,
+  batch_master_id text,
+  grn_reference text,
+  destination_warehouse text DEFAULT 'Raw Hub',
+  rack_shelf text DEFAULT 'A-1',
+  min_stock numeric DEFAULT 100,
+  reorder_level numeric DEFAULT 250,
+  allocated_inflow numeric DEFAULT 0.00,
+  status text DEFAULT 'COMPLETED',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS procurement_mode text DEFAULT 'RESTOCK EXISTING ITEM';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS matcher_sku text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS material_name text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS code_reference text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS category text DEFAULT 'RAW_MATERIAL';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS unit text DEFAULT 'Kg';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS challan_number text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS vehicle_number text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS supplier_name text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS eway_bill text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS excise_slip text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS accepted_qty numeric DEFAULT 0.00;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS damaged_qty numeric DEFAULT 0.00;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS batch_master_id text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS grn_reference text;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS destination_warehouse text DEFAULT 'Raw Hub';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS rack_shelf text DEFAULT 'A-1';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS min_stock numeric DEFAULT 100;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS reorder_level numeric DEFAULT 250;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS allocated_inflow numeric DEFAULT 0.00;
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS status text DEFAULT 'COMPLETED';
+ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
 -- =========================================================================
 -- ROW LEVEL SECURITY (RLS) FOR ANONYMOUS CRUD INTEGRATION
 -- =========================================================================
@@ -373,6 +463,8 @@ ALTER TABLE public.plant_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.diagnostic_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arcenol_business_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.procurement_entries ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any to prevent collision
 DROP POLICY IF EXISTS "Allow public access to all records" ON public.arcenol_corporate_units;
@@ -488,6 +580,18 @@ DROP POLICY IF EXISTS "Allow public insert" ON public.arcenol_business_profile;
 DROP POLICY IF EXISTS "Allow public update" ON public.arcenol_business_profile;
 DROP POLICY IF EXISTS "Allow public delete" ON public.arcenol_business_profile;
 
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Allow public select" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Allow public insert" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Allow public update" ON public.purchase_orders;
+DROP POLICY IF EXISTS "Allow public delete" ON public.purchase_orders;
+
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.procurement_entries;
+DROP POLICY IF EXISTS "Allow public select" ON public.procurement_entries;
+DROP POLICY IF EXISTS "Allow public insert" ON public.procurement_entries;
+DROP POLICY IF EXISTS "Allow public update" ON public.procurement_entries;
+DROP POLICY IF EXISTS "Allow public delete" ON public.procurement_entries;
+
 -- Create full CRUD public anonymous policies explicitly to avoid wildcard warnings
 -- 1. arcenol_corporate_units
 CREATE POLICY "Allow public select" ON public.arcenol_corporate_units FOR SELECT USING (true);
@@ -602,6 +706,18 @@ CREATE POLICY "Allow public select" ON public.arcenol_business_profile FOR SELEC
 CREATE POLICY "Allow public insert" ON public.arcenol_business_profile FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public update" ON public.arcenol_business_profile FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public delete" ON public.arcenol_business_profile FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 19. purchase_orders
+CREATE POLICY "Allow public select" ON public.purchase_orders FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.purchase_orders FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.purchase_orders FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.purchase_orders FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 20. procurement_entries
+CREATE POLICY "Allow public select" ON public.procurement_entries FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.procurement_entries FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.procurement_entries FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.procurement_entries FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
 
 -- -------------------------------------------------------------------------
 -- SECURITY HARDENING: SECURE EXISTING FUNCTIONS
@@ -785,10 +901,28 @@ VALUES
   ('LOG-C1003-1', 'C-1003', 'ARC-72V30A-2024-000103', 'UNDER_INSPECTION', 'Voltage Drop', 'Resistance balancing audit underway.', 'Ramesh K.', '2026-06-17 08:30:10')
 ON CONFLICT (id) DO NOTHING;
 
+-- 18. Seed Purchase Orders (Inward Requisitions / POS Generate PO)
+INSERT INTO public.purchase_orders (
+  id, material_id, material_name, category, vendor, vendor_contact, qty, unit, unit_cost, total_amount, order_date, estimated_delivery, status, tracking_number, remarks
+) VALUES 
+  ('PO-2026-081', 'RM-CELLS', 'Lithium Cells (3.7V 3Ah)', 'Cells', 'Energy Plus Ltd', '+91 98765 43210', 10000, 'Pcs', 250, 2500000, '2026-07-20', '2026-07-28', 'In Transit', 'TRK-EP-99812', 'Priority supply for 72V30A E-Rickshaw Battery Batch A3'),
+  ('PO-2026-082', 'RM-BMS-72V', 'Smart BMS (72V 50A)', 'Electronics', 'TechCircuit Electronics', '+91 91234 56789', 500, 'Pcs', 2500, 1250000, '2026-07-22', '2026-07-29', 'Pending Supplier Confirmation', 'TRK-TC-4401', 'Order confirmed via supplier EDI, awaiting dispatch tag.'),
+  ('PO-2026-083', 'RM-LEAD', 'Lead Alloy', 'RAW_MATERIAL', 'Global Metals Corp', '+91 99887 76655', 5000, 'Kg', 180, 900000, '2026-07-18', '2026-07-25', 'Arrived at Gate', 'TRK-GM-1002', 'Truck MH-12-PQ-8891 at Gate 2. Pending GRN & QC test.'),
+  ('PO-2026-080', 'RM-ACID', 'Sulfuric Acid', 'RAW_MATERIAL', 'Chemical Ltd', '+91 98980 12345', 2000, 'Ltr', 45, 90000, '2026-07-10', '2026-07-15', 'GRN Received', 'TRK-CH-0092', 'Received and verified into Raw Hub Rack A1 under GRN-R-03')
+ON CONFLICT (id) DO NOTHING;
+
+-- 19. Seed Procurement Entries (Inward Raw Material Arrivals & Transport Details)
+INSERT INTO public.procurement_entries (
+  id, procurement_mode, matcher_sku, material_name, code_reference, category, unit, challan_number, vehicle_number, supplier_name, eway_bill, excise_slip, accepted_qty, damaged_qty, batch_master_id, grn_reference, destination_warehouse, rack_shelf, min_stock, reorder_level, allocated_inflow, status
+) VALUES 
+  ('PROC-2026-001', 'RESTOCK EXISTING ITEM', 'LA-001', 'Lead Alloy', 'CD-4511', 'RAW_MATERIAL', 'Kg', 'CH-2026-881', 'GJ-01-AB-1234', 'Platinum Electronics Ltd', 'EWB-99482710', 'EXC-88321', 1000, 0, 'B-394', 'GRN-3128', 'Raw Hub', 'A-1', 100, 250, 1000, 'COMPLETED'),
+  ('PROC-2026-002', 'REGISTER NEW MATERIAL', 'CELL-3.7', 'Lithium Cells (3.7V 3Ah)', 'CELL-3.7', 'Cells', 'Pcs', 'CH-2026-902', 'MH-12-PQ-8891', 'Energy Plus Ltd', 'EWB-8820192', 'EXC-99102', 10000, 0, 'EP-2024', 'GRN-R-14', 'Raw Hub', 'C-1', 100, 250, 10000, 'COMPLETED')
+ON CONFLICT (id) DO NOTHING;
+
 -- =========================================================================
 -- DATABASE CONFIGURATION SUMMARY
 -- =========================================================================
--- Tables Provisioned: 18 Core Scaled Entities
+-- Tables Provisioned: 20 Core Scaled Entities
 -- Security Setup: Enable Row-Level Security (RLS) with full Public Anonymous read/write policies on all tables
 -- Target Key handshakes configured. Ready for deployment!
 -- =========================================================================

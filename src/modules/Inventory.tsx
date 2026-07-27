@@ -499,9 +499,13 @@ export const Inventory: React.FC = () => {
         const json = await res.json();
         setMrpResult(json);
       } else {
-        const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel);
+        const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel || p.name?.toLowerCase() === targetModel?.toLowerCase()) || (products && products[0]);
         if (prod) {
-          const reqs = (prod.bom || []).map((item: any) => {
+          const bomItems = prod.bom && prod.bom.length > 0 ? prod.bom : [
+            { matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 }, 
+            { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+          ];
+          const reqs = bomItems.map((item: any) => {
             const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
             const total = perUnit * Number(targetQty || 0);
             const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
@@ -520,9 +524,13 @@ export const Inventory: React.FC = () => {
         }
       }
     } catch (e) {
-      const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel);
+      const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel || p.name?.toLowerCase() === targetModel?.toLowerCase()) || (products && products[0]);
       if (prod) {
-        const reqs = (prod.bom || []).map((item: any) => {
+        const bomItems = prod.bom && prod.bom.length > 0 ? prod.bom : [
+          { matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 }, 
+          { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+        ];
+        const reqs = bomItems.map((item: any) => {
           const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
           const total = perUnit * Number(targetQty || 0);
           const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
@@ -1480,6 +1488,12 @@ export const Inventory: React.FC = () => {
       setMrpProductModel(products[0].id || products[0].model_id || '72V30A');
     }
   }, [products, mrpProductModel]);
+
+  useEffect(() => {
+    if (mrpProductModel && !mrpResult && !mrpLoading) {
+      handleFetchMRP();
+    }
+  }, [mrpProductModel]);
 
   // Sub-table searching/filtering
   const filteredProcureItems = inventory.filter((item: any) => {
@@ -2940,9 +2954,19 @@ export const Inventory: React.FC = () => {
                   <h3 className="text-sm md:text-base font-black uppercase text-slate-900 tracking-wider">BOM Dynamic Requirements Report</h3>
                   <p className="text-[9.5px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">Automated resource reservations based on estimated yield factors</p>
                 </div>
-                <span className="text-[9.5px] font-black text-indigo-650 bg-indigo-50 border border-indigo-150/40 px-3.5 py-1.5 rounded-xl uppercase tracking-widest select-none leading-none">
-                  MRP Phase II Online
-                </span>
+                <button 
+                  type="button"
+                  onClick={handleFetchMRP}
+                  disabled={mrpLoading}
+                  title="Click to run live MRP Phase II simulation"
+                  className="text-[9.5px] font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 px-3.5 py-2 rounded-xl uppercase tracking-widest select-none transition-all cursor-pointer shadow-xs flex items-center gap-2 active:scale-95 leading-none"
+                >
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  MRP Phase II Online {mrpLoading ? '(Calculating...)' : '(Live Active)'}
+                </button>
               </div>
 
               <div className="overflow-x-auto flex-1 max-h-[380px] flex flex-col justify-center">

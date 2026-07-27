@@ -1239,9 +1239,19 @@ export const MRP: React.FC = () => {
                      <h3 className="text-sm md:text-base font-black uppercase text-slate-900 tracking-wider">BOM Dynamic Requirements Report</h3>
                      <p className="text-[9.5px] text-slate-400 font-extrabold uppercase tracking-widest mt-1">Automated resource reservations based on estimated yield factors</p>
                    </div>
-                   <span className="text-[9.5px] font-black text-indigo-650 bg-indigo-50 border border-indigo-150/40 px-3.5 py-1.5 rounded-xl uppercase tracking-widest select-none leading-none">
-                     MRP Phase II Online
-                   </span>
+                   <button 
+                     type="button"
+                     onClick={handleCalculate}
+                     disabled={isCalculating}
+                     title="Click to run live MRP Phase II simulation"
+                     className="text-[9.5px] font-black text-indigo-700 bg-indigo-50 hover:bg-indigo-600 hover:text-white border border-indigo-200 px-3.5 py-2 rounded-xl uppercase tracking-widest select-none transition-all cursor-pointer shadow-xs flex items-center gap-2 active:scale-95 leading-none"
+                   >
+                     <span className="relative flex h-2 w-2">
+                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                     </span>
+                     MRP Phase II Online {isCalculating ? '(Calculating...)' : '(Live Active)'}
+                   </button>
                  </div>
                  
                  <div className="flex-1 flex flex-col items-center justify-center p-16 min-h-[350px]">

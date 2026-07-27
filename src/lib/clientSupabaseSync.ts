@@ -276,6 +276,65 @@ export async function hydrateDbFromSupabase(db: any) {
     } catch (bomsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating bom_blueprints:', bomsCatchErr);
     }
+
+    // 11. Purchase Orders
+    try {
+      const { data: pos } = await supabase.from('purchase_orders').select('*');
+      if (pos && pos.length > 0) {
+        db.purchaseOrders = pos.map((p: any) => ({
+          id: String(p.id),
+          materialId: p.material_id || p.materialId || 'RM-GENERIC',
+          materialName: p.material_name || p.materialName || 'Raw Material Component',
+          category: p.category || 'RAW_MATERIAL',
+          vendor: p.vendor || 'Energy Plus Ltd',
+          vendorContact: p.vendor_contact || p.vendorContact || '+91 98765 43210',
+          qty: Number(p.qty || 0),
+          unit: p.unit || 'Pcs',
+          unitCost: Number(p.unit_cost || p.unitCost || 0),
+          totalAmount: Number(p.total_amount || p.totalAmount || (Number(p.qty || 0) * Number(p.unit_cost || p.unitCost || 0))),
+          orderDate: p.order_date || p.orderDate || new Date().toISOString().split('T')[0],
+          estimatedDelivery: p.estimated_delivery || p.estimatedDelivery || new Date().toISOString().split('T')[0],
+          status: p.status || 'Pending Supplier Confirmation',
+          trackingNumber: p.tracking_number || p.trackingNumber || `TRK-${p.id}`,
+          remarks: p.remarks || ''
+        }));
+      }
+    } catch (posCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating purchase_orders:', posCatchErr);
+    }
+
+    // 12. Procurement Entries
+    try {
+      const { data: procs } = await supabase.from('procurement_entries').select('*');
+      if (procs && procs.length > 0) {
+        db.procurementEntries = procs.map((p: any) => ({
+          id: String(p.id),
+          procurementMode: p.procurement_mode || p.procurementMode || 'RESTOCK EXISTING ITEM',
+          matcherSku: p.matcher_sku || p.matcherSku || '',
+          materialName: p.material_name || p.materialName || 'Material Asset',
+          codeReference: p.code_reference || p.codeReference || '',
+          category: p.category || 'RAW_MATERIAL',
+          unit: p.unit || 'Kg',
+          challanNumber: p.challan_number || p.challanNumber || '',
+          vehicleNumber: p.vehicle_number || p.vehicleNumber || '',
+          supplierName: p.supplier_name || p.supplierName || '',
+          ewayBill: p.eway_bill || p.ewayBill || '',
+          exciseSlip: p.excise_slip || p.exciseSlip || '',
+          acceptedQty: Number(p.accepted_qty || p.acceptedQty || 0),
+          damagedQty: Number(p.damaged_qty || p.damagedQty || 0),
+          batchMasterId: p.batch_master_id || p.batchMasterId || '',
+          grnReference: p.grn_reference || p.grnReference || '',
+          destinationWarehouse: p.destination_warehouse || p.destinationWarehouse || 'Raw Hub',
+          rackShelf: p.rack_shelf || p.rackShelf || 'A-1',
+          minStock: Number(p.min_stock || p.minStock || 100),
+          reorderLevel: Number(p.reorder_level || p.reorderLevel || 250),
+          allocatedInflow: Number(p.allocated_inflow || p.allocatedInflow || 0),
+          status: p.status || 'COMPLETED'
+        }));
+      }
+    } catch (procsCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating procurement_entries:', procsCatchErr);
+    }
   } catch (err) {
     console.warn('[Client Supabase Sync Warning]:', err);
   }
@@ -401,6 +460,77 @@ export async function syncBusinessProfileToSupabase(profile: any) {
   } catch (err: any) {
     if (!String(err?.message || err).includes('fetch failed')) {
       console.warn('Failed to sync business profile to Supabase:', err);
+    }
+  }
+}
+
+export async function syncPurchaseOrderToSupabase(po: any) {
+  try {
+    const payload = {
+      id: String(po.id),
+      material_id: po.materialId || po.material_id || null,
+      material_name: po.materialName || po.material_name || 'Raw Material Component',
+      category: po.category || 'RAW_MATERIAL',
+      vendor: po.vendor || 'Supplier Partner',
+      vendor_contact: po.vendorContact || po.vendor_contact || '',
+      qty: Number(po.qty || 0),
+      unit: po.unit || 'Pcs',
+      unit_cost: Number(po.unitCost || po.unit_cost || 0),
+      total_amount: Number(po.totalAmount || po.total_amount || 0),
+      order_date: po.orderDate || po.order_date || new Date().toISOString().split('T')[0],
+      estimated_delivery: po.estimatedDelivery || po.estimated_delivery || new Date().toISOString().split('T')[0],
+      status: po.status || 'Pending Supplier Confirmation',
+      tracking_number: po.trackingNumber || po.tracking_number || '',
+      remarks: po.remarks || ''
+    };
+    await supabase.from('purchase_orders').upsert(payload, { onConflict: 'id' });
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync purchase order to Supabase:', err);
+    }
+  }
+}
+
+export async function deletePurchaseOrderFromSupabase(id: string) {
+  try {
+    await supabase.from('purchase_orders').delete().eq('id', id);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to delete purchase order from Supabase:', err);
+    }
+  }
+}
+
+export async function syncProcurementEntryToSupabase(proc: any) {
+  try {
+    const payload = {
+      id: String(proc.id),
+      procurement_mode: proc.procurementMode || proc.procurement_mode || 'RESTOCK EXISTING ITEM',
+      matcher_sku: proc.matcherSku || proc.matcher_sku || null,
+      material_name: proc.materialName || proc.material_name || proc.name || 'Material Item',
+      code_reference: proc.codeReference || proc.code_reference || proc.code || '',
+      category: proc.category || 'RAW_MATERIAL',
+      unit: proc.unit || 'Kg',
+      challan_number: proc.challanNumber || proc.challan_number || '',
+      vehicle_number: proc.vehicleNumber || proc.vehicle_number || '',
+      supplier_name: proc.supplierName || proc.supplier_name || proc.supplier || '',
+      eway_bill: proc.ewayBill || proc.eway_bill || '',
+      excise_slip: proc.exciseSlip || proc.excise_slip || '',
+      accepted_qty: Number(proc.acceptedQty || proc.accepted_qty || 0),
+      damaged_qty: Number(proc.damagedQty || proc.damaged_qty || 0),
+      batch_master_id: proc.batchMasterId || proc.batch_master_id || proc.batch || '',
+      grn_reference: proc.grnReference || proc.grn_reference || proc.grn || '',
+      destination_warehouse: proc.destinationWarehouse || proc.destination_warehouse || proc.warehouse || 'Raw Hub',
+      rack_shelf: proc.rackShelf || proc.rack_shelf || proc.rack || 'A-1',
+      min_stock: Number(proc.minStock || proc.min_stock || 100),
+      reorder_level: Number(proc.reorderLevel || proc.reorder_level || 250),
+      allocated_inflow: Number(proc.allocatedInflow || proc.allocated_inflow || 0),
+      status: proc.status || 'COMPLETED'
+    };
+    await supabase.from('procurement_entries').upsert(payload, { onConflict: 'id' });
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync procurement entry to Supabase:', err);
     }
   }
 }
