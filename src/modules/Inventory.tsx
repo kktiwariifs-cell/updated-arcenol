@@ -465,8 +465,9 @@ export const Inventory: React.FC = () => {
     if (data?.inventory && data.inventory.length > 0 && !selectedExistingId) {
       setSelectedExistingId(data.inventory[0].id);
     }
-    if (data?.products && data.products.length > 0 && !mrpProductModel) {
-      setMrpProductModel(data.products[0].id);
+    if (!mrpProductModel) {
+      const firstModel = (data?.products && data.products.length > 0) ? data.products[0].id : '72V30A';
+      setMrpProductModel(firstModel);
     }
   }, [data, selectedExistingId, mrpProductModel]);
 
@@ -480,19 +481,64 @@ export const Inventory: React.FC = () => {
   };
 
   const handleFetchMRP = async () => {
-    if (!mrpProductModel || mrpQty <= 0) return;
+    const targetModel = mrpProductModel || (products && products.length > 0 ? (products[0].id || products[0].model_id) : '72V30A');
+    const targetQty = mrpQty > 0 ? mrpQty : 10;
+    
+    if (!mrpProductModel) {
+      setMrpProductModel(targetModel);
+    }
+    if (mrpQty <= 0) {
+      setMrpQty(targetQty);
+    }
+
     setMrpLoading(true);
     setMrpMessage('');
     try {
-      const res = await fetch(`/api/mrp/calculate?modelId=${mrpProductModel}&qty=${mrpQty}`);
+      const res = await fetch(`/api/mrp/calculate?modelId=${encodeURIComponent(targetModel)}&qty=${targetQty}`);
       if (res.ok) {
         const json = await res.json();
         setMrpResult(json);
       } else {
-        setMrpMessage('Failed to calculate MRP requirements');
+        const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel);
+        if (prod) {
+          const reqs = (prod.bom || []).map((item: any) => {
+            const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
+            const total = perUnit * Number(targetQty || 0);
+            const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
+            const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+            return {
+              ...item,
+              perUnit,
+              requiredTotal: total,
+              available: avail,
+              deficient: Math.max(0, total - avail)
+            };
+          });
+          setMrpResult({ modelId: prod.id, modelName: prod.name, qty: targetQty, requirements: reqs });
+        } else {
+          setMrpMessage('Failed to calculate MRP requirements');
+        }
       }
     } catch (e) {
-      setMrpMessage('Error reaching server for calculation');
+      const prod = (products || []).find((p: any) => p.id === targetModel || p.model_id === targetModel);
+      if (prod) {
+        const reqs = (prod.bom || []).map((item: any) => {
+          const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
+          const total = perUnit * Number(targetQty || 0);
+          const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
+          const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+          return {
+            ...item,
+            perUnit,
+            requiredTotal: total,
+            available: avail,
+            deficient: Math.max(0, total - avail)
+          };
+        });
+        setMrpResult({ modelId: prod.id, modelName: prod.name, qty: targetQty, requirements: reqs });
+      } else {
+        setMrpMessage('Error reaching server for calculation');
+      }
     } finally {
       setMrpLoading(false);
     }
@@ -1428,6 +1474,14 @@ export const Inventory: React.FC = () => {
 
     return Array.from(map.values());
   }, [data?.products, data?.finishedGoods]);
+
+  useEffect(() => {
+    if (products && products.length > 0) {
+      if (!mrpProductModel || !products.some((p: any) => p.id === mrpProductModel || p.model_id === mrpProductModel)) {
+        setMrpProductModel(products[0].id || products[0].model_id || '72V30A');
+      }
+    }
+  }, [products, mrpProductModel]);
 
   // Sub-table searching/filtering
   const filteredProcureItems = inventory.filter((item: any) => {
