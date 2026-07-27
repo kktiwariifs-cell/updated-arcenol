@@ -22,7 +22,8 @@ import {
   RefreshCw,
   Edit,
   Sliders,
-  Download
+  Download,
+  Search
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { useERPData } from '../hooks/useERPData';
@@ -162,6 +163,52 @@ export const MRP: React.FC = () => {
   const [showCopyMatrixPanel, setShowCopyMatrixPanel] = useState(false);
   const [copySourceProductId, setCopySourceProductId] = useState('');
   const [copySuccess, setCopySuccess] = useState('');
+
+  // Instant Material Search States
+  const [isMaterialSearchOpen, setIsMaterialSearchOpen] = useState(false);
+  const [materialSearchQuery, setMaterialSearchQuery] = useState('');
+  const [materialSearchCategory, setMaterialSearchCategory] = useState('ALL');
+  const [targetBomIndex, setTargetBomIndex] = useState<number | null>(null);
+
+  const openMaterialSearch = (rowIdx: number | null = null) => {
+    setTargetBomIndex(rowIdx);
+    setMaterialSearchQuery('');
+    setMaterialSearchCategory('ALL');
+    setIsMaterialSearchOpen(true);
+  };
+
+  const handleSelectMaterialFromSearch = (invItem: any) => {
+    if (!invItem) return;
+    const invId = invItem.id || invItem.code;
+    const invName = invItem.name || 'Component';
+    const invUnit = invItem.unit || 'PCS';
+
+    if (editingProduct) {
+      if (targetBomIndex !== null && editingProduct.bom && editingProduct.bom[targetBomIndex] !== undefined) {
+        const updatedBom = [...editingProduct.bom];
+        updatedBom[targetBomIndex] = {
+          ...updatedBom[targetBomIndex],
+          matId: invId,
+          name: invName,
+          unit: invUnit
+        };
+        setEditingProduct({ ...editingProduct, bom: updatedBom });
+      } else {
+        const newItem = {
+          matId: invId,
+          name: invName,
+          qty: 1,
+          unit: invUnit,
+          wastage: 0
+        };
+        setEditingProduct({
+          ...editingProduct,
+          bom: [...(editingProduct.bom || []), newItem]
+        });
+      }
+    }
+    setIsMaterialSearchOpen(false);
+  };
 
   // Modals & Real-time Execution States
   const [isIotModalOpen, setIsIotModalOpen] = useState(false);
@@ -759,6 +806,13 @@ export const MRP: React.FC = () => {
                        <div className="flex items-center space-x-3 self-end">
                           <button 
                             type="button"
+                            onClick={() => openMaterialSearch(null)} 
+                            className="text-[10px] font-black uppercase text-[#009cbc] bg-[#f0fcfd] border border-[#d1f7fc] px-4 py-2.5 rounded-xl hover:bg-[#009cbc] hover:text-white transition-all flex items-center shadow-xs cursor-pointer select-none leading-none"
+                          >
+                             <Search size={14} className="mr-1.5" /> SEARCH MATERIAL
+                          </button>
+                          <button 
+                            type="button"
                             onClick={() => setShowCopyMatrixPanel(!showCopyMatrixPanel)} 
                             className="text-[9.5px] font-black uppercase text-[#475569] bg-[#f1f5f9] border border-slate-200 px-5  py-2.5 rounded-xl hover:bg-slate-200 transition-all flex items-center shadow-xs cursor-pointer select-none leading-none"
                           >
@@ -847,25 +901,35 @@ export const MRP: React.FC = () => {
                                          {String(idx + 1).padStart(2, '0')}
                                       </td>
                                       <td className="px-6 py-3">
-                                         <div className="relative">
-                                            <select 
-                                               className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-[#00a3c4]/20 outline-none transition-all text-slate-900 shadow-xs appearance-none cursor-pointer"
-                                               value={item.matId}
-                                               onChange={(e) => updateBOMItem(idx, 'matId', e.target.value)}
-                                            >
-                                               <option value="" className="bg-white text-slate-400">Select Raw Material Component...</option>
-                                               {data?.inventory?.map((inv: any) => {
-                                                  const codeTag = inv.code ? `[${inv.code}] ` : `[${inv.id}] `;
-                                                  return (
-                                                     <option key={inv.id} value={inv.id} className="bg-white">
-                                                        {codeTag}{inv.name}
-                                                     </option>
-                                                  );
-                                               })}
-                                            </select>
-                                            <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-extrabold text-[9px]">
-                                               ▼
+                                         <div className="flex items-center gap-2">
+                                            <div className="relative flex-1">
+                                               <select 
+                                                  className="w-full bg-[#f8fafc] border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold focus:ring-2 focus:ring-[#00a3c4]/20 outline-none transition-all text-slate-900 shadow-xs appearance-none cursor-pointer"
+                                                  value={item.matId}
+                                                  onChange={(e) => updateBOMItem(idx, 'matId', e.target.value)}
+                                               >
+                                                  <option value="" className="bg-white text-slate-400">Select Raw Material Component...</option>
+                                                  {data?.inventory?.map((inv: any) => {
+                                                     const codeTag = inv.code ? `[${inv.code}] ` : `[${inv.id}] `;
+                                                     return (
+                                                        <option key={inv.id} value={inv.id} className="bg-white">
+                                                           {codeTag}{inv.name}
+                                                        </option>
+                                                     );
+                                                  })}
+                                               </select>
+                                               <div className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-extrabold text-[9px]">
+                                                  ▼
+                                               </div>
                                             </div>
+                                            <button
+                                               type="button"
+                                               onClick={() => openMaterialSearch(idx)}
+                                               className="p-2.5 bg-[#f0fcfd] text-[#009cbc] hover:bg-[#009cbc] hover:text-white border border-[#d1f7fc] rounded-xl transition-all shadow-xs cursor-pointer shrink-0"
+                                               title="Instant Material Catalog Search"
+                                            >
+                                               <Search size={14} />
+                                            </button>
                                          </div>
                                          <div className="mt-2">
                                             <input 
@@ -1098,6 +1162,14 @@ export const MRP: React.FC = () => {
                         SIMULATE BOM ALLOCATION
                       </>
                     )}
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => openMaterialSearch(null)}
+                    className="w-full py-3.5 bg-[#f0fcfd] hover:bg-[#d1f7fc] text-[#009cbc] border border-[#d1f7fc] rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all flex items-center justify-center cursor-pointer mt-2"
+                  >
+                    <Search size={15} className="mr-2" />
+                    SEARCH MATERIAL INVENTORY
                   </button>
                </div>
             </div>
@@ -1342,6 +1414,12 @@ export const MRP: React.FC = () => {
                     <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mt-2 underline decoration-primary-300 underline-offset-4">Precise logical material mapping per architectural building unit</p>
                  </div>
                  <div className="flex flex-wrap items-center gap-4">
+                    <button 
+                      onClick={() => openMaterialSearch(null)}
+                      className="px-6 py-4 bg-[#f0fcfd] text-[#009cbc] border border-[#d1f7fc] rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-[#009cbc] hover:text-white transition-all flex items-center shadow-md active:scale-95 italic cursor-pointer"
+                    >
+                       <Search size={18} className="mr-2" /> Search Material Catalog
+                    </button>
                     <button 
                       onClick={() => setIsCategoryModalOpen(true)}
                       className="px-8 py-4 bg-white text-slate-800 border border-slate-200 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] hover:bg-slate-50 transition-all flex items-center shadow-md active:scale-95 italic"
@@ -1948,6 +2026,171 @@ export const MRP: React.FC = () => {
                   <FileText size={14} /> GENERATE AUDIT PDF
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* INSTANT MATERIAL SEARCH & FINDER MODAL */}
+      {isMaterialSearchOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+            {/* Modal Header */}
+            <div className="p-6 md:p-8 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-2xl bg-[#009cbc] text-white flex items-center justify-center shadow-lg">
+                  <Search size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black italic uppercase tracking-tight text-white">
+                    INSTANT MATERIAL SEARCH & CATALOG
+                  </h3>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mt-0.5">
+                    {targetBomIndex !== null 
+                      ? `Selecting material component for Row #${targetBomIndex + 1}` 
+                      : editingProduct 
+                      ? `Search and inject material component directly into ${editingProduct.name || 'Active BOM Matrix'}`
+                      : 'Search raw materials, cells, BMS, & hardware stock'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsMaterialSearchOpen(false)}
+                className="h-10 w-10 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Search Controls & Category Filter */}
+            <div className="p-6 bg-slate-50 border-b border-slate-200 space-y-4">
+              <div className="relative">
+                <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input 
+                  type="text"
+                  autoFocus
+                  value={materialSearchQuery}
+                  onChange={(e) => setMaterialSearchQuery(e.target.value)}
+                  placeholder="Type material name, SKU / Code (e.g., RM-CELLS, BMS, Lead)..."
+                  className="w-full bg-white border border-slate-300 rounded-2xl pl-12 pr-10 py-3.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#009cbc]/30 focus:border-[#009cbc] outline-none shadow-sm placeholder:text-slate-400 font-sans"
+                />
+                {materialSearchQuery && (
+                  <button 
+                    onClick={() => setMaterialSearchQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 font-bold"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filters */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {['ALL', 'RAW MATERIAL', 'CELLS', 'BMS', 'LEAD ALLOY', 'HARDWARE', 'CABLES', 'ENCLOSURE', 'PACKAGING'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setMaterialSearchCategory(cat)}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap transition-all border cursor-pointer",
+                      materialSearchCategory === cat 
+                        ? "bg-[#009cbc] text-white border-[#009cbc] shadow-xs" 
+                        : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                    )}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Material List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-3">
+              {(() => {
+                const materials = (data?.inventory || []);
+                const query = materialSearchQuery.trim().toLowerCase();
+                const filtered = materials.filter((m: any) => {
+                  const mName = (m.name || '').toLowerCase();
+                  const mCode = (m.code || m.id || '').toLowerCase();
+                  const mCat = (m.category || '').toLowerCase();
+
+                  const matchesQ = !query || mName.includes(query) || mCode.includes(query) || mCat.includes(query);
+                  const matchesCat = materialSearchCategory === 'ALL' || 
+                    mCat.includes(materialSearchCategory.toLowerCase()) ||
+                    (materialSearchCategory === 'CELLS' && (mName.includes('cell') || mCat.includes('cell'))) ||
+                    (materialSearchCategory === 'BMS' && (mName.includes('bms') || mCat.includes('bms')));
+                  return matchesQ && matchesCat;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="py-16 text-center space-y-3">
+                      <div className="h-16 w-16 mx-auto rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+                        <Search size={28} />
+                      </div>
+                      <h4 className="text-sm font-black uppercase text-slate-700">No matching materials found</h4>
+                      <p className="text-xs text-slate-400">Try searching with a different keyword or category filter</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {filtered.map((inv: any) => {
+                      const avail = Math.max(0, Number(inv.qty || 0) - Number(inv.reservedQty || 0));
+                      const codeTag = inv.code || inv.id || 'RM-SKU';
+                      return (
+                        <div 
+                          key={inv.id || codeTag} 
+                          className="p-4 bg-white border border-slate-200 hover:border-[#009cbc] rounded-2xl transition-all shadow-xs hover:shadow-md flex items-center justify-between gap-4 group"
+                        >
+                          <div className="space-y-1 min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 font-mono text-[9px] font-black rounded border border-slate-200 uppercase">
+                                {codeTag}
+                              </span>
+                              <span className="px-2 py-0.5 bg-[#f0fcfd] text-[#009cbc] font-sans text-[8.5px] font-black uppercase tracking-wider rounded border border-[#d1f7fc]">
+                                {inv.category || 'Raw Material'}
+                              </span>
+                            </div>
+                            <h5 className="font-bold text-xs text-slate-900 group-hover:text-[#009cbc] transition-colors truncate">
+                              {inv.name}
+                            </h5>
+                            <div className="flex items-center gap-3 text-[10px] text-slate-500 font-mono">
+                              <span>Avail: <strong className={cn("font-extrabold", avail > 0 ? "text-emerald-600" : "text-red-500")}>{avail.toLocaleString()} {inv.unit || 'Pcs'}</strong></span>
+                              <span>•</span>
+                              <span>Val: <strong>₹{Number(inv.price || 0).toLocaleString()}</strong></span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectMaterialFromSearch(inv)}
+                            className="px-4 py-2.5 bg-[#009cbc] hover:bg-[#008ba3] text-white rounded-xl font-black text-[10px] uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 shadow-xs active:scale-95 cursor-pointer"
+                          >
+                            <Plus size={13} />
+                            {targetBomIndex !== null 
+                              ? 'Assign Row' 
+                              : editingProduct 
+                              ? 'Inject BOM' 
+                              : 'Select'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <span>{data?.inventory?.length || 0} Total Active Inventory Material SKUs</span>
+              <button 
+                onClick={() => setIsMaterialSearchOpen(false)}
+                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-black uppercase text-[10px] transition-all cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
