@@ -1042,7 +1042,7 @@ export const MRP: React.FC = () => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Core Production & Resource Balancer System</p>
            </div>
         </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] border border-slate-200">
+        <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] border border-slate-200 flex-wrap items-center gap-1">
            <button 
              onClick={() => setActiveTab('planning')} 
              className={cn("px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'planning' ? "bg-white text-primary-600 shadow-xl" : "text-slate-500 hover:text-slate-900")}
@@ -1054,6 +1054,13 @@ export const MRP: React.FC = () => {
              className={cn("px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'bom' ? "bg-white text-primary-600 shadow-xl" : "text-slate-500 hover:text-slate-900")}
            >
              Master BOM
+           </button>
+           <button 
+             onClick={() => setIsCategoryModalOpen(true)}
+             className="px-6 py-3 bg-amber-50 text-amber-800 border border-amber-200/80 hover:bg-amber-100/80 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center shadow-xs active:scale-95 italic cursor-pointer"
+             id="btn_mrp_header_manage_categories"
+           >
+             <Settings size={14} className="mr-2 text-amber-600" /> Manage Categories
            </button>
         </div>
       </div>
@@ -1079,9 +1086,18 @@ export const MRP: React.FC = () => {
                   <div>
                     <div className="flex justify-between items-center mb-3 px-1">
                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest font-sans">SELECT BATTERY MODEL TO MANUFACTURE</label>
-                       <div className="flex items-center space-x-1.5">
-                          <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                          <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Engine Ready</span>
+                       <div className="flex items-center space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => setIsCategoryModalOpen(true)}
+                            className="text-[9px] font-black uppercase text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg tracking-wider flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <Settings size={12} className="text-amber-600" /> Categories
+                          </button>
+                          <div className="flex items-center space-x-1.5">
+                             <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                             <span className="text-[8px] font-black uppercase text-emerald-600 tracking-tighter">Engine Ready</span>
+                          </div>
                        </div>
                     </div>
                     <div className="relative">

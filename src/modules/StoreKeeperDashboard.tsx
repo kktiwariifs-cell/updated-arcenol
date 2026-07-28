@@ -62,6 +62,61 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
   const [editingWarehouseValue, setEditingWarehouseValue] = useState('');
   const [isSavingWarehouse, setIsSavingWarehouse] = useState(false);
 
+  // States for Category Modal
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [catName, setCatName] = useState('');
+  const [catCode, setCatCode] = useState('');
+  const [catDesc, setCatDesc] = useState('');
+  const [catSaving, setCatSaving] = useState(false);
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+
+  const handleSaveCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!catName.trim()) return;
+    setCatSaving(true);
+    try {
+      const url = editingCatId ? `/api/categories/${editingCatId}` : '/api/categories';
+      const method = editingCatId ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: catName.trim(),
+          code: catCode.trim() || `CAT-${catName.substring(0, 4).toUpperCase()}`,
+          description: catDesc.trim()
+        })
+      });
+      if (res.ok) {
+        setCatName('');
+        setCatCode('');
+        setCatDesc('');
+        setEditingCatId(null);
+        if (refetch) await refetch();
+      } else {
+        const err = await res.json();
+        alert(err.error || 'Failed to save category');
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCatSaving(false);
+    }
+  };
+
+  const handleDeleteCategory = async (cat: any) => {
+    const id = typeof cat === 'object' ? (cat.id || cat.name) : cat;
+    const name = typeof cat === 'object' ? cat.name : String(cat);
+    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+    try {
+      const res = await fetch(`/api/categories/${encodeURIComponent(id)}`, { method: 'DELETE' });
+      if (res.ok && refetch) {
+        await refetch();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleEditWarehouse = (name: string) => {
     setEditingWarehouseName(name);
     setEditingWarehouseValue(name);
@@ -398,11 +453,11 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
              </p>
           </div>
         </div>
-        <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-[1.5rem] border border-slate-200">
+        <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] border border-slate-200 flex-wrap items-center gap-1.5">
            <button 
              onClick={() => setActiveView('overview')}
              className={cn(
-               "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+               "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
                activeView === 'overview' ? "bg-white text-primary-600 shadow-xl shadow-slate-200/50 scale-105" : "text-slate-500 hover:text-slate-900"
              )}
            >
@@ -411,11 +466,18 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
            <button 
              onClick={() => setActiveView('raw-material')}
              className={cn(
-               "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+               "px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
                activeView === 'raw-material' ? "bg-white text-primary-600 shadow-xl shadow-slate-200/50 scale-105" : "text-slate-500 hover:text-slate-900"
              )}
            >
              <Package size={14} className="inline mr-2 mb-0.5" /> Raw Materials
+           </button>
+           <button 
+             onClick={() => setIsCategoryModalOpen(true)}
+             className="px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95 italic"
+             id="btn_storekeeper_manage_categories"
+           >
+             <Tag size={14} className="text-amber-600" /> Manage Categories
            </button>
         </div>
       </div>
@@ -2451,6 +2513,130 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                      </button>
                   </div>
                </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Management Modal */}
+      {isCategoryModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-md flex items-center justify-center z-[130] p-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3rem] border border-slate-100 shadow-5xl w-full max-w-2xl overflow-hidden relative animate-in zoom-in-95 duration-300">
+            {/* Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div>
+                <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic leading-none flex items-center gap-2">
+                  <Tag className="text-amber-600" size={20} /> Store Category Master Registry
+                </h3>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">
+                  Add, Modify or Delete Store Material Classifications
+                </p>
+              </div>
+              <button 
+                type="button"
+                onClick={() => { setIsCategoryModalOpen(false); setEditingCatId(null); setCatName(''); setCatCode(''); setCatDesc(''); }}
+                className="p-3 text-slate-400 hover:text-slate-950 bg-slate-100 hover:bg-slate-200 rounded-full transition-all flex items-center justify-center cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 space-y-6 max-h-[500px] overflow-y-auto">
+              <form onSubmit={handleSaveCategory} className="p-6 rounded-[2rem] bg-slate-50/80 border border-slate-200 space-y-4">
+                <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">
+                  {editingCatId ? 'Edit Category Item' : 'Add New Inventory Category'}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <input 
+                    type="text"
+                    required
+                    placeholder="Category Name (e.g. RAW_MATERIAL, Cells)"
+                    className="bg-white border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    value={catName}
+                    onChange={(e) => setCatName(e.target.value)}
+                  />
+                  <input 
+                    type="text"
+                    placeholder="Category Code (e.g. CAT-RAW)"
+                    className="bg-white border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20 outline-none"
+                    value={catCode}
+                    onChange={(e) => setCatCode(e.target.value)}
+                  />
+                </div>
+                <input 
+                  type="text"
+                  placeholder="Short Description (Optional)"
+                  className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-amber-500/20 outline-none"
+                  value={catDesc}
+                  onChange={(e) => setCatDesc(e.target.value)}
+                />
+                <div className="flex justify-end gap-2">
+                  {editingCatId && (
+                    <button
+                      type="button"
+                      onClick={() => { setEditingCatId(null); setCatName(''); setCatCode(''); setCatDesc(''); }}
+                      className="px-4 py-2.5 bg-slate-200 text-slate-700 text-[10px] font-black uppercase rounded-xl cursor-pointer"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={catSaving}
+                    className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Plus size={14} /> {editingCatId ? 'Update Category' : 'Save Category'}
+                  </button>
+                </div>
+              </form>
+
+              {/* Active Category List */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">
+                  Active Category Classifications
+                </h4>
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-[2rem] overflow-hidden bg-white">
+                  {(() => {
+                    const rawCats = data?.categories && data.categories.length > 0 ? data.categories : (data?.productCategories || []);
+                    const list = rawCats.map((c: any) => typeof c === 'object' ? (c.name ? c : { id: `cat-${c}`, name: String(c), code: 'CAT', description: '' }) : { id: `cat-${String(c)}`, name: String(c), code: `CAT-${String(c).substring(0, 4).toUpperCase()}`, description: '' });
+                    if (list.length === 0) {
+                      return <p className="p-6 text-xs text-slate-400 font-bold italic text-center">No custom categories registered yet.</p>;
+                    }
+                    return list.map((cat: any) => (
+                      <div key={cat.id || cat.name} className="p-4 flex items-center justify-between hover:bg-slate-50 transition-all gap-4">
+                        <div>
+                          <p className="font-extrabold text-xs text-slate-900 uppercase">{cat.name}</p>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5">Code: {cat.code || 'CAT'} {cat.description ? `• ${cat.description}` : ''}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingCatId(cat.id || cat.name);
+                              setCatName(cat.name);
+                              setCatCode(cat.code || '');
+                              setCatDesc(cat.description || '');
+                            }}
+                            className="p-2 text-primary-600 hover:bg-primary-50 rounded-lg transition-all cursor-pointer"
+                            title="Edit Category"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteCategory(cat)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+                            title="Delete Category"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
             </div>
           </div>
         </div>

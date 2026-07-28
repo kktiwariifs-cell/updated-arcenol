@@ -1668,6 +1668,14 @@ export const Inventory: React.FC = () => {
           </button>
           
           <button 
+            onClick={() => setActiveTab('categories')}
+            className="bg-amber-600 text-white px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-wider flex items-center shadow-xl shadow-amber-500/10 hover:bg-amber-700 transition-all active:scale-95"
+            id="btn_manage_categories_header"
+          >
+            <Tag size={16} className="mr-2" /> Manage Categories
+          </button>
+          
+          <button 
             onClick={() => setIsGradingModalOpen(true)}
             className="bg-emerald-600 text-white px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-wider flex items-center shadow-xl shadow-emerald-500/10 hover:bg-emerald-700 transition-all active:scale-95"
             id="btn_grading_lab"
@@ -1687,7 +1695,7 @@ export const Inventory: React.FC = () => {
           { id: 'mrp', label: 'MRP BOM Allocator', icon: ClipboardList },
           { id: 'wip', label: 'WIP Processing Line', icon: Sliders },
           { id: 'warehouse', label: 'Warehouse Hub & Transfer', icon: Warehouse },
-          { id: 'categories', label: 'Inventory Categories', icon: Tag }
+          { id: 'categories', label: 'Manage Categories', icon: Tag }
         ].map(tab => (
           <button
             key={tab.id}
@@ -2193,6 +2201,14 @@ export const Inventory: React.FC = () => {
                 >
                   {categories.map(cat => <option key={cat} value={cat} className="bg-white">{cat}</option>)}
                 </select>
+                <button
+                  onClick={() => setActiveTab('categories')}
+                  className="bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 text-[10px] font-black uppercase tracking-widest rounded-xl px-3 py-2.5 flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95"
+                  title="Configure & Manage Categories"
+                >
+                  <Tag size={13} className="text-amber-600" />
+                  <span>Manage Categories</span>
+                </button>
               </div>
 
               {/* DOWNLOAD & UPLOAD ACTION BUTTONS FOR RAW MATERIALS */}
