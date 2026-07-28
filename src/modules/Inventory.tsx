@@ -4711,7 +4711,7 @@ export const Inventory: React.FC = () => {
                         type="text"
                         value={igSerials}
                         onChange={e => setIgSerials(e.target.value)}
-                        placeholder="e.g. ARC-EV-2026-103845, ARC-EV-2026-103846"
+                        placeholder="e.g. AESPLEV28G26001044, AESPLEV28G26001045"
                         className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-mono font-black uppercase"
                       />
                       <span className="text-[9px] text-slate-400 block font-sans">Available READY serials: {(data?.finishedGoods || []).filter((fg: any) => fg.status === 'READY').map((fg: any) => fg.serial).join(', ') || 'No READY packs. Create finished packs first.'}</span>
@@ -4970,7 +4970,7 @@ export const Inventory: React.FC = () => {
                         type="text"
                         value={newRmaSerial}
                         onChange={e => setNewRmaSerial(e.target.value)}
-                        placeholder="e.g. ARC-EV-2026-103845"
+                        placeholder="e.g. AESPLEV28G26001044"
                         className="w-full bg-white border border-slate-200 rounded-xl py-2 px-3 text-xs font-mono font-black uppercase"
                       />
                     </div>

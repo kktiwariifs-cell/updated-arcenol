@@ -22,6 +22,41 @@ import {
   mapBomBlueprint
 } from "./src/lib/serverSupabaseSync";
 
+function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | string): string {
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, "0");
+  const monthChar = String.fromCharCode(65 + now.getMonth());
+  const year2 = String(now.getFullYear()).slice(-2);
+
+  let gradeTag = "EV";
+  if (gradeStr) {
+    const upper = String(gradeStr).toUpperCase();
+    if (upper.includes("AUTO")) gradeTag = "AUTO";
+    else if (upper.includes("INV")) gradeTag = "INV";
+    else if (upper.includes("ESS")) gradeTag = "ESS";
+    else if (upper.includes("VRLA")) gradeTag = "VRLA";
+    else if (upper.includes("EV")) gradeTag = "EV";
+    else {
+      const clean = upper.replace(/[^A-Z]/g, "");
+      gradeTag = clean.slice(0, 4) || "EV";
+    }
+  }
+
+  let numStr = "";
+  if (seqNumber !== undefined && seqNumber !== null && String(seqNumber).trim() !== "") {
+    const digitsOnly = String(seqNumber).replace(/[^0-9]/g, "");
+    if (digitsOnly) {
+      numStr = digitsOnly.padStart(6, "0");
+    } else {
+      numStr = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, "0");
+    }
+  } else {
+    numStr = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, "0");
+  }
+
+  return `AESPL${gradeTag}${day}${monthChar}${year2}${numStr}`;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -60,14 +95,14 @@ async function startServer() {
     production: [],
     productionPlans: [] as any[],
     finishedGoods: [
-      { id: "fg1", model: "72V30A", serial: "ARC-72V30A-2024-000101", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2024-05-10", status: "READY" },
-      { id: "fg2", model: "72V30A", serial: "ARC-72V30A-2024-000102", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2024-05-11", status: "READY" },
-      { id: "fg3", model: "72V30A", serial: "ARC-72V30A-2024-000103", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2024-05-12", status: "HOLD" },
-      { id: "fg4", model: "72V30A", serial: "ARC-72V30A-2024-000104", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2024-05-13", status: "DAMAGED" },
-      { id: "fg5", model: "72V30A", serial: "ARC-72V30A-2024-000105", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2024-05-14", status: "RETURNED" },
-      { id: "fg6", model: "BAT-AUTO-35", serial: "ARC-AUTO-2024-112233", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2024-05-15", status: "DISPATCH_READY" },
-      { id: "fg7", model: "BAT-INV-150", serial: "ARC-INV-2024-445566", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2024-05-16", status: "READY" },
-      { id: "fg8", model: "BAT-VRLA-100", serial: "ARC-VRLA-2024-778899", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2024-05-17", status: "READY" },
+      { id: "fg1", model: "72V30A", serial: "AESPLEV28G26001044", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg2", model: "72V30A", serial: "AESPLEV28G26001045", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg3", model: "72V30A", serial: "AESPLEV28G26001046", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
+      { id: "fg4", model: "72V30A", serial: "AESPLEV28G26001047", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
+      { id: "fg5", model: "72V30A", serial: "AESPLEV28G26001048", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
+      { id: "fg6", model: "BAT-AUTO-35", serial: "AESPLAUTO28G26001049", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "DISPATCH_READY" },
+      { id: "fg7", model: "BAT-INV-150", serial: "AESPLINV28G26001050", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
+      { id: "fg8", model: "BAT-VRLA-100", serial: "AESPLVRLA28G26001051", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
     ],
     purchaseOrders: [
       {
@@ -1078,7 +1113,7 @@ async function startServer() {
     // Generate finished goods
     const serials = [];
     for (let i = 0; i < plan.qty; i++) {
-        const serial = `ARC-${plan.modelId}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+        const serial = generateBatterySerial(plan.modelId, 1000 + i + 1);
         serials.push(serial);
         db.finishedGoods.push({
             id: `fg-${Date.now()}-${i}`,
@@ -1709,7 +1744,7 @@ async function startServer() {
     
     // Generate serials and add to finished goods
     for (let i = 0; i < qty; i++) {
-      const serial = `ARC-${model}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
+      const serial = generateBatterySerial(model, 1000 + i + 1);
       serials.push(serial);
       db.finishedGoods.push({
         id: `fg-${Date.now()}-${i}`,

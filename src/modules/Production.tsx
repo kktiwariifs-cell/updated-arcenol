@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { generateBatterySerial } from "../lib/serialUtils";
 import {
   Factory,
   Box,
@@ -51,14 +52,16 @@ import {
 
 
 const SafeBarcode: React.FC<{ value: string }> = ({ value }) => {
-  const safeVal = String(value || 'ARC-ITEM').toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  const safeVal = String(value || 'AESPLEV28G26001044').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const BarcodeComponent = (Barcode as any).default || Barcode;
   return (
-    <div className="flex flex-col items-center justify-center">
+    <div className="flex flex-col items-center justify-center max-w-full overflow-hidden p-2">
       <BarcodeComponent
-        value={safeVal || 'ARC-ITEM'}
-        height={40}
-        fontSize={10}
+        value={safeVal || 'AESPLEV28G26001044'}
+        width={1.2}
+        height={45}
+        fontSize={11}
+        margin={4}
         background="#ffffff"
       />
     </div>
@@ -300,9 +303,8 @@ export const Production: React.FC = () => {
       if (res.ok && Array.isArray(result.serials) && result.serials.length > 0) {
         setSerials(result.serials);
       } else {
-        const cleanModel = String(selectedModel).toUpperCase().replace(/[^A-Z0-9]/g, '');
         const generated = Array.from({ length: qty || 1 }).map((_, i) =>
-          `ARC-${cleanModel}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`
+          generateBatterySerial(selectedModel, 1044 + i)
         );
         setSerials(generated);
       }
@@ -310,9 +312,8 @@ export const Production: React.FC = () => {
       refetch();
     } catch (e) {
       console.error("Error in production completion:", e);
-      const cleanModel = String(selectedModel || 'PACK').toUpperCase().replace(/[^A-Z0-9]/g, '');
       const generated = Array.from({ length: qty || 1 }).map((_, i) =>
-        `ARC-${cleanModel}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`
+        generateBatterySerial(selectedModel || 'EV', 1044 + i)
       );
       setSerials(generated);
       setStep(3);
