@@ -118,8 +118,8 @@ export const MRP: React.FC = () => {
       });
     }
 
-    if (Array.isArray(data?.products)) {
-      data.products.forEach((p: any) => {
+    if (Array.isArray(allProducts)) {
+      allProducts.forEach((p: any) => {
         if (p?.category && typeof p.category === 'string' && p.category.trim()) {
           set.add(p.category.trim());
         }
@@ -1108,7 +1108,7 @@ export const MRP: React.FC = () => {
                        >
                          <option value="" className="bg-white text-slate-400">Select Battery Model Blueprint...</option>
                          {(() => {
-                           const products = data?.products || [];
+                           const products = allProducts || [];
                            if (products.length === 0) {
                              return (
                                <option disabled value="" className="bg-white text-slate-400 font-sans italic py-1">
