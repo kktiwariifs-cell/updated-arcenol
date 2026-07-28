@@ -1498,7 +1498,7 @@ export const Inventory: React.FC = () => {
   }, [products, mrpProductModel]);
 
   useEffect(() => {
-    if (mrpProductModel && !mrpResult && !mrpLoading) {
+    if (mrpProductModel) {
       handleFetchMRP();
     }
   }, [mrpProductModel]);
@@ -3019,8 +3019,8 @@ export const Inventory: React.FC = () => {
                     <select
                       value={mrpProductModel || (data?.products && data.products.length > 0 ? data.products[0].id : "72V30A")}
                       onChange={e => {
-                        setMrpProductModel(e.target.value);
-                        setMrpResult(null);
+                        const val = e.target.value;
+                        setMrpProductModel(val);
                       }}
                       className="w-full bg-white border border-slate-300 rounded-xl py-3.5 px-4 pr-10 text-xs font-black text-slate-900 outline-none cursor-pointer uppercase appearance-none shadow-xs"
                     >

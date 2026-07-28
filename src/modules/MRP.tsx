@@ -559,23 +559,45 @@ export const MRP: React.FC = () => {
 
   const [isCalculated, setIsCalculated] = useState(false);
 
-  // Debounced calculation for "Live" feel
+  // Immediate calculation when model or qty changes
   useEffect(() => {
     if (selectedModel && productionQty > 0) {
-      const timer = setTimeout(() => {
-        handleCalculate();
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setCalculation(null);
+      handleCalculate();
     }
   }, [selectedModel, productionQty]);
 
   const handleCalculate = async () => {
     if (!selectedModel || productionQty <= 0) return;
     setIsCalculating(true);
+
+    // Compute locally immediately so calculation report never flickers or disappears!
+    const prod = (allProducts || []).find((p: any) => p.id === selectedModel || p.model_id === selectedModel) || (allProducts && allProducts[0]);
+    if (prod) {
+      const bomItems = prod.bom && prod.bom.length > 0 ? prod.bom : [
+        { matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 },
+        { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+      ];
+      const reqs = bomItems.map((item: any) => {
+        const perUnit = Number(item.qty || 0) * (1 + ((Number(item.wastage || 0)) / 100));
+        const total = perUnit * Number(productionQty || 0);
+        const invItem = (data?.inventory || []).find((i: any) => i.id === item.matId || i.code === item.matId || (i.name && item.name && i.name.toLowerCase() === item.name.toLowerCase()));
+        const avail = invItem ? Math.max(0, Number(invItem.qty || 0) - Number(invItem.reservedQty || 0)) : 0;
+        const category = invItem?.category || (item as any).category || (item as any).type || "RAW MATERIAL";
+        return {
+          ...item,
+          category,
+          perUnit,
+          requiredTotal: total,
+          available: avail,
+          deficient: Math.max(0, total - avail)
+        };
+      });
+      setCalculation({ modelId: prod.id, modelName: prod.name, qty: productionQty, requirements: reqs });
+      setIsCalculated(true);
+    }
+
     try {
-      const resp = await fetch(`/api/mrp/calculate?modelId=${selectedModel}&qty=${productionQty}`);
+      const resp = await fetch(`/api/mrp/calculate?modelId=${encodeURIComponent(selectedModel)}&qty=${productionQty}`);
       if (!resp.ok) {
         const prod = (allProducts || []).find((p: any) => p.id === selectedModel || p.model_id === selectedModel);
         if (prod) {
@@ -1103,7 +1125,7 @@ export const MRP: React.FC = () => {
                     <div className="relative">
                        <select 
                          className="w-full bg-white border border-slate-300 rounded-2xl px-5 py-4 pr-12 text-xs font-black text-slate-900 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-600 outline-none transition-all cursor-pointer shadow-xs appearance-none font-sans"
-                         value={selectedModel || (allProducts && allProducts.length > 0 ? (allProducts[0].id || allProducts[0].model_id) : "")}
+                         value={selectedModel}
                          onChange={(e) => setSelectedModel(e.target.value)}
                        >
                          <option value="" className="bg-white text-slate-400">Select Battery Model Blueprint...</option>
