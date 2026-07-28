@@ -8,6 +8,7 @@ import {
   Upload, Download, FileSpreadsheet, FileText, AlertCircle, Check
 } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
+import { FormattedSerial } from '../lib/serialUtils';
 import { cn } from '../lib/utils';
 import { downloadElementAsPDF } from '../lib/pdfGenerator';
 import { 
@@ -712,7 +713,7 @@ export const FinishedGoods: React.FC = () => {
                   className="group hover:bg-slate-100/90 transition-all duration-300 cursor-pointer"
                 >
                   <td className="px-8 py-6">
-                    <p className="text-[12px] font-black text-slate-900 tracking-widest group-hover:text-[#0c9bbc] transition-colors uppercase">{item.serial}</p>
+                    <FormattedSerial serial={item.serial} className="text-[12px] font-black text-slate-900 tracking-wider uppercase flex items-center gap-1.5" />
                     <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase italic tracking-wider">Entry: {item.date}</p>
                   </td>
                   <td className="px-8 py-6">
@@ -909,7 +910,9 @@ export const FinishedGoods: React.FC = () => {
                 <div className="flex justify-between items-start pb-6 border-b-2 border-slate-100">
                    <div className="text-left">
                       <span className="text-[10px] font-black uppercase text-[#0c9bbc] tracking-widest block mb-2 leading-none">FINISHED GOODS INTELLIGENCE CENTRE</span>
-                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter italic leading-none">{selectedItem.serial}</h1>
+                      <h1 className="text-3xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter italic leading-none flex items-center gap-3">
+                        <FormattedSerial serial={selectedItem.serial} className="font-black text-slate-900 tracking-wider flex items-center gap-2" />
+                      </h1>
                       <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-wider">
                          MODEL TYPE: <span className="font-black text-slate-700">{selectedItem.model}</span> • INITIALIZED ON {selectedItem.date}
                       </p>
@@ -1078,9 +1081,9 @@ export const FinishedGoods: React.FC = () => {
                          </div>
 
                          <div className="space-y-2 py-4 border-b border-slate-350">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                                <span>SERIAL ID:</span>
-                               <span className="font-extrabold uppercase">{selectedItem.serial}</span>
+                               <FormattedSerial serial={selectedItem.serial} className="font-extrabold uppercase text-xs flex items-center gap-1" />
                             </div>
                             <div className="flex justify-between">
                                <span>SKU BATCH:</span>

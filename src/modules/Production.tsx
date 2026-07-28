@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { generateBatterySerial } from "../lib/serialUtils";
+import { generateBatterySerial, FormattedSerial } from "../lib/serialUtils";
 import {
   Factory,
   Box,
@@ -52,15 +52,15 @@ import {
 
 
 const SafeBarcode: React.FC<{ value: string }> = ({ value }) => {
-  const safeVal = String(value || 'AESPLEV28G26001044').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const safeVal = String(value || 'AESPL  EV  28G26001044').toUpperCase().replace(/[^A-Z0-9 ]/g, '');
   const BarcodeComponent = (Barcode as any).default || Barcode;
   return (
     <div className="flex flex-col items-center justify-center max-w-full overflow-hidden p-2">
       <BarcodeComponent
-        value={safeVal || 'AESPLEV28G26001044'}
+        value={safeVal || 'AESPL  EV  28G26001044'}
         width={1.2}
         height={45}
-        fontSize={11}
+        displayValue={false}
         margin={4}
         background="#ffffff"
       />
@@ -1427,9 +1427,9 @@ export const Production: React.FC = () => {
                         <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
                           <QRCodeSVG value={s} size={100} />
                         </div>
-                        <p className="mt-4 text-[12px] font-black text-primary-900 tracking-[0.1em]">
-                          {s}
-                        </p>
+                        <div className="mt-4 py-2 px-4 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center shadow-xs">
+                          <FormattedSerial serial={s} />
+                        </div>
                       </div>
                     ))}
                   </div>

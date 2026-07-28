@@ -54,7 +54,7 @@ function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | str
     numStr = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, "0");
   }
 
-  return `AESPL${gradeTag}${day}${monthChar}${year2}${numStr}`;
+  return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
 }
 
 async function startServer() {
@@ -95,14 +95,14 @@ async function startServer() {
     production: [],
     productionPlans: [] as any[],
     finishedGoods: [
-      { id: "fg1", model: "72V30A", serial: "AESPLEV28G26001044", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-      { id: "fg2", model: "72V30A", serial: "AESPLEV28G26001045", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-      { id: "fg3", model: "72V30A", serial: "AESPLEV28G26001046", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
-      { id: "fg4", model: "72V30A", serial: "AESPLEV28G26001047", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
-      { id: "fg5", model: "72V30A", serial: "AESPLEV28G26001048", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
-      { id: "fg6", model: "BAT-AUTO-35", serial: "AESPLAUTO28G26001049", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "DISPATCH_READY" },
-      { id: "fg7", model: "BAT-INV-150", serial: "AESPLINV28G26001050", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
-      { id: "fg8", model: "BAT-VRLA-100", serial: "AESPLVRLA28G26001051", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
+      { id: "fg1", model: "72V30A", serial: "AESPL  EV  28G26001044", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg2", model: "72V30A", serial: "AESPL  EV  28G26001045", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg3", model: "72V30A", serial: "AESPL  EV  28G26001046", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
+      { id: "fg4", model: "72V30A", serial: "AESPL  EV  28G26001047", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
+      { id: "fg5", model: "72V30A", serial: "AESPL  EV  28G26001048", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
+      { id: "fg6", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26001049", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "DISPATCH_READY" },
+      { id: "fg7", model: "BAT-INV-150", serial: "AESPL  INV  28G26001050", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
+      { id: "fg8", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26001051", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
     ],
     purchaseOrders: [
       {
