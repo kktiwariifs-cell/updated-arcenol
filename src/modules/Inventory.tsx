@@ -1599,9 +1599,33 @@ export const Inventory: React.FC = () => {
     gradedCurrentPage * GRADED_ITEMS_PER_PAGE
   );
 
-  const rawCategories = data?.categories && data.categories.length > 0 
-    ? data.categories 
-    : [
+  const rawCategories = (() => {
+    const list: any[] = [];
+    const seen = new Set<string>();
+    
+    const addCat = (c: any) => {
+      if (!c) return;
+      const name = typeof c === 'object' ? (c.name || '') : String(c);
+      const cleanName = name.trim();
+      if (!cleanName || seen.has(cleanName.toLowerCase())) return;
+      seen.add(cleanName.toLowerCase());
+      if (typeof c === 'object' && c.name) {
+        list.push(c);
+      } else {
+        list.push({
+          id: `cat-${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+          name: cleanName,
+          code: `CAT-${cleanName.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '')}`,
+          description: ''
+        });
+      }
+    };
+
+    if (Array.isArray(data?.categories)) data.categories.forEach(addCat);
+    if (Array.isArray(data?.productCategories)) data.productCategories.forEach(addCat);
+
+    if (list.length === 0) {
+      [
         { id: "cat-1", name: "Category 1 — EV Battery Inventory", code: "CAT-EV", description: "EV Battery Packs and Assembly Modules" },
         { id: "cat-2", name: "Category 2 — Solar / Inverter Battery Inventory", code: "CAT-SOLAR", description: "Solar and Inverter High-Efficiency Batteries" },
         { id: "cat-3", name: "Category 3 — ESS / Industrial Battery Inventory", code: "CAT-ESS", description: "Energy Storage Systems & Industrial Power Units" },
@@ -1609,7 +1633,10 @@ export const Inventory: React.FC = () => {
         { id: "cat-5", name: "Category 5 — Cells & Graded Stock", code: "CAT-CELLS", description: "Lithium-Ion and Graded Battery Cells" },
         { id: "cat-6", name: "Category 6 — Electronics & BMS", code: "CAT-ELEC", description: "Smart BMS, PCB circuits, and electronic controllers" },
         { id: "cat-7", name: "Category 7 — Accessories & Connectors", code: "CAT-ACC", description: "Chargers, connectors, adapters, and wiring harnesses" }
-      ];
+      ].forEach(addCat);
+    }
+    return list;
+  })();
 
   const categoryList = rawCategories.map((c: any) => typeof c === 'object' ? (c.name ? c : { id: `cat-${c}`, name: String(c), code: 'CAT', description: '' }) : { id: `cat-${String(c)}`, name: String(c), code: `CAT-${String(c).substring(0, 4).toUpperCase()}`, description: '' });
   const baseCategoryNames = Array.from(new Set(categoryList.map((c: any) => c.name)));
@@ -2897,7 +2924,7 @@ export const Inventory: React.FC = () => {
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block font-sans">SELECT BATTERY MODEL TO MANUFACTURE</label>
                   <div className="relative">
                     <select
-                      value={mrpProductModel}
+                      value={mrpProductModel || (data?.products && data.products.length > 0 ? data.products[0].id : "72V30A")}
                       onChange={e => {
                         setMrpProductModel(e.target.value);
                         setMrpResult(null);
@@ -2918,7 +2945,7 @@ export const Inventory: React.FC = () => {
                           <optgroup key={catKey} label={catKey} className="font-bold text-slate-500 bg-slate-50">
                             {categorized[catKey].map((p: any) => (
                               <option key={p.id} value={p.id} className="bg-white text-slate-900 font-sans font-bold">
-                                {p.name} [{p.id}] {p.type ? `(${p.type})` : ''}
+                                {(p.name || p.id).toUpperCase()} [{p.id}]
                               </option>
                             ))}
                           </optgroup>
@@ -5240,10 +5267,9 @@ export const Inventory: React.FC = () => {
                       onChange={e => setDefaultRmCategory(e.target.value)}
                       className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-[10px] font-bold text-slate-800 w-full outline-none focus:ring-1 focus:ring-slate-950"
                     >
-                      <option value="Cells">Cells</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="RAW_MATERIAL">RAW_MATERIAL</option>
-                      <option value="ACCESSORIES">ACCESSORIES</option>
+                      {categoryNames.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
@@ -6104,10 +6130,9 @@ export const Inventory: React.FC = () => {
                     onChange={e => setPoCategory(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                   >
-                    <option value="RAW_MATERIAL">Raw Material</option>
-                    <option value="Cells">Cells</option>
-                    <option value="Electronics">Electronics (BMS)</option>
-                    <option value="Accessories">Accessories</option>
+                    {categoryNames.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
                   </select>
                 </div>
               </div>

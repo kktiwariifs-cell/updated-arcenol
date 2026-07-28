@@ -1103,7 +1103,7 @@ export const MRP: React.FC = () => {
                     <div className="relative">
                        <select 
                          className="w-full bg-white border border-slate-300 rounded-2xl px-5 py-4 pr-12 text-xs font-black text-slate-900 focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-600 outline-none transition-all cursor-pointer shadow-xs appearance-none font-sans"
-                         value={selectedModel}
+                         value={selectedModel || (allProducts && allProducts.length > 0 ? (allProducts[0].id || allProducts[0].model_id) : "")}
                          onChange={(e) => setSelectedModel(e.target.value)}
                        >
                          <option value="" className="bg-white text-slate-400">Select Battery Model Blueprint...</option>
@@ -1134,7 +1134,7 @@ export const MRP: React.FC = () => {
                                    const pId = p.id || p.model_id;
                                    return (
                                      <option key={pId} value={pId} className="bg-white text-slate-900 font-sans font-bold py-1">
-                                       {p.name} [{pId}] — {(p.bom || []).length} Components
+                                       {(p.name || pId).toUpperCase()} [{pId}]
                                      </option>
                                    );
                                  })}
