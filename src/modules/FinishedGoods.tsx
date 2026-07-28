@@ -49,6 +49,8 @@ export const FinishedGoods: React.FC = () => {
 
   // Print report modal state
   const [showPrintReportModal, setShowPrintReportModal] = useState(false);
+  const [fgCurrentPage, setFgCurrentPage] = useState(1);
+  const [fgItemsPerPage, setFgItemsPerPage] = useState(20);
 
   if (loading) return (
     <div className="flex items-center justify-center h-64">
@@ -88,6 +90,12 @@ export const FinishedGoods: React.FC = () => {
     const matchesWarehouse = selectedWarehouse === 'All' || item.warehouse === selectedWarehouse;
     return matchesSearch && matchesWarehouse;
   });
+
+  const totalFgPages = Math.ceil(filteredGoods.length / fgItemsPerPage) || 1;
+  const paginatedGoods = filteredGoods.slice(
+    (fgCurrentPage - 1) * fgItemsPerPage,
+    fgCurrentPage * fgItemsPerPage
+  );
 
   const handleOpenItem = (item: any) => {
     setSelectedItem(item);
@@ -697,7 +705,7 @@ export const FinishedGoods: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredGoods.map((item: any) => (
+              {paginatedGoods.map((item: any) => (
                 <tr 
                   key={item.id} 
                   onClick={() => handleOpenItem(item)}
@@ -751,6 +759,71 @@ export const FinishedGoods: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+          {/* Pagination Controls */}
+          {filteredGoods.length > 0 && (
+            <div className="bg-white px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-left">
+                <p className="text-xs text-slate-500 font-sans font-medium">
+                  Showing <span className="font-bold text-slate-800">{Math.min((fgCurrentPage - 1) * fgItemsPerPage + 1, filteredGoods.length)}</span> to{' '}
+                  <span className="font-bold text-slate-800">{Math.min(fgCurrentPage * fgItemsPerPage, filteredGoods.length)}</span> of{' '}
+                  <span className="font-bold text-slate-800">{filteredGoods.length}</span> finished goods
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per Page:</span>
+                  <select
+                    value={fgItemsPerPage}
+                    onChange={(e) => {
+                      setFgItemsPerPage(Number(e.target.value));
+                      setFgCurrentPage(1);
+                    }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-primary-500/30"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1 flex-wrap gap-y-2">
+                <button
+                  type="button"
+                  disabled={fgCurrentPage === 1}
+                  onClick={() => setFgCurrentPage(p => Math.max(p - 1, 1))}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalFgPages }, (_, idx) => {
+                  const pageNum = idx + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setFgCurrentPage(pageNum)}
+                      className={cn(
+                        "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black transition-all cursor-pointer",
+                        fgCurrentPage === pageNum
+                          ? "bg-[#0c9bbc] text-white shadow-md shadow-cyan-500/15"
+                          : "border border-slate-200 text-slate-600 hover:bg-white"
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={fgCurrentPage === totalFgPages}
+                  onClick={() => setFgCurrentPage(p => Math.min(p + 1, totalFgPages))}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
       </div>
 
       {/* Production History & Batch Analysis */}

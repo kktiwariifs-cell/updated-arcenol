@@ -297,6 +297,9 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     </div>
   );
 
+  const [skCurrentPage, setSkCurrentPage] = useState(1);
+  const [skItemsPerPage, setSkItemsPerPage] = useState(20);
+
   const inventory = data?.inventory || [];
   const filteredInventory = inventory.filter((item: any) => {
     if (!search.trim()) return true;
@@ -308,6 +311,12 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
       (item.warehouse || '').toLowerCase().includes(query)
     );
   });
+
+  const totalSkPages = Math.ceil(filteredInventory.length / skItemsPerPage) || 1;
+  const paginatedSkInventory = filteredInventory.slice(
+    (skCurrentPage - 1) * skItemsPerPage,
+    skCurrentPage * skItemsPerPage
+  );
   const wip = data?.wipInventory || [];
   const finishedGoods = data?.finishedGoods || [];
   const rawWarehouses = data?.warehouses || [];
@@ -802,7 +811,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                        No physical inventory records match query.
                     </div>
                  ) : (
-                    filteredInventory.map((item: any) => {
+                    paginatedSkInventory.map((item: any) => {
                        const isItemActive = item.status !== 'INACTIVE';
                        return (
                           <div key={item.id} className={cn(
@@ -899,7 +908,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-slate-900">
-                       {filteredInventory.map((item: any) => {
+                       {paginatedSkInventory.map((item: any) => {
                            const isItemActive = item.status !== 'INACTIVE';
                            return (
                              <tr key={item.id} className={cn(
@@ -2478,6 +2487,71 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                      </tbody>
                   </table>
                </div>
+
+               {/* Pagination Controls */}
+               {filteredInventory.length > 0 && (
+                  <div className="bg-white px-8 py-5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                     <div className="flex items-center gap-4 text-left">
+                        <p className="text-xs text-slate-500 font-sans font-medium">
+                           Showing <span className="font-bold text-slate-800">{Math.min((skCurrentPage - 1) * skItemsPerPage + 1, filteredInventory.length)}</span> to{' '}
+                           <span className="font-bold text-slate-800">{Math.min(skCurrentPage * skItemsPerPage, filteredInventory.length)}</span> of{' '}
+                           <span className="font-bold text-slate-800">{filteredInventory.length}</span> inventory items
+                        </p>
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per Page:</span>
+                           <select
+                              value={skItemsPerPage}
+                              onChange={(e) => {
+                                 setSkItemsPerPage(Number(e.target.value));
+                                 setSkCurrentPage(1);
+                              }}
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-primary-500/30"
+                           >
+                              <option value={10}>10</option>
+                              <option value={20}>20</option>
+                              <option value={50}>50</option>
+                              <option value={100}>100</option>
+                           </select>
+                        </div>
+                     </div>
+                     <div className="flex items-center space-x-1 flex-wrap gap-y-2">
+                        <button
+                           type="button"
+                           disabled={skCurrentPage === 1}
+                           onClick={() => setSkCurrentPage(p => Math.max(p - 1, 1))}
+                           className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                        >
+                           Prev
+                        </button>
+                        {Array.from({ length: totalSkPages }, (_, idx) => {
+                           const pageNum = idx + 1;
+                           return (
+                              <button
+                                 key={pageNum}
+                                 type="button"
+                                 onClick={() => setSkCurrentPage(pageNum)}
+                                 className={cn(
+                                    "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black transition-all cursor-pointer",
+                                    skCurrentPage === pageNum
+                                       ? "bg-primary-600 text-white shadow-md shadow-primary-500/15"
+                                       : "border border-slate-200 text-slate-600 hover:bg-white"
+                                 )}
+                              >
+                                 {pageNum}
+                              </button>
+                           );
+                        })}
+                        <button
+                           type="button"
+                           disabled={skCurrentPage === totalSkPages}
+                           onClick={() => setSkCurrentPage(p => Math.min(p + 1, totalSkPages))}
+                           className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                        >
+                           Next
+                        </button>
+                     </div>
+                  </div>
+               )}
             </div>
 
             {/* Footer containing action buttons */}

@@ -292,9 +292,13 @@ export const Inventory: React.FC = () => {
   const [subSearchProcure, setSubSearchProcure] = useState('');
   const [subSearchGrading, setSubSearchGrading] = useState('');
 
-  // Pagination States for Data Sheets (20 entries per page)
+  // Pagination States for Data Sheets (20 entries per page default)
   const [rmCurrentPage, setRmCurrentPage] = useState(1);
+  const [rmItemsPerPage, setRmItemsPerPage] = useState(20);
   const [gradedCurrentPage, setGradedCurrentPage] = useState(1);
+  const [gradedItemsPerPage, setGradedItemsPerPage] = useState(20);
+  const [poCurrentPage, setPoCurrentPage] = useState(1);
+  const [poItemsPerPage, setPoItemsPerPage] = useState(20);
 
   useEffect(() => {
     setRmCurrentPage(1);
@@ -303,6 +307,10 @@ export const Inventory: React.FC = () => {
   useEffect(() => {
     setGradedCurrentPage(1);
   }, [subSearchGrading]);
+
+  useEffect(() => {
+    setPoCurrentPage(1);
+  }, [poSearch, poStatusFilter]);
 
   // Edit & Delete Raw Material States
   const [isEditRmModalOpen, setIsEditRmModalOpen] = useState(false);
@@ -1585,18 +1593,22 @@ export const Inventory: React.FC = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const RM_ITEMS_PER_PAGE = 20;
-  const totalRmPages = Math.ceil(filteredInventory.length / RM_ITEMS_PER_PAGE) || 1;
+  const totalRmPages = Math.ceil(filteredInventory.length / rmItemsPerPage) || 1;
   const paginatedInventory = filteredInventory.slice(
-    (rmCurrentPage - 1) * RM_ITEMS_PER_PAGE,
-    rmCurrentPage * RM_ITEMS_PER_PAGE
+    (rmCurrentPage - 1) * rmItemsPerPage,
+    rmCurrentPage * rmItemsPerPage
   );
 
-  const GRADED_ITEMS_PER_PAGE = 20;
-  const totalGradedPages = Math.ceil(filteredGradingItems.length / GRADED_ITEMS_PER_PAGE) || 1;
+  const totalPoPages = Math.ceil(filteredPurchaseOrders.length / poItemsPerPage) || 1;
+  const paginatedPOs = filteredPurchaseOrders.slice(
+    (poCurrentPage - 1) * poItemsPerPage,
+    poCurrentPage * poItemsPerPage
+  );
+
+  const totalGradedPages = Math.ceil(filteredGradingItems.length / gradedItemsPerPage) || 1;
   const paginatedGraded = filteredGradingItems.slice(
-    (gradedCurrentPage - 1) * GRADED_ITEMS_PER_PAGE,
-    gradedCurrentPage * GRADED_ITEMS_PER_PAGE
+    (gradedCurrentPage - 1) * gradedItemsPerPage,
+    gradedCurrentPage * gradedItemsPerPage
   );
 
   const rawCategories = (() => {
@@ -2097,7 +2109,7 @@ export const Inventory: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-bold text-slate-700">
-                  {filteredPurchaseOrders.map((po: any) => (
+                  {paginatedPOs.map((po: any) => (
                     <tr key={po.id} className="hover:bg-slate-50/60 transition-all">
                       <td className="p-5 pl-8">
                         <div className="font-mono font-black text-slate-900 text-xs italic">{po.id}</div>
@@ -2197,6 +2209,71 @@ export const Inventory: React.FC = () => {
               </table>
             </div>
           </div>
+
+          {/* PO Pagination Controls */}
+          {filteredPurchaseOrders.length > 0 && (
+            <div className="bg-white px-8 py-5 rounded-[2.5rem] border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4 text-left">
+                <p className="text-xs text-slate-500 font-sans font-medium">
+                  Showing <span className="font-bold text-slate-800">{Math.min((poCurrentPage - 1) * poItemsPerPage + 1, filteredPurchaseOrders.length)}</span> to{' '}
+                  <span className="font-bold text-slate-800">{Math.min(poCurrentPage * poItemsPerPage, filteredPurchaseOrders.length)}</span> of{' '}
+                  <span className="font-bold text-slate-800">{filteredPurchaseOrders.length}</span> purchase orders
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per Page:</span>
+                  <select
+                    value={poItemsPerPage}
+                    onChange={(e) => {
+                      setPoItemsPerPage(Number(e.target.value));
+                      setPoCurrentPage(1);
+                    }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-[#00a3c4]/30"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1 flex-wrap gap-y-2">
+                <button
+                  type="button"
+                  disabled={poCurrentPage === 1}
+                  onClick={() => setPoCurrentPage(p => Math.max(p - 1, 1))}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                >
+                  Prev
+                </button>
+                {Array.from({ length: totalPoPages }, (_, idx) => {
+                  const pageNum = idx + 1;
+                  return (
+                    <button
+                      key={pageNum}
+                      type="button"
+                      onClick={() => setPoCurrentPage(pageNum)}
+                      className={cn(
+                        "w-8 h-8 flex items-center justify-center rounded-xl text-xs font-black transition-all cursor-pointer",
+                        poCurrentPage === pageNum
+                          ? "bg-[#0c9bbc] text-white shadow-md shadow-cyan-500/15"
+                          : "border border-slate-200 text-slate-600 hover:bg-white"
+                      )}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  disabled={poCurrentPage === totalPoPages}
+                  onClick={() => setPoCurrentPage(p => Math.min(p + 1, totalPoPages))}
+                  className="px-3 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white disabled:opacity-50 disabled:hover:bg-transparent transition-all cursor-pointer"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
 
         </div>
       )}
@@ -2604,14 +2681,30 @@ export const Inventory: React.FC = () => {
           </div>
 
           {/* Pagination Controls */}
-          {totalRmPages > 1 && (
+          {filteredInventory.length > 0 && (
             <div className="bg-white px-8 py-5 rounded-[2.5rem] border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-              <div className="text-left">
+              <div className="flex items-center gap-4 text-left">
                 <p className="text-xs text-slate-500 font-sans font-medium">
-                  Showing <span className="font-bold text-slate-800">{Math.min((rmCurrentPage - 1) * RM_ITEMS_PER_PAGE + 1, filteredInventory.length)}</span> to{' '}
-                  <span className="font-bold text-slate-800">{Math.min(rmCurrentPage * RM_ITEMS_PER_PAGE, filteredInventory.length)}</span> of{' '}
+                  Showing <span className="font-bold text-slate-800">{Math.min((rmCurrentPage - 1) * rmItemsPerPage + 1, filteredInventory.length)}</span> to{' '}
+                  <span className="font-bold text-slate-800">{Math.min(rmCurrentPage * rmItemsPerPage, filteredInventory.length)}</span> of{' '}
                   <span className="font-bold text-slate-800">{filteredInventory.length}</span> raw material entries
                 </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Per Page:</span>
+                  <select
+                    value={rmItemsPerPage}
+                    onChange={(e) => {
+                      setRmItemsPerPage(Number(e.target.value));
+                      setRmCurrentPage(1);
+                    }}
+                    className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-[#00a3c4]/30"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
               <div className="flex items-center space-x-1 flex-wrap gap-y-2">
                 <button
@@ -4106,14 +4199,30 @@ export const Inventory: React.FC = () => {
                   </div>
 
                   {/* Pagination Controls */}
-                  {totalGradedPages > 1 && (
+                  {filteredGradingItems.length > 0 && (
                     <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
-                      <div className="text-left">
+                      <div className="flex items-center gap-4 text-left">
                         <p className="text-[10px] text-slate-500 font-sans font-medium">
-                          Showing <span className="font-bold text-slate-800">{Math.min((gradedCurrentPage - 1) * GRADED_ITEMS_PER_PAGE + 1, filteredGradingItems.length)}</span> to{' '}
-                          <span className="font-bold text-slate-800">{Math.min(gradedCurrentPage * GRADED_ITEMS_PER_PAGE, filteredGradingItems.length)}</span> of{' '}
+                          Showing <span className="font-bold text-slate-800">{Math.min((gradedCurrentPage - 1) * gradedItemsPerPage + 1, filteredGradingItems.length)}</span> to{' '}
+                          <span className="font-bold text-slate-800">{Math.min(gradedCurrentPage * gradedItemsPerPage, filteredGradingItems.length)}</span> of{' '}
                           <span className="font-bold text-slate-800">{filteredGradingItems.length}</span> graded cells
                         </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Per Page:</span>
+                          <select
+                            value={gradedItemsPerPage}
+                            onChange={(e) => {
+                              setGradedItemsPerPage(Number(e.target.value));
+                              setGradedCurrentPage(1);
+                            }}
+                            className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-bold text-slate-700 outline-none focus:ring-1 focus:ring-emerald-500/30"
+                          >
+                            <option value={10}>10</option>
+                            <option value={20}>20</option>
+                            <option value={50}>50</option>
+                            <option value={100}>100</option>
+                          </select>
+                        </div>
                       </div>
                       <div className="flex items-center space-x-1 flex-wrap gap-y-1">
                         <button
