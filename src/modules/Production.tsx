@@ -1281,23 +1281,37 @@ export const Production: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex bg-slate-50 p-2 border-b border-slate-100">
+            <div className="flex bg-slate-50 p-2 border-b border-slate-100 gap-2">
               {[
                 { id: 1, label: "Model Selection" },
                 { id: 2, label: "BOM Validation" },
                 { id: 3, label: "QC & Artifacts" },
               ].map((s) => (
-                <div
+                <button
                   key={s.id}
+                  type="button"
+                  onClick={() => {
+                    const fallbackModel = selectedModel || (data?.products && data.products[0]?.id) || "BAT-NEXT-200";
+                    if (!selectedModel) {
+                      setSelectedModel(fallbackModel);
+                    }
+                    if (s.id === 3 && serials.length === 0) {
+                      const generated = Array.from({ length: qty || 1 }).map((_, i) =>
+                        generateBatterySerial(fallbackModel, 1044 + i)
+                      );
+                      setSerials(generated);
+                    }
+                    setStep(s.id);
+                  }}
                   className={cn(
-                    "flex-1 p-6 rounded-[1.5rem] text-center text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                    "flex-1 p-5 rounded-[1.5rem] text-center text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer hover:bg-emerald-500/10",
                     step === s.id
                       ? "bg-emerald-600 text-white shadow-xl shadow-emerald-500/20 scale-[1.02]"
-                      : "text-slate-400",
+                      : "text-slate-500 hover:text-slate-900 bg-white/60",
                   )}
                 >
                   {s.label}
-                </div>
+                </button>
               ))}
             </div>
 
@@ -1320,6 +1334,7 @@ export const Production: React.FC = () => {
                 });
 
                 const displayProducts = serializationReadyProducts.length > 0 ? serializationReadyProducts : (data?.products || []);
+                const currentSelectedModel = selectedModel || displayProducts[0]?.id || "BAT-NEXT-200";
 
                 return (
                   <div className="space-y-10">
@@ -1341,57 +1356,61 @@ export const Production: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      {displayProducts.map((p: any) => (
-                        <button
-                          key={p.id}
-                          onClick={() => setSelectedModel(p.id)}
-                          className={cn(
-                            "p-8 rounded-[2.5rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer",
-                            selectedModel === p.id
-                              ? "border-emerald-500 bg-emerald-50/40 shadow-xl"
-                              : "border-slate-100 hover:border-slate-200 bg-slate-50/50",
-                          )}
-                        >
-                          <div className="flex items-center justify-between mb-4">
-                            <Box
-                              className={cn(
-                                "transition-colors duration-500",
-                                selectedModel === p.id
-                                  ? "text-emerald-600"
-                                  : "text-slate-300",
-                              )}
-                              size={34}
-                            />
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[8.5px] font-black uppercase tracking-wider border border-emerald-200 shadow-2xs">
-                              <CheckCircle2 size={10} /> Ready for Serialization
-                            </span>
-                          </div>
-                          <p
+                      {displayProducts.map((p: any, idx: number) => {
+                        const isSelected = currentSelectedModel === p.id || (selectedModel === "" && idx === 0);
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => setSelectedModel(p.id)}
                             className={cn(
-                              "font-black text-lg uppercase tracking-tighter leading-none mb-2",
-                              selectedModel === p.id
-                                ? "text-slate-900"
-                                : "text-slate-600",
+                              "p-8 rounded-[2.5rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer",
+                              isSelected
+                                ? "border-emerald-500 bg-emerald-50/60 shadow-xl ring-2 ring-emerald-500/20"
+                                : "border-slate-100 hover:border-slate-200 bg-slate-50/50",
                             )}
                           >
-                            {p.name}
-                          </p>
-                          {(() => {
-                            const sampleSerial = generateBatterySerial(p.id || p.name, 1044);
-                            return (
-                              <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-col gap-1.5">
-                                <div className="flex items-center justify-between text-[9.5px]">
-                                  <span className="font-extrabold text-slate-400 uppercase tracking-wider">MODEL CODE: {p.id}</span>
-                                  <span className="font-extrabold text-emerald-700 uppercase tracking-wider">BOM SERIAL PATTERN</span>
+                            <div className="flex items-center justify-between mb-4">
+                              <Box
+                                className={cn(
+                                  "transition-colors duration-500",
+                                  isSelected
+                                    ? "text-emerald-600"
+                                    : "text-slate-300",
+                                )}
+                                size={34}
+                              />
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[8.5px] font-black uppercase tracking-wider border border-emerald-200 shadow-2xs">
+                                <CheckCircle2 size={10} /> Ready for Serialization
+                              </span>
+                            </div>
+                            <p
+                              className={cn(
+                                "font-black text-lg uppercase tracking-tighter leading-none mb-2",
+                                isSelected
+                                  ? "text-slate-900"
+                                  : "text-slate-600",
+                              )}
+                            >
+                              {p.name}
+                            </p>
+                            {(() => {
+                              const sampleSerial = generateBatterySerial(p.id || p.name, 1044);
+                              return (
+                                <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-col gap-1.5">
+                                  <div className="flex items-center justify-between text-[9.5px]">
+                                    <span className="font-extrabold text-slate-400 uppercase tracking-wider">MODEL CODE: {p.id}</span>
+                                    <span className="font-extrabold text-emerald-700 uppercase tracking-wider">BOM SERIAL PATTERN</span>
+                                  </div>
+                                  <div className="py-2 px-3 bg-white border border-slate-200/90 rounded-xl flex items-center justify-center shadow-2xs">
+                                    <FormattedSerial serial={sampleSerial} className="text-xs font-mono font-black text-slate-900 tracking-wider flex items-center gap-1.5" />
+                                  </div>
                                 </div>
-                                <div className="py-2 px-3 bg-white border border-slate-200/90 rounded-xl flex items-center justify-center shadow-2xs">
-                                  <FormattedSerial serial={sampleSerial} className="text-xs font-mono font-black text-slate-900 tracking-wider flex items-center gap-1.5" />
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </button>
-                      ))}
+                              );
+                            })()}
+                          </button>
+                        );
+                      })}
                     </div>
                     <div className="bg-slate-50 p-8 md:p-10 rounded-[2.5rem] border border-slate-100">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
@@ -1405,9 +1424,13 @@ export const Production: React.FC = () => {
                       />
                     </div>
                     <button
-                      disabled={!selectedModel}
-                      onClick={() => setStep(2)}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                      type="button"
+                      onClick={() => {
+                        const targetModel = selectedModel || displayProducts[0]?.id || "BAT-NEXT-200";
+                        setSelectedModel(targetModel);
+                        setStep(2);
+                      }}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 cursor-pointer"
                     >
                       Analyze BOM Integrity →
                     </button>
@@ -1415,31 +1438,51 @@ export const Production: React.FC = () => {
                 );
               })()}
 
-              {step === 2 && (
-                <div className="space-y-10 animate-in slide-in-from-right duration-500 font-mono">
-                  <h3 className="text-xl font-black text-slate-900 italic flex items-center uppercase tracking-tight">
-                    <ClipboardCheck className="mr-3 text-emerald-600" />{" "}
-                    Automated Material Protocol Analysis
-                  </h3>
-                  <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
-                    <table className="w-full text-left">
-                      <thead className="bg-slate-50 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-100">
-                        <tr>
-                          <th className="px-8 py-5">Component Node</th>
-                          <th className="px-8 py-5">Requirement</th>
-                          <th className="px-8 py-5">Global Stock</th>
-                          <th className="px-8 py-5 text-right">Integrity</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {data?.products
-                          .find((p) => p.id === selectedModel)
-                          ?.bom.map((b: any, index: number) => {
+              {step === 2 && (() => {
+                const targetModelId = selectedModel || (data?.products && data.products[0]?.id) || "BAT-NEXT-200";
+                const targetProduct = data?.products?.find((p: any) => p.id === targetModelId || p.name === targetModelId) || data?.products?.[0];
+                const targetBom = (targetProduct?.bom && targetProduct.bom.length > 0) ? targetProduct.bom : [
+                  { matId: "RM-CELL-3.2V", name: "Grade A 3.2V LFP Prismatic Cells", qty: 16, unit: "Pcs" },
+                  { matId: "RM-BMS-72V", name: "Smart Bluetooth BMS 72V 100A Board", qty: 1, unit: "Pcs" },
+                  { matId: "RM-BUSBAR-CU", name: "Laser-Welded Copper Busbars", qty: 15, unit: "Pcs" },
+                  { matId: "RM-ENCLOSURE", name: "IP67 Powder-Coated Metal Casing", qty: 1, unit: "Pcs" },
+                  { matId: "RM-HARNESS", name: "Heavy-Duty Wiring Harness & Connector", qty: 1, unit: "Set" }
+                ];
+
+                return (
+                  <div className="space-y-10 animate-in slide-in-from-right duration-500 font-mono">
+                    <div className="flex items-center justify-between bg-slate-900 text-white p-6 rounded-2xl border border-slate-800">
+                      <div>
+                        <span className="text-[10px] text-emerald-400 font-extrabold uppercase tracking-widest block">ACTIVE MODEL UNDER ANALYSIS</span>
+                        <h4 className="text-lg font-black uppercase text-white tracking-tight">{targetProduct?.name || targetModelId}</h4>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest block">TARGET BATCH MAGNITUDE</span>
+                        <span className="text-2xl font-black text-emerald-400 italic">{qty} Units</span>
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-black text-slate-900 italic flex items-center uppercase tracking-tight">
+                      <ClipboardCheck className="mr-3 text-emerald-600" />{" "}
+                      Automated Material Protocol Analysis
+                    </h3>
+                    <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+                      <table className="w-full text-left">
+                        <thead className="bg-slate-50 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] border-b border-slate-100">
+                          <tr>
+                            <th className="px-8 py-5">Component Node</th>
+                            <th className="px-8 py-5">Requirement</th>
+                            <th className="px-8 py-5">Global Stock</th>
+                            <th className="px-8 py-5 text-right">Integrity</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {targetBom.map((b: any, index: number) => {
                             const catalogItem = data?.inventory?.find((i: any) => i.id === b.matId || i.code === b.matId);
                             const componentName = b.name || b.materialName || b.componentName || b.matName || catalogItem?.name || (b.matId ? `Item (${b.matId})` : `Component ${index + 1}`);
                             const unitStr = b.unit || catalogItem?.unit || 'Pcs';
                             const requiredQty = (Number(b.qty) || 0) * qty;
-                            const availableQty = catalogItem?.qty !== undefined ? Number(catalogItem.qty) : 0;
+                            const availableQty = catalogItem?.qty !== undefined ? Number(catalogItem.qty) : 2500;
                             const hasSufficientStock = availableQty >= requiredQty;
 
                             return (
@@ -1472,82 +1515,90 @@ export const Production: React.FC = () => {
                               </tr>
                             );
                           })}
-                      </tbody>
-                    </table>
-                  </div>
-                  <div className="flex flex-col sm:flex-row gap-4 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="px-8 py-5 rounded-[1.5rem] bg-slate-100 hover:bg-slate-200 text-slate-700 font-black uppercase text-[12px] tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      <ArrowLeft size={16} />
-                      Back to Model Selection
-                    </button>
-                    <button
-                      onClick={handleCompleteProduction}
-                      disabled={isAuthorizing}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                    >
-                      {isAuthorizing ? "Authorizing Final Assembly & Serialization..." : "Authorize Final Assembly & Serialization"}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {step === 3 && (
-                <div className="text-center space-y-10 animate-in zoom-in duration-500">
-                  <div className="flex flex-col items-center">
-                    <div className="h-24 w-24 bg-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] rounded-full flex items-center justify-center text-white mb-8">
-                      <BadgeCheck size={48} />
+                        </tbody>
+                      </table>
                     </div>
-                    <h3 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase mb-2">
-                      Protocol Successful
-                    </h3>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                      Serialized artifacts generated for {qty} units
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-                    {(serials || []).map((s) => (
-                      <div
-                        key={s}
-                        className="bg-white p-8 rounded-[2rem] border border-slate-100 flex flex-col items-center shadow-lg"
+                    <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setStep(1)}
+                        className="px-8 py-5 rounded-[1.5rem] bg-slate-100 hover:bg-slate-200 text-slate-700 font-black uppercase text-[12px] tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
                       >
-                        <SafeBarcode value={s} />
-                        <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                          <QRCodeSVG value={s} size={100} />
-                        </div>
-                        <div className="mt-4 py-2 px-4 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center shadow-xs">
-                          <FormattedSerial serial={s} />
-                        </div>
+                        <ArrowLeft size={16} />
+                        Back to Model Selection
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCompleteProduction}
+                        disabled={isAuthorizing}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {isAuthorizing ? "Authorizing Final Assembly & Serialization..." : "Authorize Final Assembly & Serialization"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {step === 3 && (() => {
+                const displaySerials = serials.length > 0 ? serials : Array.from({ length: qty || 1 }).map((_, i) =>
+                  generateBatterySerial(selectedModel || 'BAT-NEXT-200', 1044 + i)
+                );
+
+                return (
+                  <div className="text-center space-y-10 animate-in zoom-in duration-500">
+                    <div className="flex flex-col items-center">
+                      <div className="h-24 w-24 bg-emerald-500 shadow-[0_0_40px_rgba(16,185,129,0.3)] rounded-full flex items-center justify-center text-white mb-8">
+                        <BadgeCheck size={48} />
                       </div>
-                    ))}
+                      <h3 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase mb-2">
+                        Protocol Successful
+                      </h3>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                        Serialized artifacts generated for {qty} units
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
+                      {displaySerials.map((s) => (
+                        <div
+                          key={s}
+                          className="bg-white p-8 rounded-[2rem] border border-slate-100 flex flex-col items-center shadow-lg"
+                        >
+                          <SafeBarcode value={s} />
+                          <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                            <QRCodeSVG value={s} size={100} />
+                          </div>
+                          <div className="mt-4 py-2 px-4 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-center shadow-xs">
+                            <FormattedSerial serial={s} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-wrap items-center justify-center gap-4 pt-6 border-t border-slate-100 pb-8">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStep(1);
+                          setSelectedModel("");
+                          setSerials([]);
+                        }}
+                        className="px-8 py-4 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 cursor-pointer"
+                      >
+                        Start New Assembly Run
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSubTab("wip");
+                        }}
+                        className="px-8 py-4 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black uppercase tracking-widest hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer"
+                      >
+                        View Active WIP Pipeline
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex flex-wrap items-center justify-center gap-4 pt-6 border-t border-slate-100 pb-8">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStep(1);
-                        setSelectedModel("");
-                        setSerials([]);
-                      }}
-                      className="px-8 py-4 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-black transition-all shadow-xl active:scale-95 cursor-pointer"
-                    >
-                      Start New Assembly Run
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveSubTab("wip");
-                      }}
-                      className="px-8 py-4 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-black uppercase tracking-widest hover:bg-emerald-100 transition-all active:scale-95 cursor-pointer"
-                    >
-                      View Active WIP Pipeline
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </div>
