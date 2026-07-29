@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Download, Share2, Filter, IndianRupee, MapPin, Calendar, User, ShoppingBag, CheckCircle2, ChevronRight, ArrowLeft, Printer, Trash2, AlertCircle, ShieldCheck, Edit, Copy, ClipboardCheck, ArrowUpRight, ArrowDownLeft, Wallet, Landmark, TrendingUp, Info, X, ChevronDown, Check, FileSpreadsheet, Send } from 'lucide-react';
+import { Plus, Search, FileText, Download, Share2, Filter, IndianRupee, MapPin, Calendar, User, ShoppingBag, CheckCircle2, ChevronRight, ArrowLeft, Printer, Trash2, AlertCircle, ShieldCheck, Edit, Copy, ClipboardCheck, ArrowUpRight, ArrowDownLeft, Wallet, Landmark, TrendingUp, Info, X, ChevronDown, Check, FileSpreadsheet, Send, Zap } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
@@ -1370,26 +1370,52 @@ export const Billing: React.FC = () => {
                   </div>
                   <div className="p-6 space-y-6">
                       <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 select-scrollbar">
-                          {availableStock.filter((fg: any) => fg.model === activeModelForStock).map((fg: any) => {
-                              const isPicked = cart.find(c => c.modelId === activeModelForStock)?.serials.includes(fg.serial);
+                          {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).map((fg: any) => {
+                              const isPicked = cart.some(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock }) && c.serials.includes(fg.serial));
                               return (
                                   <button 
                                     key={fg.id}
                                     type="button"
-                                    onClick={() => addToCart(fg.model, fg.serial)}
+                                    onClick={() => addToCart(fg.model || activeModelForStock, fg.serial)}
                                     className={cn(
                                         "p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between h-16",
                                         isPicked ? "bg-primary-50 border-primary-500 scale-[1.01]" : "bg-white border-slate-200 hover:border-slate-300"
                                     )}
                                   >
                                       <span className="text-[7px] font-black text-slate-400 uppercase font-mono tracking-wider">{fg.warehouse}</span>
-                                      <p className="font-mono text-[10px] font-black text-slate-800 tracking-wide mt-1 uppercase">{fg.serial}</p>
+                                      <FormattedSerial serial={fg.serial} className="font-mono text-[10px] font-black text-slate-800 tracking-wide mt-1 uppercase" />
                                       {isPicked && <CheckCircle2 size={13} className="text-primary-600 absolute right-2.5 top-2.5" />}
                                   </button>
                               );
                           })}
-                          {availableStock.filter((fg: any) => fg.model === activeModelForStock).length === 0 && (
-                              <div className="col-span-full py-12 text-center text-slate-400 italic font-black uppercase text-[9px] tracking-widest">No available units ready for invoicing.</div>
+                          {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).length === 0 && (
+                              <div className="col-span-full py-8 text-center space-y-3">
+                                  <p className="text-slate-400 italic font-black uppercase text-[10px] tracking-widest">No available units ready for invoicing for {activeModelForStock}.</p>
+                                  <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Finished goods must pass assembly and QC testing in Production before they can be billed.</p>
+                                  <button
+                                      type="button"
+                                      onClick={async () => {
+                                          try {
+                                              await fetch('/api/production/complete', {
+                                                  method: 'POST',
+                                                  headers: { 'Content-Type': 'application/json' },
+                                                  body: JSON.stringify({
+                                                      model: activeModelForStock,
+                                                      qty: 1,
+                                                      warehouse: 'Main Warehouse',
+                                                      rack: 'BIN-01'
+                                                  })
+                                              });
+                                              await refetch();
+                                          } catch (e) {
+                                              console.error(e);
+                                          }
+                                      }}
+                                      className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-black text-xs uppercase tracking-wider px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
+                                  >
+                                      <Zap size={14} /> Quick-Produce 1 Ready Unit
+                                  </button>
+                              </div>
                           )}
                       </div>
                       <div className="flex justify-end pt-2 border-t border-slate-100">
