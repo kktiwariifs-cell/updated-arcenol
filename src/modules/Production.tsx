@@ -1371,14 +1371,25 @@ export const Production: React.FC = () => {
                               "font-black text-lg uppercase tracking-tighter leading-none mb-2",
                               selectedModel === p.id
                                 ? "text-slate-900"
-                                : "text-slate-500",
+                                : "text-slate-600",
                             )}
                           >
                             {p.name}
                           </p>
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                            ARC_ID: {p.id}
-                          </span>
+                          {(() => {
+                            const sampleSerial = generateBatterySerial(p.id || p.name, 1044);
+                            return (
+                              <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-[9.5px]">
+                                  <span className="font-extrabold text-slate-400 uppercase tracking-wider">MODEL CODE: {p.id}</span>
+                                  <span className="font-extrabold text-emerald-700 uppercase tracking-wider">BOM SERIAL PATTERN</span>
+                                </div>
+                                <div className="py-2 px-3 bg-white border border-slate-200/90 rounded-xl flex items-center justify-center shadow-2xs">
+                                  <FormattedSerial serial={sampleSerial} className="text-xs font-mono font-black text-slate-900 tracking-wider flex items-center gap-1.5" />
+                                </div>
+                              </div>
+                            );
+                          })()}
                         </button>
                       ))}
                     </div>
