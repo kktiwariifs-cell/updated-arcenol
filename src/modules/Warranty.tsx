@@ -3,6 +3,7 @@ import { Shield, ShieldAlert, BadgeCheck, Search, Info, Wrench, History, CheckCi
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { downloadElementAsPDF } from '../lib/pdfGenerator';
+import { FormattedSerial } from '../lib/serialUtils';
 
 export const Warranty: React.FC = () => {
   const { data, loading, refetch } = useERPData();
@@ -16,16 +17,21 @@ export const Warranty: React.FC = () => {
   const [claimForm, setClaimForm] = useState({ type: 'Defective BMS', notes: '' });
 
   const handleDirectSearch = (serialToSearch: string) => {
-    const warrantyRecord = data?.warranty.find((w: any) => w.serial === serialToSearch);
-    const fgItem = data?.finishedGoods.find((fg: any) => fg.serial === serialToSearch);
+    const term = serialToSearch.trim().toLowerCase().replace(/\s+/g, ' ');
+    const warrantyRecord = data?.warranty?.find((w: any) => 
+      w.serial.toLowerCase().replace(/\s+/g, ' ') === term || w.serial === serialToSearch
+    );
+    const fgItem = data?.finishedGoods?.find((fg: any) => 
+      fg.serial.toLowerCase().replace(/\s+/g, ' ') === term || fg.serial === serialToSearch
+    );
     
     if (warrantyRecord) {
-      const dealer = data?.leads.find((l: any) => l.id === warrantyRecord.dealerId);
-      const product = data?.products.find((p: any) => p.id === fgItem?.model);
+      const dealer = data?.leads?.find((l: any) => l.id === warrantyRecord.dealerId);
+      const product = data?.products?.find((p: any) => p.id === fgItem?.model);
       
       setResult({
-        serial: serialToSearch,
-        model: product?.name || fgItem?.model || 'Battery Pack',
+        serial: warrantyRecord.serial,
+        model: product?.name || fgItem?.model || '72V30A High Efficiency Pack',
         soldTo: dealer?.company || 'Authorized Dealer',
         dateSold: warrantyRecord.startDate,
         expiry: new Date(new Date(warrantyRecord.startDate).setFullYear(new Date(warrantyRecord.startDate).getFullYear() + 3)).toISOString().split('T')[0],
@@ -35,7 +41,7 @@ export const Warranty: React.FC = () => {
       setView('verify');
     } else if (fgItem) {
         setResult({
-            serial: serialToSearch,
+            serial: fgItem.serial,
             model: fgItem.model,
             soldTo: 'In Warehouse',
             dateSold: 'N/A',
@@ -139,36 +145,39 @@ export const Warranty: React.FC = () => {
               <div className="flex flex-wrap gap-2">
                  <button
                     onClick={() => {
-                       setSearch("ARC-72V30A-2024-000101");
-                       handleDirectSearch("ARC-72V30A-2024-000101");
+                       const s = "AESPL  EV  28G26001044";
+                       setSearch(s);
+                       handleDirectSearch(s);
                     }}
                     className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-primary-500 rounded-lg font-mono text-[10px] font-bold text-slate-700 hover:text-primary-600 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                     title="Active Warranty with Claims History"
                  >
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                    ARC-72V30A-2024-000101
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shrink-0"></span>
+                    <FormattedSerial serial="AESPL  EV  28G26001044" className="inline-flex items-center gap-1 text-[10px]" gradeClassName="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded font-mono font-black" />
                  </button>
                  <button
                     onClick={() => {
-                       setSearch("ARC-72V30A-2024-000102");
-                       handleDirectSearch("ARC-72V30A-2024-000102");
+                       const s = "AESPL  EV  28G26001045";
+                       setSearch(s);
+                       handleDirectSearch(s);
                     }}
                     className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-primary-500 rounded-lg font-mono text-[10px] font-bold text-slate-700 hover:text-primary-600 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                     title="Active Warranty"
                  >
-                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                    ARC-72V30A-2024-000102
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shrink-0"></span>
+                    <FormattedSerial serial="AESPL  EV  28G26001045" className="inline-flex items-center gap-1 text-[10px]" gradeClassName="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1 py-0.2 rounded font-mono font-black" />
                  </button>
                  <button
                     onClick={() => {
-                       setSearch("ARC-72V30A-2024-000103");
-                       handleDirectSearch("ARC-72V30A-2024-000103");
+                       const s = "AESPL  EV  28G26001046";
+                       setSearch(s);
+                       handleDirectSearch(s);
                     }}
                     className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-amber-500 rounded-lg font-mono text-[10px] font-bold text-slate-700 hover:text-amber-600 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                     title="Registered in Stock (Ready for Activation)"
                  >
-                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                    ARC-72V30A-2024-000103
+                    <span className="w-1.5 h-1.5 bg-amber-500 rounded-full shrink-0"></span>
+                    <FormattedSerial serial="AESPL  EV  28G26001046" className="inline-flex items-center gap-1 text-[10px]" gradeClassName="bg-amber-100 text-amber-800 border border-amber-300 px-1 py-0.2 rounded font-mono font-black" />
                  </button>
               </div>
            </div>

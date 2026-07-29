@@ -1353,7 +1353,7 @@ export const FinishedGoods: React.FC = () => {
                         <label className="block text-[9px] font-black text-slate-400 uppercase mb-1.5 tracking-wider">Paste Serial Numbers (One per line, or comma-separated)</label>
                         <textarea
                           rows={6}
-                          placeholder={`e.g.&#10;ARC-72V30A-2026-000101&#10;ARC-72V30A-2026-000102&#10;ARC-72V30A-2026-000103`}
+                          placeholder={`e.g.\nAESPL  EV  28G26001044\nAESPL  EV  28G26001045\nAESPL  AUTO  28G26001049`}
                           className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-primary-500/20 focus:bg-white resize-none"
                           value={pastedSerials}
                           onChange={(e) => setPastedSerials(e.target.value)}

@@ -57,7 +57,7 @@ export const Engagement: React.FC = () => {
   const [searchedWarranty, setSearchedWarranty] = useState<any>(null);
   
   // Service submission on phone
-  const [phoneService, setPhoneService] = useState({ serial: 'ARC-72V30A-2024-000101', type: 'Low Range', notes: '' });
+  const [phoneService, setPhoneService] = useState({ serial: 'AESPL  EV  28G26001044', type: 'Low Range', notes: '' });
   const [phoneServiceSubmitted, setPhoneServiceSubmitted] = useState(false);
 
   // Warranty checks logs linked to Image 2 lookups
@@ -355,7 +355,7 @@ export const Engagement: React.FC = () => {
         if (res.ok) {
           setPhoneServiceSubmitted(true);
           refetch();
-          setPhoneService({ serial: 'ARC-72V30A-2024-000101', type: 'Low Range', notes: '' });
+          setPhoneService({ serial: 'AESPL  EV  28G26001044', type: 'Low Range', notes: '' });
         }
       } catch (err) {
         console.error(err);
