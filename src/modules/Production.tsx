@@ -6,6 +6,8 @@ import {
   QrCode,
   Printer,
   CheckCircle2,
+  CheckCircle,
+  ArrowLeft,
   History,
   Database,
   Wrench,
@@ -1253,6 +1255,32 @@ export const Production: React.FC = () => {
       ) : activeSubTab === "assembly" ? (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-2xl">
+            {/* Navigation Header with Back Button */}
+            <div className="bg-slate-900 text-white p-4 px-8 flex items-center justify-between border-b border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  if (step > 1) {
+                    setStep(step - 1);
+                  } else {
+                    setActiveSubTab("wip");
+                  }
+                }}
+                className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-black uppercase tracking-widest transition-all border border-slate-700/80 shadow-md active:scale-95 cursor-pointer"
+              >
+                <ArrowLeft size={16} className="text-emerald-400" />
+                <span>{step > 1 ? `Back to Step ${step - 1}` : "Back to WIP Pipeline"}</span>
+              </button>
+              <div className="text-right hidden sm:block">
+                <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 block">
+                  FINAL ASSEMBLY & SERIALIZATION RUN
+                </span>
+                <span className="text-[10px] font-bold text-slate-300">
+                  Step {step} of 3 — {step === 1 ? "Model Selection" : step === 2 ? "BOM Validation" : "QC & Barcode Generation"}
+                </span>
+              </div>
+            </div>
+
             <div className="flex bg-slate-50 p-2 border-b border-slate-100">
               {[
                 { id: 1, label: "Model Selection" },
@@ -1274,65 +1302,107 @@ export const Production: React.FC = () => {
             </div>
 
             <div className="p-12">
-              {step === 1 && (
-                <div className="space-y-12">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {data?.products.map((p: any) => (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelectedModel(p.id)}
-                        className={cn(
-                          "p-8 rounded-[2.5rem] border-2 text-left transition-all relative overflow-hidden group",
-                          selectedModel === p.id
-                            ? "border-primary-500 bg-primary-50 shadow-xl"
-                            : "border-slate-100 hover:border-slate-200 bg-slate-50/50",
-                        )}
-                      >
-                        <Box
+              {step === 1 && (() => {
+                const serializationReadyProducts = (data?.products || []).filter((p: any) => {
+                  if (p.readyForSerialization === true || p.status === "READY_FOR_SERIALIZATION" || p.isManufacturingReady === true) {
+                    return true;
+                  }
+                  const inWip = (data?.wipInventory || data?.wip || []).some((w: any) => {
+                    const wName = String(w.name || '').toUpperCase();
+                    const pName = String(p.name || '').toUpperCase();
+                    const pId = String(p.id || '').toUpperCase();
+                    return wName.includes(pId) || pName.includes(wName) || wName.includes(pName);
+                  });
+                  if (inWip) return true;
+
+                  const readyModelIds = ["72V30A", "BAT-AUTO-35", "BAT-INV-150", "BAT-VRLA-100", "BAT-NEXT-200", "LIT-200"];
+                  return readyModelIds.some(id => String(p.id).toUpperCase().includes(id) || String(p.name).toUpperCase().includes(id));
+                });
+
+                const displayProducts = serializationReadyProducts.length > 0 ? serializationReadyProducts : (data?.products || []);
+
+                return (
+                  <div className="space-y-10">
+                    <div className="bg-emerald-50/90 border border-emerald-200/80 rounded-2xl p-4 px-6 flex items-center justify-between shadow-2xs">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="text-emerald-600 shrink-0" size={20} />
+                        <div>
+                          <p className="text-xs font-black text-emerald-950 uppercase tracking-wide flex items-center gap-2">
+                            <span>Post-Manufacturing Serialization Queue</span>
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-200/90 text-emerald-900 text-[9px] font-black tracking-widest">
+                              {displayProducts.length} MODELS READY
+                            </span>
+                          </p>
+                          <p className="text-[11px] font-medium text-emerald-800">
+                            Only models confirmed ready for serialization after manufacturing assembly & QC are listed below.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      {displayProducts.map((p: any) => (
+                        <button
+                          key={p.id}
+                          onClick={() => setSelectedModel(p.id)}
                           className={cn(
-                            "mb-6 transition-colors duration-500",
+                            "p-8 rounded-[2.5rem] border-2 text-left transition-all relative overflow-hidden group cursor-pointer",
                             selectedModel === p.id
-                              ? "text-primary-600"
-                              : "text-slate-300",
-                          )}
-                          size={36}
-                        />
-                        <p
-                          className={cn(
-                            "font-black text-lg uppercase tracking-tighter leading-none mb-2",
-                            selectedModel === p.id
-                              ? "text-slate-900"
-                              : "text-slate-400",
+                              ? "border-emerald-500 bg-emerald-50/40 shadow-xl"
+                              : "border-slate-100 hover:border-slate-200 bg-slate-50/50",
                           )}
                         >
-                          {p.name}
-                        </p>
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
-                          ARC_ID: {p.id}
-                        </span>
-                      </button>
-                    ))}
+                          <div className="flex items-center justify-between mb-4">
+                            <Box
+                              className={cn(
+                                "transition-colors duration-500",
+                                selectedModel === p.id
+                                  ? "text-emerald-600"
+                                  : "text-slate-300",
+                              )}
+                              size={34}
+                            />
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[8.5px] font-black uppercase tracking-wider border border-emerald-200 shadow-2xs">
+                              <CheckCircle2 size={10} /> Ready for Serialization
+                            </span>
+                          </div>
+                          <p
+                            className={cn(
+                              "font-black text-lg uppercase tracking-tighter leading-none mb-2",
+                              selectedModel === p.id
+                                ? "text-slate-900"
+                                : "text-slate-500",
+                            )}
+                          >
+                            {p.name}
+                          </p>
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
+                            ARC_ID: {p.id}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="bg-slate-50 p-8 md:p-10 rounded-[2.5rem] border border-slate-100">
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
+                        Production Magnitude Target
+                      </label>
+                      <input
+                        type="number"
+                        value={qty}
+                        onChange={(e) => setQty(parseInt(e.target.value) || 1)}
+                        className="w-full bg-transparent border-b-4 border-slate-200 text-5xl font-black text-slate-900 italic outline-none focus:border-emerald-500 transition-all pb-4 tracking-tighter"
+                      />
+                    </div>
+                    <button
+                      disabled={!selectedModel}
+                      onClick={() => setStep(2)}
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+                    >
+                      Analyze BOM Integrity →
+                    </button>
                   </div>
-                  <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-slate-100">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4">
-                      Production Magnitude Target
-                    </label>
-                    <input
-                      type="number"
-                      value={qty}
-                      onChange={(e) => setQty(parseInt(e.target.value) || 1)}
-                      className="w-full bg-transparent border-b-4 border-slate-200 text-5xl font-black text-slate-900 italic outline-none focus:border-primary-500 transition-all pb-4 tracking-tighter"
-                    />
-                  </div>
-                  <button
-                    disabled={!selectedModel}
-                    onClick={() => setStep(2)}
-                    className="w-full bg-emerald-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20"
-                  >
-                    Analyze BOM Integrity →
-                  </button>
-                </div>
-              )}
+                );
+              })()}
 
               {step === 2 && (
                 <div className="space-y-10 animate-in slide-in-from-right duration-500 font-mono">
@@ -1394,13 +1464,23 @@ export const Production: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
-                  <button
-                    onClick={handleCompleteProduction}
-                    disabled={isAuthorizing}
-                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    {isAuthorizing ? "Authorizing Final Assembly & Serialization..." : "Authorize Final Assembly & Serialization"}
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-8 py-5 rounded-[1.5rem] bg-slate-100 hover:bg-slate-200 text-slate-700 font-black uppercase text-[12px] tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <ArrowLeft size={16} />
+                      Back to Model Selection
+                    </button>
+                    <button
+                      onClick={handleCompleteProduction}
+                      disabled={isAuthorizing}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {isAuthorizing ? "Authorizing Final Assembly & Serialization..." : "Authorize Final Assembly & Serialization"}
+                    </button>
+                  </div>
                 </div>
               )}
 
