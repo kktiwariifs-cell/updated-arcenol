@@ -24,13 +24,31 @@ import {
   Check,
   BookOpen,
   Download,
+  Zap,
   HelpCircle as HelpIcon
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { downloadElementAsPDF } from '../lib/pdfGenerator';
 
-export const UserManual: React.FC = () => {
+interface UserManualProps {
+  setActiveTab?: (tab: string) => void;
+}
+
+const STEP_TAB_MAP: Record<string, { tab: string; label: string }> = {
+  procurement: { tab: 'inventory-hub', label: 'Stores & Procurement Hub' },
+  store: { tab: 'inventory-hub', label: 'Warehousing & Raw Material Inventory' },
+  mrp: { tab: 'mrp', label: 'MRP & Material Demand Planning' },
+  manufacturing: { tab: 'production-hub', label: 'Production & Assembly Line' },
+  quality: { tab: 'production-hub', label: 'Quality Control & Testing' },
+  'finished-goods': { tab: 'finished-goods', label: 'Finished Goods Logistics' },
+  crm: { tab: 'crm', label: 'CRM & Dealer Network' },
+  billing: { tab: 'billing', label: 'GST Invoicing & Accounts' },
+  warranty: { tab: 'warranty', label: 'Warranty & Claims Registry' },
+  service: { tab: 'service', label: 'RMA Service & Repair Center' }
+};
+
+export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
   const { user } = useAuthStore();
 
   // Define permitted steps per role
@@ -688,9 +706,22 @@ export const UserManual: React.FC = () => {
                     Authorized Action Scope: <span className="text-slate-800 font-black">{selectedStepData.roleInvolved}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-lg text-[10px] font-mono font-black uppercase tracking-wider self-start sm:self-auto">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  ISO 9001 Standard
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-lg text-[10px] font-mono font-black uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    ISO 9001 Standard
+                  </div>
+                  {setActiveTab && STEP_TAB_MAP[activeStep] && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(STEP_TAB_MAP[activeStep].tab)}
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-700 hover:to-blue-700 text-white font-black text-xs uppercase tracking-wider px-3.5 py-2 rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer active:scale-95"
+                    >
+                      <Zap size={14} className="text-amber-300 fill-amber-300 shrink-0" />
+                      <span>Open {STEP_TAB_MAP[activeStep].label}</span>
+                      <ArrowRight size={13} className="shrink-0" />
+                    </button>
+                  )}
                 </div>
               </div>
 

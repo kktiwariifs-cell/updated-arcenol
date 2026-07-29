@@ -758,7 +758,7 @@ export default function App() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} activeTab={activeTab} />}
-          {activeTab === 'user-manual' && <UserManual />}
+          {activeTab === 'user-manual' && <UserManual setActiveTab={setActiveTab} />}
           {activeTab === 'landing-page' && <LandingPage isLoggedIn={true} />}
           {activeTab === 'management-kpi' && <ManagementKPI />}
           {activeTab === 'dealer-performance' && <DealerPerformance />}
