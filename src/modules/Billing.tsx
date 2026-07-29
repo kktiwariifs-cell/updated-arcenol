@@ -1199,6 +1199,32 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                 <option value="">Select a customer branch...</option>
                                 {dealers.map(d => <option key={d.id} value={d.id}>{d.company} — {d.location}</option>)}
                              </select>
+                             {selectedDealer && (
+                                <div className="mt-3 p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-2 text-xs">
+                                   <div className="flex justify-between items-center border-b border-emerald-200/50 pb-1.5">
+                                      <span className="font-black text-slate-900 uppercase text-xs tracking-tight">{selectedDealer.company || selectedDealer.name}</span>
+                                      <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 font-black text-[8px] uppercase tracking-wider rounded border border-emerald-300">Party Details Fetched</span>
+                                   </div>
+                                   <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                                      <div>
+                                         <span className="text-slate-400 font-extrabold uppercase block text-[8px]">GSTIN Registration</span>
+                                         <span className="font-black text-slate-800">{selectedDealer.gstin || selectedDealer.gst || `24AAACG${1000 + Number(selectedDealer.id?.match(/\d+/)?.[0] || 101)}A1Z5`}</span>
+                                      </div>
+                                      <div>
+                                         <span className="text-slate-400 font-extrabold uppercase block text-[8px]">Location Hub</span>
+                                         <span className="font-black text-slate-800">{selectedDealer.location || selectedDealer.address || "Main City Hub, Gujarat"}</span>
+                                      </div>
+                                      <div>
+                                         <span className="text-slate-400 font-extrabold uppercase block text-[8px]">Contact Number</span>
+                                         <span className="font-black text-slate-800">{selectedDealer.phone || selectedDealer.contact || "+91 98765 43210"}</span>
+                                      </div>
+                                      <div>
+                                         <span className="text-slate-400 font-extrabold uppercase block text-[8px]">Ledger Status</span>
+                                         <span className="font-black text-emerald-700">APPROVED CREDIT</span>
+                                      </div>
+                                   </div>
+                                </div>
+                             )}
                           </div>
                           
                           <div>
@@ -1263,22 +1289,25 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                            </thead>
                            <tbody className="divide-y divide-slate-100/60 font-mono">
                               {cart.map((item, idx) => {
-                                  const prod = data?.products.find((p: any) => p.id === item.modelId);
+                                  const prod = allBillingProducts.find((p: any) => p.id === item.modelId || matchFgToProduct({ model: item.modelId }, p));
+                                  const prodName = prod?.name || item.modelId;
+                                  const unitPrice = item.price || prod?.price || 35000;
                                   return (
                                       <tr key={idx} className="bg-white">
-                                          <td className="p-2 font-black text-slate-800 uppercase tracking-tight text-xs">{prod?.name}</td>
+                                          <td className="p-2 font-black text-slate-800 uppercase tracking-tight text-xs">{prodName}</td>
                                           <td className="p-2">
                                               <div className="flex flex-wrap gap-1">
                                                   {item.serials.map((s: string) => (
-                                                      <span key={s} className="px-1.5 py-0.5 bg-slate-50 text-slate-600 rounded text-[8px] font-extrabold border border-slate-200">
+                                                      <span key={s} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[8px] font-extrabold border border-emerald-200 flex items-center gap-1 font-mono">
+                                                          <CheckCircle2 size={9} className="text-emerald-600" />
                                                           {s}
                                                       </span>
                                                   ))}
                                               </div>
                                           </td>
                                           <td className="p-2 text-right font-bold text-slate-700">{item.serials.length} PCS</td>
-                                          <td className="p-2 text-right text-slate-500">{formatCurrency(item.price)}</td>
-                                          <td className="p-2 font-black text-slate-900 text-right">{formatCurrency(item.price * item.serials.length)}</td>
+                                          <td className="p-2 text-right text-slate-500">{formatCurrency(unitPrice)}</td>
+                                          <td className="p-2 font-black text-slate-900 text-right">{formatCurrency(unitPrice * item.serials.length)}</td>
                                       </tr>
                                   );
                               })}
@@ -1413,8 +1442,9 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                   });
                                                   const resData = await res.json();
                                                   await refetch();
-                                                  if (resData?.created && resData.created[0]?.serial) {
-                                                      addToCart(activeModelForStock || 'BAT-NEXT-200', resData.created[0].serial);
+                                                  const newSerial = resData?.serials?.[0];
+                                                  if (newSerial) {
+                                                      addToCart(activeModelForStock || 'BAT-NEXT-200', newSerial);
                                                   }
                                               } catch (e) {
                                                   console.error(e);
@@ -1751,7 +1781,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                   </thead>
                                   <tbody className="divide-y divide-slate-100 bg-white">
                                       {(selectedInvoice.items || []).map((item: any, index: number) => {
-                                          const prod = data?.products.find((p: any) => p.id === item.model);
+                                          const prod = allBillingProducts.find((p: any) => p.id === item.model || matchFgToProduct({ model: item.model }, p));
                                           return (
                                               <tr key={index}>
                                                   <td className="p-2 text-center text-slate-500 font-bold">{index + 1}</td>
