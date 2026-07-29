@@ -221,8 +221,8 @@ async function startServer() {
           { id: "c3", title: "Smart Inverter Exchange Rebate", desc: "Loyalty trade-in buyback incentive for residential systems.", category: "ESS / Industrial", status: "PAUSED" }
        ],
        batches: [
-          { id: "batch-1", prefix: "ARC-INV-", qty: 50, productId: "72V30A", productName: "E-Rickshaw Batteries (72V30A)", date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
-          { id: "batch-2", prefix: "ARC-AUTO-", qty: 25, productId: "BAT-AUTO-35", productName: "Scooter Batteries (BAT-AUTO-35)", date: new Date(Date.now() - 2*24*60*60*1000).toISOString() }
+          { id: "batch-1", prefix: "AESPL  EV", qty: 50, productId: "72V30A", productName: "E-Rickshaw Batteries (72V30A)", date: new Date(Date.now() - 5*24*60*60*1000).toISOString() },
+          { id: "batch-2", prefix: "AESPL  AUTO", qty: 25, productId: "BAT-AUTO-35", productName: "Scooter Batteries (BAT-AUTO-35)", date: new Date(Date.now() - 2*24*60*60*1000).toISOString() }
        ]
     },
     invoices: [
@@ -1031,7 +1031,7 @@ async function startServer() {
 
     const newBatch = {
       id: "batch-" + Date.now(),
-      prefix: prefix || "ARC-",
+      prefix: prefix || "AESPL  EV",
       qty: Number(qty) || 50,
       productId,
       productName,

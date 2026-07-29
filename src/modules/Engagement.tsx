@@ -29,6 +29,8 @@ import {
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
+import { generateBatterySerial } from '../lib/serialUtils';
+import { printElement } from '../lib/pdfGenerator';
 
 export const Engagement: React.FC = () => {
   const { data, loading, refetch } = useERPData();
@@ -44,7 +46,7 @@ export const Engagement: React.FC = () => {
   // Form states
   const [loyaltyUrlInput, setLoyaltyUrlInput] = useState('');
   const [newCampaign, setNewCampaign] = useState({ title: '', desc: '', category: 'EV Battery' });
-  const [batchParams, setBatchParams] = useState({ productId: '', qty: 50, prefix: 'ARC-INV-' });
+  const [batchParams, setBatchParams] = useState({ productId: '', qty: 50, prefix: 'AESPL  EV' });
   const [simParams, setSimParams] = useState({ model: '', user: '', location: '' });
   
   // Mock Mobile App internal states
@@ -253,11 +255,11 @@ export const Engagement: React.FC = () => {
     e.preventDefault();
     if (!batchParams.productId) return;
     
-    // Generate sequential serials
+    // Generate sequential serials following standard battery pattern (AESPL  <GRADE>  <DAY><MONTH><YEAR><SEQUENCE>)
     const serialsList: string[] = [];
-    const baseNum = Math.floor(Math.random() * 10000) + 1000;
+    const baseNum = Math.floor(Math.random() * 8000) + 1000;
     for (let i = 0; i < batchParams.qty; i++) {
-      serialsList.push(`${batchParams.prefix || 'ARC-'}${batchParams.productId.toUpperCase()}-${baseNum + i}`);
+      serialsList.push(generateBatterySerial(batchParams.prefix || batchParams.productId || 'EV', baseNum + i));
     }
     setGeneratedSerials(serialsList);
 
@@ -406,7 +408,7 @@ export const Engagement: React.FC = () => {
            </button>
            <button 
              onClick={() => {
-               setBatchParams({ productId: getProductsList()[0]?.id || '', qty: 50, prefix: 'ARC-INV-' });
+               setBatchParams({ productId: getProductsList()[0]?.id || '', qty: 50, prefix: 'AESPL  EV' });
                setGeneratedSerials([]);
                setIsBatchQRModalOpen(true);
              }}
@@ -1422,7 +1424,7 @@ export const Engagement: React.FC = () => {
                </div>
                <button 
                   onClick={() => {
-                     setBatchParams({ productId: getProductsList()[0]?.id || '', qty: 50, prefix: 'ARC-INV-' });
+                     setBatchParams({ productId: getProductsList()[0]?.id || '', qty: 50, prefix: 'AESPL  EV' });
                      setGeneratedSerials([]);
                      setIsBatchQRModalOpen(true);
                   }}
@@ -1448,7 +1450,7 @@ export const Engagement: React.FC = () => {
                   {batches.map((batch: any, idx: number) => (
                     <tr key={batch.id || idx} className="hover:bg-slate-50/50 transition-colors">
                       <td className="py-4.5 px-6 font-mono text-xs font-bold text-slate-400 uppercase">{batch.id || `batch-${idx + 1}`}</td>
-                      <td className="py-4.5 px-6 font-mono text-xs font-extrabold text-[#912551]">{batch.prefix || 'ARC-'}</td>
+                      <td className="py-4.5 px-6 font-mono text-xs font-extrabold text-[#912551]">{batch.prefix || 'AESPL  EV'}</td>
                       <td className="py-4.5 px-6 text-xs font-bold text-slate-800">{batch.productName || batch.productId}</td>
                       <td className="py-4.5 px-6 text-xs font-mono font-black text-slate-900">{batch.qty || 50} Units</td>
                       <td className="py-4.5 px-6 text-xs text-slate-400 font-mono font-medium">
@@ -1458,12 +1460,12 @@ export const Engagement: React.FC = () => {
                          <button 
                            onClick={() => {
                               // Re-generate visually
-                              setBatchParams({ productId: batch.productId, qty: batch.qty, prefix: batch.prefix });
+                              setBatchParams({ productId: batch.productId, qty: batch.qty, prefix: batch.prefix || 'AESPL  EV' });
                               // Fill local serials list
                               const list = [];
-                              const base = 2500 + idx * 50;
+                              const base = 1000 + idx * 50;
                               for(let i=0; i < batch.qty; i++) {
-                                 list.push(`${batch.prefix || 'ARC-'}${batch.productId.toUpperCase()}-${base + i}`);
+                                 list.push(generateBatterySerial(batch.prefix || batch.productId || 'EV', base + i));
                               }
                               setGeneratedSerials(list);
                               setIsBatchQRModalOpen(true);
@@ -1678,11 +1680,11 @@ export const Engagement: React.FC = () => {
                  </div>
 
                  <div className="space-y-2 md:col-span-3">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Batch Suffix Prefix</label>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Batch Serial Prefix / Grade</label>
                     <input 
                       type="text"
                       className="w-full bg-slate-50 border border-slate-205 rounded-xl px-4 py-3 text-xs font-black text-slate-900 outline-none uppercase font-mono"
-                      placeholder="e.g. ARC-INV-"
+                      placeholder="e.g. AESPL  EV"
                       value={batchParams.prefix}
                       onChange={(e) => setBatchParams({...batchParams, prefix: e.target.value})}
                     />
@@ -1720,7 +1722,7 @@ export const Engagement: React.FC = () => {
                      <div className="flex space-x-2 shrink-0">
                         <button 
                            type="button"
-                           onClick={() => window.print()}
+                           onClick={() => printElement("generated-batch-qr-container", { title: "Batch_QR_Labels" })}
                            className="px-4 py-2.5 bg-white border border-slate-200 text-slate-800 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 flex items-center transition-all shadow-sm"
                         >
                            <Printer size={12} className="mr-1.5" /> Print batch
@@ -1748,7 +1750,7 @@ export const Engagement: React.FC = () => {
                      </div>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                  <div id="generated-batch-qr-container" className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-4">
                      {generatedSerials.map((s, i) => (
                         <div key={i} className="bg-white p-4 rounded-3xl border border-slate-150 flex flex-col items-center text-center space-y-3 shadow-md hover:scale-105 transition-transform">
                            <div className="bg-slate-50 p-2.5 rounded-2xl border border-slate-100">
