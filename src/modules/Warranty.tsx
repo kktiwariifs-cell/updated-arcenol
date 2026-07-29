@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Shield, ShieldAlert, BadgeCheck, Search, Info, Wrench, History, CheckCircle2, ChevronRight, ArrowLeft, PlusCircle, AlertCircle, Calendar, Zap, X, Printer, Download } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
-import { downloadElementAsPDF } from '../lib/pdfGenerator';
+import { downloadElementAsPDF, printElement } from '../lib/pdfGenerator';
 import { FormattedSerial } from '../lib/serialUtils';
 
 export const Warranty: React.FC = () => {
@@ -571,7 +571,7 @@ export const Warranty: React.FC = () => {
                       <Download size={13} /> Download PDF
                     </button>
                     <button 
-                      onClick={() => window.print()} 
+                      onClick={() => printElement("warranty-certificate-card", { title: `Warranty_${result?.serial || 'Certificate'}` })} 
                       className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer"
                     >
                       <Printer size={13} /> Print

@@ -10,7 +10,7 @@ import {
 import { useERPData } from '../hooks/useERPData';
 import { FormattedSerial } from '../lib/serialUtils';
 import { cn } from '../lib/utils';
-import { downloadElementAsPDF } from '../lib/pdfGenerator';
+import { downloadElementAsPDF, printElement } from '../lib/pdfGenerator';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, Legend 
@@ -1508,7 +1508,7 @@ export const FinishedGoods: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={() => printElement("finished-goods-printable-report", { title: "Finished_Goods_Registry_Report" })}
                   className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer"
                   title="Print Report"
                 >

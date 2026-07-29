@@ -8,6 +8,113 @@ export interface PDFExportOptions {
 }
 
 /**
+ * Prints any HTML element by ID cleanly using an isolated hidden iframe.
+ */
+export function printElement(elementId: string, options?: { title?: string }): boolean {
+  try {
+    const element = document.getElementById(elementId);
+    if (!element) {
+      console.warn(`[printElement] Element with ID "${elementId}" not found. Falling back to window.print().`);
+      window.print();
+      return false;
+    }
+
+    // Reuse or create a hidden print iframe
+    let iframe = document.getElementById('app-print-iframe') as HTMLIFrameElement;
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = 'app-print-iframe';
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0';
+      iframe.style.pointerEvents = 'none';
+      document.body.appendChild(iframe);
+    }
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      window.print();
+      return false;
+    }
+
+    // Copy all page style elements and links
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    const documentTitle = options?.title || 'Print Document';
+
+    doc.open();
+    doc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${documentTitle}</title>
+          <meta charset="utf-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          ${styles}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 8mm;
+            }
+            *, *::before, *::after {
+              box-sizing: border-box;
+            }
+            body {
+              background-color: #ffffff !important;
+              color: #0f172a !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .no-print, [no-print] {
+              display: none !important;
+            }
+            #${elementId} {
+              box-shadow: none !important;
+              border: none !important;
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
+          </style>
+        </head>
+        <body>
+          <div style="padding: 12px;">
+            ${element.outerHTML}
+          </div>
+        </body>
+      </html>
+    `);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (err) {
+        console.error('[printElement] Iframe print trigger error:', err);
+        window.print();
+      }
+    }, 300);
+
+    return true;
+  } catch (err) {
+    console.error('[printElement] Error executing element print:', err);
+    window.print();
+    return false;
+  }
+}
+
+/**
  * Captures any HTML element by ID or ref and converts it to a downloadable PDF file.
  */
 export async function downloadElementAsPDF(

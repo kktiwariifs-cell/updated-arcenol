@@ -3,7 +3,7 @@ import { Plus, Search, FileText, Download, Share2, Filter, IndianRupee, MapPin, 
 import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
-import { downloadElementAsPDF, downloadReportDataAsPDF } from '../lib/pdfGenerator';
+import { downloadElementAsPDF, downloadReportDataAsPDF, printElement } from '../lib/pdfGenerator';
 import { FormattedSerial } from '../lib/serialUtils';
 
 interface VyaparRecord {
@@ -1650,7 +1650,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                              <Download size={11} /> Download PDF
                           </button>
                           
-                          <button onClick={() => window.print()} className="px-3 py-2 bg-slate-900 hover:brightness-110 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer" title="Print Invoice">
+                          <button onClick={() => printElement("tax-invoice-printable-card", { title: `Invoice_${selectedInvoice.id}` })} className="px-3 py-2 bg-slate-900 hover:brightness-110 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer" title="Print Invoice">
                              <Printer size={11} /> Print
                           </button>
                           
