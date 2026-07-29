@@ -1250,19 +1250,50 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                        <p className="font-black text-slate-900 uppercase text-xs italic leading-none">{product.name}</p>
                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ref base: {formatCurrency(product.price)} / Module</p>
                                    </div>
-                                   <div className="flex items-center space-x-4">
+                                   <div className="flex items-center space-x-3">
                                        <div className="text-right">
                                            <span className="text-[8px] font-black text-slate-400 uppercase block tracking-wider leading-none">Ready Stock</span>
-                                           <p className="font-black text-xs text-primary-600 italic mt-0.5">
+                                           <p className={cn(
+                                               "font-black text-xs italic mt-0.5",
+                                               readyUnits.length > 0 ? "text-emerald-600" : "text-amber-600"
+                                           )}>
                                                {readyUnits.length} units ready
                                            </p>
                                        </div>
+
+                                       {readyUnits.length === 0 && (
+                                           <button
+                                              type="button"
+                                              onClick={async () => {
+                                                  try {
+                                                      await fetch('/api/production/complete', {
+                                                          method: 'POST',
+                                                          headers: { 'Content-Type': 'application/json' },
+                                                          body: JSON.stringify({
+                                                              model: product.id || product.name,
+                                                              qty: 5,
+                                                              warehouse: 'Main Warehouse',
+                                                              rack: 'BIN-01'
+                                                          })
+                                                      });
+                                                      await refetch();
+                                                  } catch (e) {
+                                                      console.error(e);
+                                                  }
+                                              }}
+                                              className="bg-amber-50 text-amber-700 hover:bg-amber-100 py-1.5 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider border border-amber-200 transition-all flex items-center gap-1 cursor-pointer"
+                                              title="Instantly generate 5 ready units for invoicing"
+                                           >
+                                               <Zap size={11} className="text-amber-600 fill-amber-500" /> +5 Units
+                                           </button>
+                                       )}
+
                                        <button 
                                           onClick={() => { 
                                               setActiveModelForStock(product.id); 
                                               setIsSelectingStock(true); 
                                           }}
-                                          className="bg-white text-primary-600 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border border-primary-100 hover:bg-primary-600 hover:text-white transition-all shadow-sm active:scale-95"
+                                          className="bg-white text-primary-600 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border border-primary-100 hover:bg-primary-600 hover:text-white transition-all shadow-xs active:scale-95"
                                        >
                                           Pick Serials
                                        </button>
@@ -1300,7 +1331,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                   {item.serials.map((s: string) => (
                                                       <span key={s} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[8px] font-extrabold border border-emerald-200 flex items-center gap-1 font-mono">
                                                           <CheckCircle2 size={9} className="text-emerald-600" />
-                                                          {s}
+                                                          <FormattedSerial serial={s} />
                                                       </span>
                                                   ))}
                                               </div>
@@ -1399,7 +1430,38 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                         <h3 className="font-black text-base text-slate-900 uppercase italic leading-none">Pick Serial Numbers</h3>
                         <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest mt-1 font-mono">{activeModelForStock}</p>
                       </div>
-                      <button onClick={() => setIsSelectingStock(false)} className="p-1 px-2.5 bg-white border border-slate-200 rounded hover:bg-slate-100 font-extrabold text-xs">✕</button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                              try {
+                                  const res = await fetch('/api/production/complete', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                          model: activeModelForStock || 'BAT-NEXT-200',
+                                          qty: 5,
+                                          warehouse: 'Main Warehouse',
+                                          rack: 'BIN-01'
+                                      })
+                                  });
+                                  const resData = await res.json();
+                                  await refetch();
+                                  if (resData?.serials && Array.isArray(resData.serials)) {
+                                      resData.serials.forEach((s: string) => {
+                                          addToCart(activeModelForStock || 'BAT-NEXT-200', s);
+                                      });
+                                  }
+                              } catch (e) {
+                                  console.error(e);
+                              }
+                          }}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border border-emerald-200 transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Zap size={12} className="text-emerald-600 fill-emerald-500" /> +5 Units
+                        </button>
+                        <button onClick={() => setIsSelectingStock(false)} className="p-1 px-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 font-extrabold text-xs">✕</button>
+                      </div>
                   </div>
                   <div className="p-6 space-y-6">
                       <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 select-scrollbar">
@@ -1411,20 +1473,20 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                     type="button"
                                     onClick={() => addToCart(fg.model || activeModelForStock, fg.serial)}
                                     className={cn(
-                                        "p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between h-16",
-                                        isPicked ? "bg-primary-50 border-primary-500 scale-[1.01]" : "bg-white border-slate-200 hover:border-slate-300"
+                                        "p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between h-16 cursor-pointer",
+                                        isPicked ? "bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 scale-[1.01]" : "bg-white border-slate-200 hover:border-slate-300"
                                     )}
                                   >
                                       <span className="text-[7px] font-black text-slate-400 uppercase font-mono tracking-wider">{fg.warehouse}</span>
                                       <FormattedSerial serial={fg.serial} className="font-mono text-[10px] font-black text-slate-800 tracking-wide mt-1 uppercase" />
-                                      {isPicked && <CheckCircle2 size={13} className="text-primary-600 absolute right-2.5 top-2.5" />}
+                                      {isPicked && <CheckCircle2 size={13} className="text-emerald-600 absolute right-2.5 top-2.5" />}
                                   </button>
                               );
                           })}
                           {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).length === 0 && (
                               <div className="col-span-full py-8 text-center space-y-4">
-                                  <p className="text-slate-400 italic font-black uppercase text-[10px] tracking-widest">No available units ready for invoicing for {activeModelForStock}.</p>
-                                  <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Finished goods must pass assembly and QC testing in Production before they can be billed.</p>
+                                  <p className="text-amber-600 italic font-black uppercase text-[10px] tracking-widest">0 units currently ready in warehouse for {activeModelForStock}.</p>
+                                  <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Click below to instantly generate 5 ready units with verified serial numbers for billing.</p>
                                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                                       <button
                                           type="button"
@@ -1435,24 +1497,25 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                       headers: { 'Content-Type': 'application/json' },
                                                       body: JSON.stringify({
                                                           model: activeModelForStock || 'BAT-NEXT-200',
-                                                          qty: 1,
+                                                          qty: 5,
                                                           warehouse: 'Main Warehouse',
                                                           rack: 'BIN-01'
                                                       })
                                                   });
                                                   const resData = await res.json();
                                                   await refetch();
-                                                  const newSerial = resData?.serials?.[0];
-                                                  if (newSerial) {
-                                                      addToCart(activeModelForStock || 'BAT-NEXT-200', newSerial);
+                                                  if (resData?.serials && Array.isArray(resData.serials)) {
+                                                      resData.serials.forEach((s: string) => {
+                                                          addToCart(activeModelForStock || 'BAT-NEXT-200', s);
+                                                      });
                                                   }
                                               } catch (e) {
                                                   console.error(e);
                                               }
                                           }}
-                                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
                                       >
-                                          <Zap size={14} /> Quick-Produce 1 Ready Unit
+                                          <Zap size={14} className="fill-white" /> Quick-Produce 5 Ready Units
                                       </button>
                                       {setActiveTab && (
                                           <button
@@ -1471,7 +1534,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                           )}
                       </div>
                       <div className="flex justify-end pt-2 border-t border-slate-100">
-                          <button onClick={() => setIsSelectingStock(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-lg font-black text-[10px] uppercase tracking-wider shadow shadow-emerald-600/10">Save Picking Selection</button>
+                          <button onClick={() => setIsSelectingStock(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow shadow-emerald-600/10 cursor-pointer">SAVE PICKING SELECTION</button>
                       </div>
                   </div>
               </div>
@@ -1788,9 +1851,14 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                   <td className="p-2 font-sans font-bold text-slate-800">
                                                       <span className="uppercase text-xs block">{prod?.name || item.model}</span>
                                                       {item.serials && item.serials.length > 0 && (
-                                                          <span className="text-[9.5px] text-slate-500 font-mono tracking-wide mt-1 block leading-normal max-w-[280px]">
-                                                             Serials: {item.serials.join(', ')}
-                                                          </span>
+                                                          <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                             <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider">Serials:</span>
+                                                             {item.serials.map((s: string, sIdx: number) => (
+                                                                <span key={sIdx} className="px-1.5 py-0.5 bg-slate-50 border border-slate-200 rounded text-[9px] font-mono">
+                                                                   <FormattedSerial serial={s} />
+                                                                </span>
+                                                             ))}
+                                                          </div>
                                                       )}
                                                   </td>
                                                   <td className="p-2 text-center font-bold text-slate-800">{item.qty || 1} PCS</td>

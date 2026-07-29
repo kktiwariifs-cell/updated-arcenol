@@ -84,12 +84,18 @@ export function parseBatterySerial(serial: string) {
   }
 
   // Fallback for ARC- style: e.g. "ARC-72V30A-2026-183880"
-  const matchArc = clean.match(/^(ARC-?)([A-Z0-9]+)(-.*)$/i);
+  const matchArc = clean.match(/^(ARC-?)([A-Z0-9]+)?(-.*)?$/i);
   if (matchArc) {
+    const rawGrade = matchArc[2] || 'EV';
+    let grade = 'EV';
+    if (rawGrade.includes('AUTO')) grade = 'AUTO';
+    else if (rawGrade.includes('INV')) grade = 'INV';
+    else if (rawGrade.includes('VRLA')) grade = 'VRLA';
+    else if (rawGrade.includes('ESS')) grade = 'ESS';
     return {
-      prefix: matchArc[1],
-      grade: matchArc[2],
-      suffix: matchArc[3]
+      prefix: 'AESPL',
+      grade: grade,
+      suffix: (matchArc[3] || '').replace(/^-/, '')
     };
   }
 
