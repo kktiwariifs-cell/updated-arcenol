@@ -19,7 +19,11 @@ interface VyaparRecord {
   category?: string;
 }
 
-export const Billing: React.FC = () => {
+interface BillingProps {
+  setActiveTab?: (tab: string) => void;
+}
+
+export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
   const { user: currentUser } = useAuthStore();
   const [view, setView] = useState<'list' | 'create'>('list');
@@ -1389,32 +1393,50 @@ export const Billing: React.FC = () => {
                               );
                           })}
                           {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).length === 0 && (
-                              <div className="col-span-full py-8 text-center space-y-3">
+                              <div className="col-span-full py-8 text-center space-y-4">
                                   <p className="text-slate-400 italic font-black uppercase text-[10px] tracking-widest">No available units ready for invoicing for {activeModelForStock}.</p>
                                   <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Finished goods must pass assembly and QC testing in Production before they can be billed.</p>
-                                  <button
-                                      type="button"
-                                      onClick={async () => {
-                                          try {
-                                              await fetch('/api/production/complete', {
-                                                  method: 'POST',
-                                                  headers: { 'Content-Type': 'application/json' },
-                                                  body: JSON.stringify({
-                                                      model: activeModelForStock,
-                                                      qty: 1,
-                                                      warehouse: 'Main Warehouse',
-                                                      rack: 'BIN-01'
-                                                  })
-                                              });
-                                              await refetch();
-                                          } catch (e) {
-                                              console.error(e);
-                                          }
-                                      }}
-                                      className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-black text-xs uppercase tracking-wider px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer"
-                                  >
-                                      <Zap size={14} /> Quick-Produce 1 Ready Unit
-                                  </button>
+                                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                                      <button
+                                          type="button"
+                                          onClick={async () => {
+                                              try {
+                                                  const res = await fetch('/api/production/complete', {
+                                                      method: 'POST',
+                                                      headers: { 'Content-Type': 'application/json' },
+                                                      body: JSON.stringify({
+                                                          model: activeModelForStock || 'BAT-NEXT-200',
+                                                          qty: 1,
+                                                          warehouse: 'Main Warehouse',
+                                                          rack: 'BIN-01'
+                                                      })
+                                                  });
+                                                  const resData = await res.json();
+                                                  await refetch();
+                                                  if (resData?.created && resData.created[0]?.serial) {
+                                                      addToCart(activeModelForStock || 'BAT-NEXT-200', resData.created[0].serial);
+                                                  }
+                                              } catch (e) {
+                                                  console.error(e);
+                                              }
+                                          }}
+                                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                                      >
+                                          <Zap size={14} /> Quick-Produce 1 Ready Unit
+                                      </button>
+                                      {setActiveTab && (
+                                          <button
+                                              type="button"
+                                              onClick={() => {
+                                                  setIsSelectingStock(false);
+                                                  setActiveTab('production-hub');
+                                              }}
+                                              className="inline-flex items-center gap-2 bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
+                                          >
+                                              <ClipboardCheck size={14} className="text-emerald-400" /> Open Production QC Hub
+                                          </button>
+                                      )}
+                                  </div>
                               </div>
                           )}
                       </div>

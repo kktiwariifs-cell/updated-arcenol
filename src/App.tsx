@@ -770,7 +770,7 @@ export default function App() {
           {activeTab === 'finished-goods' && <FinishedGoods />}
           {activeTab === 'storekeeper' && <StoreKeeperDashboard />}
           {activeTab === 'crm' && <CRM />}
-          {activeTab === 'billing' && <Billing />}
+          {activeTab === 'billing' && <Billing setActiveTab={setActiveTab} />}
           {activeTab === 'warranty' && <Warranty />}
           {activeTab === 'engagement' && <Engagement />}
           {activeTab === 'service' && <Service />}
