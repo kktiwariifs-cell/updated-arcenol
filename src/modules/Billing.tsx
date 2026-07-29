@@ -4,6 +4,7 @@ import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
 import { downloadElementAsPDF, downloadReportDataAsPDF } from '../lib/pdfGenerator';
+import { FormattedSerial } from '../lib/serialUtils';
 
 interface VyaparRecord {
   id: string;
@@ -111,7 +112,61 @@ export const Billing: React.FC = () => {
     dealers.push({ id: 'l1', company: 'Green Motors Ahmedabad', location: 'Ahmedabad, GJ' });
   }
 
-  const availableStock = data?.finishedGoods.filter((fg: any) => fg.status === 'READY') || [];
+  const matchFgToProduct = (fg: any, prod: any) => {
+    if (!fg || !prod) return false;
+    const fgModel = String(fg.model || fg.modelId || fg.name || '').trim().toUpperCase();
+    const pId = String(prod.id || '').trim().toUpperCase();
+    const pName = String(prod.name || '').trim().toUpperCase();
+
+    if (!fgModel) return false;
+
+    if (pId && fgModel === pId) return true;
+    if (pName && fgModel === pName) return true;
+
+    if (pId && (fgModel.includes(pId) || pId.includes(fgModel))) return true;
+    if (pName && (fgModel.includes(pName) || pName.includes(fgModel))) return true;
+
+    const cleanFg = fgModel.replace(/[^A-Z0-9]/g, '');
+    const cleanId = pId.replace(/[^A-Z0-9]/g, '');
+    const cleanName = pName.replace(/[^A-Z0-9]/g, '');
+
+    if (cleanId && (cleanFg.includes(cleanId) || cleanId.includes(cleanFg))) return true;
+    if (cleanName && (cleanFg.includes(cleanName) || cleanName.includes(cleanFg))) return true;
+
+    const keywords = ["72V30A", "BAT-AUTO-35", "BAT-INV-150", "BAT-VRLA-100", "BAT-NEXT-200", "LIT-200", "PROD-EV-BIKE", "SCOOTER", "RICKSHAW", "INVERTER"];
+    for (const kw of keywords) {
+      if (fgModel.includes(kw) && (pId.includes(kw) || pName.includes(kw))) return true;
+    }
+
+    return false;
+  };
+
+  const availableStock = (data?.finishedGoods || []).filter((fg: any) => {
+    const st = String(fg.status || 'READY').toUpperCase().trim();
+    return !['SOLD', 'DISPATCHED', 'DAMAGED', 'HOLD', 'RETURNED'].includes(st);
+  });
+
+  const allBillingProducts = React.useMemo(() => {
+    const baseProducts = [...(data?.products || [])];
+    
+    const unmappedFgModels = new Map<string, any>();
+    (data?.finishedGoods || []).forEach((fg: any) => {
+      if (!fg.model) return;
+      const isMatched = baseProducts.some(p => matchFgToProduct(fg, p));
+      if (!isMatched && !unmappedFgModels.has(fg.model)) {
+        unmappedFgModels.set(fg.model, {
+          id: fg.model,
+          name: fg.model.toUpperCase().includes('BATTERY') ? fg.model : `${fg.model} BATTERY`,
+          category: 'FINISHED GOODS INVENTORY',
+          type: 'Battery Unit',
+          price: 35000,
+          isSynthetic: true
+        });
+      }
+    });
+
+    return [...baseProducts, ...Array.from(unmappedFgModels.values())];
+  }, [data?.products, data?.finishedGoods]);
 
   const handleCreateInvoice = async () => {
     if (!selectedDealer || cart.length === 0) return;
@@ -158,18 +213,19 @@ export const Billing: React.FC = () => {
   };
 
   const addToCart = (modelId: string, serial: string) => {
-    const product = data?.products.find((p: any) => p.id === modelId);
+    const product = allBillingProducts.find((p: any) => p.id === modelId || matchFgToProduct({ model: modelId }, p));
     const price = product?.price || 0;
+    const targetModelId = product?.id || modelId;
 
     setCart(prev => {
-        const existing = prev.find(item => item.modelId === modelId);
+        const existing = prev.find(item => item.modelId === targetModelId);
         if (existing) {
             if (existing.serials.includes(serial)) {
-                return prev.map(item => item.modelId === modelId ? { ...item, serials: item.serials.filter((s: string) => s !== serial) } : item);
+                return prev.map(item => item.modelId === targetModelId ? { ...item, serials: item.serials.filter((s: string) => s !== serial) } : item);
             }
-            return prev.map(item => item.modelId === modelId ? { ...item, serials: [...item.serials, serial] } : item);
+            return prev.map(item => item.modelId === targetModelId ? { ...item, serials: [...item.serials, serial] } : item);
         }
-        return [...prev, { modelId, serials: [serial], price }];
+        return [...prev, { modelId: targetModelId, serials: [serial], price }];
     });
   };
 
@@ -1156,7 +1212,9 @@ export const Billing: React.FC = () => {
                           <ShoppingBag size={13} className="mr-1.5 text-primary-600" /> Choose Goods & Serial Numbers (HSN-8507)
                        </h4>
                        <div className="space-y-3">
-                           {data?.products.map((product: any) => (
+                           {allBillingProducts.map((product: any) => {
+                               const readyUnits = availableStock.filter((fg: any) => matchFgToProduct(fg, product));
+                               return (
                                <div key={product.id} className="p-4 bg-slate-50/40 rounded-xl border border-slate-100/80 flex justify-between items-center group transition-all">
                                    <div>
                                        <p className="font-black text-slate-900 uppercase text-xs italic leading-none">{product.name}</p>
@@ -1166,7 +1224,7 @@ export const Billing: React.FC = () => {
                                        <div className="text-right">
                                            <span className="text-[8px] font-black text-slate-400 uppercase block tracking-wider leading-none">Ready Stock</span>
                                            <p className="font-black text-xs text-primary-600 italic mt-0.5">
-                                               {availableStock.filter((fg: any) => fg.model === product.id).length} units ready
+                                               {readyUnits.length} units ready
                                            </p>
                                        </div>
                                        <button 
@@ -1180,7 +1238,8 @@ export const Billing: React.FC = () => {
                                        </button>
                                    </div>
                                </div>
-                           ))}
+                               );
+                           })}
                        </div>
                     </div>
 
