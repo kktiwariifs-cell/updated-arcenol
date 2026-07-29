@@ -77,7 +77,7 @@ export const Engagement: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [stickerTheme, setStickerTheme] = useState<'slate' | 'crimson' | 'emerald'>('slate');
-  const [stickerSerial, setStickerSerial] = useState<string>('ARC-POWERCARE-2026');
+  const [stickerSerial, setStickerSerial] = useState<string>(generateBatterySerial('EV', 1044));
   const [isPreviewPrintOpen, setIsPreviewPrintOpen] = useState<boolean>(false);
 
   const triggerMockDownload = () => {
@@ -561,7 +561,7 @@ export const Engagement: React.FC = () => {
                                  <input 
                                     type="text" 
                                     className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-black tracking-widest focus:ring-2 focus:ring-[#912551]/20 outline-none uppercase"
-                                    placeholder="e.g. ARC-72V30A-2024-000101"
+                                    placeholder="e.g. AESPL  EV  28G26001044"
                                     value={phoneSerial}
                                     onChange={(e) => setPhoneSerial(e.target.value)}
                                  />
@@ -1189,7 +1189,7 @@ export const Engagement: React.FC = () => {
                            value={stickerSerial}
                            onChange={(e) => setStickerSerial(e.target.value.toUpperCase())}
                            className="w-full bg-white border border-[#7c1d3c]/30 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none text-[#7c1d3c] focus:border-[#7c1d3c]"
-                           placeholder="Enter Chassis Serial"
+                           placeholder="e.g. AESPL  EV  28G26001044"
                         />
                      </div>
                   </div>
@@ -1208,7 +1208,7 @@ export const Engagement: React.FC = () => {
                            stickerTheme === 'slate' && "text-slate-900",
                            stickerTheme === 'crimson' && "text-rose-950",
                            stickerTheme === 'emerald' && "text-emerald-950"
-                        )}>{stickerSerial || 'GENERIC-BAT-2026'}</h5>
+                        )}>{stickerSerial || generateBatterySerial('EV', 1044)}</h5>
                         <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">SCAN FOR WARRANTY & SERVICE</p>
                         <div className="pt-2 text-[7px] font-mono font-bold text-slate-500 flex items-center gap-1 leading-none border-t border-slate-200 select-none uppercase">
                            <span className={cn(
@@ -1934,9 +1934,16 @@ export const Engagement: React.FC = () => {
               {/* A grid of several stickers */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 print-section">
                 {[1, 2, 3, 4].map((num) => {
-                  const serialSuffix = stickerSerial.includes('-') 
-                    ? `${stickerSerial.slice(0, stickerSerial.lastIndexOf('-'))}-${parseInt(stickerSerial.slice(stickerSerial.lastIndexOf('-') + 1) || '0') + num - 1}`
-                    : `${stickerSerial}-00${num}`;
+                  const serialSuffix = (() => {
+                    const digitsMatch = stickerSerial.match(/\d+$/);
+                    if (digitsMatch) {
+                      const baseNum = parseInt(digitsMatch[0], 10);
+                      const prefixPart = stickerSerial.slice(0, stickerSerial.length - digitsMatch[0].length);
+                      const incremented = String(baseNum + num - 1).padStart(digitsMatch[0].length, '0');
+                      return `${prefixPart}${incremented}`;
+                    }
+                    return `${stickerSerial} #${num}`;
+                  })();
                   return (
                     <div 
                       key={num} 
