@@ -4,14 +4,17 @@ import {
   Cpu, 
   Settings, 
   Zap, 
-  Activity 
+  Activity,
+  Microscope,
+  History,
+  Boxes
 } from "lucide-react";
 import { Production } from "./Production";
 import { MRP } from "./MRP";
 import { cn } from "../lib/utils";
 
 export const ManufacturingHub: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<"floor" | "mrp">("floor");
+  const [activeSubTab, setActiveSubTab] = useState<"wip" | "assembly" | "grading" | "mrp" | "history">("wip");
 
   return (
     <div className="space-y-6">
@@ -19,7 +22,7 @@ export const ManufacturingHub: React.FC = () => {
       <div className="bg-white/85 backdrop-blur-md rounded-[2.5rem] p-6 border border-slate-100 shadow-xl shadow-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center space-x-3">
-            <div className="p-3 bg-accent-100/50 rounded-2xl text-accent-600">
+            <div className="p-3 bg-emerald-100/50 rounded-2xl text-emerald-600">
               <Factory size={22} className="animate-pulse" />
             </div>
             <div>
@@ -27,17 +30,20 @@ export const ManufacturingHub: React.FC = () => {
                 MANUFACTURING & PLAN HUB
               </h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 font-sans">
-                Real-time active assembly lines, cell grading trackers, and material demand planning
+                Real-time assembly lines, cell quality grading, and material demand planning
               </p>
             </div>
           </div>
         </div>
 
         {/* Cohesive Sub-Tab Switches */}
-        <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 self-start md:self-center shrink-0">
+        <div className="flex bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/50 self-start md:self-center shrink-0 flex-wrap gap-1">
           {[
-            { id: "floor", label: "Assembly Floor WIP", icon: Activity },
-            { id: "mrp", label: "MRP & Material Demand", icon: Cpu }
+            { id: "wip", label: "Assembly Floor WIP", icon: Activity },
+            { id: "assembly", label: "Pack Assembly", icon: Factory },
+            { id: "grading", label: "Cell Grading & QC Lab", icon: Microscope },
+            { id: "mrp", label: "MRP & Material Demand", icon: Cpu },
+            { id: "history", label: "Production Logs", icon: History }
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -46,13 +52,13 @@ export const ManufacturingHub: React.FC = () => {
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id as any)}
                 className={cn(
-                  "flex items-center px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95",
+                  "flex items-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95",
                   isActive
                     ? "bg-emerald-600 text-white shadow-md font-extrabold"
                     : "text-slate-500 hover:text-slate-800"
                 )}
               >
-                <Icon size={14} className={cn("mr-2", isActive ? "text-white" : "text-slate-400")} />
+                <Icon size={14} className={cn("mr-1.5", isActive ? "text-white" : "text-slate-400")} />
                 {tab.label}
               </button>
             );
@@ -62,11 +68,10 @@ export const ManufacturingHub: React.FC = () => {
 
       {/* Render Consolidated Module Sheets */}
       <div className="transition-all duration-500 animate-in fade-in slide-in-from-bottom-4">
-        {activeSubTab === "floor" && (
-          <Production />
-        )}
-        {activeSubTab === "mrp" && (
+        {activeSubTab === "mrp" ? (
           <MRP />
+        ) : (
+          <Production initialSubTab={activeSubTab} />
         )}
       </div>
     </div>

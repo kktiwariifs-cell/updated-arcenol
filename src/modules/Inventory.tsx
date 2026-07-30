@@ -8,7 +8,7 @@ import {
   ClipboardList, ArrowRight, Printer, CheckCircle2, Sliders, RefreshCw, AlertCircle, Edit, Save,
   Upload, FileSpreadsheet, FileText, Check, Loader2, ShoppingCart, Truck, Clock, Phone, Building2
 } from 'lucide-react';
-import { useERPData } from '../hooks/useERPData';
+import { useERPData, notifyCrossTabSync } from '../hooks/useERPData';
 import { cn, formatCurrency } from '../lib/utils';
 import { downloadReportDataAsPDF } from '../lib/pdfGenerator';
 import { useAuthStore, UserRole } from '../store/authStore';
@@ -1339,6 +1339,7 @@ export const Inventory: React.FC = () => {
       setCellSerial('');
       setEditingGradedId(null);
       refetch();
+      notifyCrossTabSync();
       setTimeout(() => setGradingSuccess(''), 4000);
     } catch (err: any) {
       setSubmitError(err.message || 'Execution error');
@@ -1368,6 +1369,7 @@ export const Inventory: React.FC = () => {
       });
       if (res.ok) {
         await refetch();
+        notifyCrossTabSync();
       } else {
         alert('Failed to delete cell grading record.');
       }

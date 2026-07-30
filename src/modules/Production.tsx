@@ -33,7 +33,7 @@ import {
   X,
   Download,
 } from "lucide-react";
-import { useERPData } from "../hooks/useERPData";
+import { useERPData, notifyCrossTabSync } from "../hooks/useERPData";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";
 import { useAuthStore, UserRole } from "../store/authStore";
 import { QRCodeSVG } from "qrcode.react";
@@ -70,14 +70,20 @@ const SafeBarcode: React.FC<{ value: string }> = ({ value }) => {
   );
 };
 
-export const Production: React.FC = () => {
+export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "grading" | "history" }> = ({ initialSubTab = "wip" }) => {
   const { data, loading, refetch } = useERPData();
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   const [activeSubTab, setActiveSubTab] = useState<
     "wip" | "assembly" | "grading" | "history"
-  >("wip");
+  >(initialSubTab);
+
+  React.useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(initialSubTab);
+    }
+  }, [initialSubTab]);
 
   // Production Step State
   const [step, setStep] = useState(1);
@@ -200,7 +206,7 @@ export const Production: React.FC = () => {
     "QUALITY_CHECK"
   ];
 
-  // Grading State
+  // Grading State (Synchronized across Manufacturing Hub & Inventory)
   const [selectedRaw, setSelectedRaw] = useState<any>(null);
   const [processingDegree, setProcessingDegree] = useState(
     "Voltage Calibration",
@@ -208,6 +214,163 @@ export const Production: React.FC = () => {
   const [outputBatches, setOutputBatches] = useState([
     { grade: "A", qty: 0, rack: "" },
   ]);
+
+  const [gradingParentId, setGradingParentId] = useState("RM-CELLS");
+  const [cellSerial, setCellSerial] = useState("");
+  const [cellVoltage, setCellVoltage] = useState<number>(3.2);
+  const [cellIR, setCellIR] = useState<number>(7.5);
+  const [cellCapacity, setCellCapacity] = useState<number>(6000);
+  const [cellCycleCount, setCellCycleCount] = useState<number>(0);
+  const [cellTemp, setCellTemp] = useState<number>(24.5);
+  const [qcEngineer, setQcEngineer] = useState(user?.name || "Suresh P.");
+  const [editingGradedId, setEditingGradedId] = useState<string | null>(null);
+  const [gradingSuccess, setGradingSuccess] = useState("");
+  const [submitError, setSubmitError] = useState("");
+  const [isSubmittingGrading, setIsSubmittingGrading] = useState(false);
+
+  // Search & Filters for Graded Repository
+  const [gradedSearch, setGradedSearch] = useState("");
+  const [gradedGradeFilter, setGradedGradeFilter] = useState("ALL");
+  const [gradedCurrentPage, setGradedCurrentPage] = useState(1);
+  const [gradedItemsPerPage, setGradedItemsPerPage] = useState(10);
+
+  const handleSubmitCellGrading = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cellSerial.trim()) {
+      setSubmitError("Cell serial identifier is required.");
+      return;
+    }
+    setSubmitError("");
+    setIsSubmittingGrading(true);
+
+    let finalGrade = 'C';
+    let usage = 'ESS / Storage Systems';
+    if (cellVoltage >= 3.2 && cellIR <= 8.0 && cellCapacity >= 6000) {
+      finalGrade = 'A';
+      usage = 'Premium EV Battery Packs';
+    } else if (cellVoltage >= 3.1 && cellIR <= 12.0 && cellCapacity >= 5500) {
+      finalGrade = 'B';
+      usage = 'Standard Solar Storage Packs';
+    } else if (cellVoltage < 3.0 || cellIR > 15.0 || cellCapacity < 4500) {
+      finalGrade = 'REJECT';
+      usage = 'Scrap Reprocessing';
+    }
+
+    try {
+      let res;
+      if (editingGradedId) {
+        res = await fetch(`/api/cells/grade/${editingGradedId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cellData: {
+              serial: cellSerial.toUpperCase(),
+              grade: finalGrade,
+              voltage: cellVoltage,
+              ir: cellIR,
+              capacity: cellCapacity,
+              cycleCount: cellCycleCount,
+              temp: cellTemp,
+              engineer: qcEngineer,
+              usage
+            }
+          })
+        });
+      } else {
+        const parentItem = (data?.inventory || []).find((i: any) => i.id === gradingParentId);
+        res = await fetch('/api/cells/grade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            parentId: gradingParentId,
+            cellData: {
+              serial: cellSerial.toUpperCase(),
+              name: `${parentItem?.name || 'Prismatic Cell'} (Graded)`,
+              grade: finalGrade,
+              voltage: cellVoltage,
+              ir: cellIR,
+              capacity: cellCapacity,
+              cycleCount: cellCycleCount,
+              temp: cellTemp,
+              engineer: qcEngineer,
+              usage,
+              supplier: parentItem?.supplier || 'Arcenol Depot'
+            }
+          })
+        });
+      }
+
+      if (!res.ok) throw new Error('Error saving cell data to graded vault.');
+
+      setGradingSuccess(editingGradedId ? `SUCCESS: Updated graded cell ${cellSerial}` : `SUCCESS: Registered Node ${cellSerial} as Grade ${finalGrade} (${usage})`);
+      setCellSerial('');
+      setEditingGradedId(null);
+      await refetch();
+      notifyCrossTabSync();
+      setTimeout(() => setGradingSuccess(''), 4000);
+    } catch (err: any) {
+      setSubmitError(err.message || 'Execution error');
+    } finally {
+      setIsSubmittingGrading(false);
+    }
+  };
+
+  const handleStartEditGraded = (item: any) => {
+    setEditingGradedId(item.id);
+    setCellSerial(item.serial || '');
+    setCellVoltage(item.voltage || 3.2);
+    setCellIR(item.ir || 7.5);
+    setCellCapacity(item.capacity || 6000);
+    setCellCycleCount(item.cycleCount || 0);
+    setCellTemp(item.temp || 24.5);
+    setQcEngineer(item.engineer || user?.name || 'Suresh P.');
+    setSubmitError('');
+  };
+
+  const handleDeleteGraded = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this graded cell record? The parent stock quantity will be returned.')) return;
+    try {
+      const res = await fetch(`/api/cells/grade/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        await refetch();
+        notifyCrossTabSync();
+      } else {
+        alert('Failed to delete cell grading record.');
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const gradedCellsList = data?.gradedInventory || [];
+  const countGradeA = gradedCellsList.filter((c: any) => c.grade === 'A').length;
+  const countGradeB = gradedCellsList.filter((c: any) => c.grade === 'B').length;
+  const countGradeC = gradedCellsList.filter((c: any) => c.grade === 'C').length;
+  const countReject = gradedCellsList.filter((c: any) => c.grade === 'REJECT').length;
+  const totalGradedCount = gradedCellsList.length;
+
+  const avgIRValue = totalGradedCount > 0 
+    ? (gradedCellsList.reduce((acc: number, c: any) => acc + (c.ir || 0), 0) / totalGradedCount).toFixed(2)
+    : "0.00";
+
+  const defectRatio = totalGradedCount > 0 
+    ? ((countReject / totalGradedCount) * 100).toFixed(1)
+    : "0.0";
+
+  const filteredGradedList = gradedCellsList.filter((c: any) => {
+    const matchesSearch = !gradedSearch || 
+      (c.serial || '').toLowerCase().includes(gradedSearch.toLowerCase()) ||
+      (c.engineer || '').toLowerCase().includes(gradedSearch.toLowerCase()) ||
+      (c.supplier || '').toLowerCase().includes(gradedSearch.toLowerCase());
+    const matchesGrade = gradedGradeFilter === 'ALL' || c.grade === gradedGradeFilter;
+    return matchesSearch && matchesGrade;
+  });
+
+  const totalGradedPages = Math.ceil(filteredGradedList.length / gradedItemsPerPage) || 1;
+  const paginatedGradedList = filteredGradedList.slice(
+    (gradedCurrentPage - 1) * gradedItemsPerPage,
+    gradedCurrentPage * gradedItemsPerPage
+  );
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -1603,171 +1766,361 @@ export const Production: React.FC = () => {
           </div>
         </div>
       ) : activeSubTab === "grading" ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in duration-500">
-          <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl space-y-8">
-            <h3 className="text-xl font-black text-slate-900 italic uppercase tracking-tight flex items-center mb-10">
-              <Microscope className="mr-3 text-primary-600" /> Material Scrutiny
-              Panel
-            </h3>
-            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
-              {data?.inventory
-                .filter((i) => i.qty > 0)
-                .map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setSelectedRaw(item)}
-                    className={cn(
-                      "w-full p-8 rounded-[2rem] border-2 text-left flex justify-between items-center transition-all duration-300",
-                      selectedRaw?.id === item.id
-                        ? "bg-primary-50 border-primary-500 shadow-lg"
-                        : "bg-slate-50 border-slate-100 hover:border-slate-200",
-                    )}
-                  >
-                    <div>
-                      <p className="text-lg font-black text-slate-900 uppercase tracking-tighter mb-1">
-                        {item.name}
-                      </p>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        BATCH: {item.batch}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-2xl font-black text-slate-900 italic tracking-tighter">
-                        {item.qty}
-                      </p>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                        U Units
-                      </p>
-                    </div>
-                  </button>
-                ))}
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* KPI Summary Banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-md">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Tested Specimens</p>
+              <p className="text-3xl font-black text-slate-900 mt-2">{totalGradedCount}</p>
+              <p className="text-[9px] font-bold text-emerald-600 uppercase mt-1">Live Synchronized Vault</p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-md">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade A Premium</p>
+              <p className="text-3xl font-black text-emerald-600 mt-2">{countGradeA}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">EV Pack Qualification</p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-md">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Grade B Economy</p>
+              <p className="text-3xl font-black text-blue-600 mt-2">{countGradeB}</p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Solar Storage Grade</p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-md">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Scrap / Reject Ratio</p>
+              <p className="text-3xl font-black text-rose-600 mt-2">{defectRatio}%</p>
+              <p className="text-[9px] font-bold text-rose-500 uppercase mt-1">{countReject} Cells Quarantined</p>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-md">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Avg IR Impedance</p>
+              <p className="text-3xl font-black text-purple-600 mt-2">{avgIRValue} <span className="text-sm font-normal text-slate-500">mΩ</span></p>
+              <p className="text-[9px] font-bold text-slate-400 uppercase mt-1">Electro-chemical Mean</p>
             </div>
           </div>
 
-          {selectedRaw && (
-            <div className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-xl animate-in slide-in-from-right duration-500 space-y-10 flex flex-col justify-between">
-              <div className="space-y-10">
-                <h3 className="text-xl font-black text-slate-900 italic uppercase tracking-tight flex items-center border-b border-slate-100 pb-10">
-                  <Settings className="mr-3 text-primary-600" /> Transformation
-                  Ruleset
+          {/* Main Grid: Testing Intake Form + Live Vault Repository */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Left Column: Form Panel */}
+            <div className="lg:col-span-5 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6">
+              <div>
+                <div className="flex items-center space-x-2 text-emerald-600 mb-1">
+                  <FlaskConical size={20} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">Manufacturing & QC Testing Lab</span>
+                </div>
+                <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">
+                  {editingGradedId ? 'Update Cell Test Record' : 'Quality Control Cell Grading Panel'}
                 </h3>
-                <div className="space-y-6">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Calibration Logic Degree
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  Log cell specs to automatically match Grade A, B, C or Reject scrap categories
+                </p>
+              </div>
+
+              {gradingSuccess && (
+                <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold flex items-center">
+                  <CheckCircle2 size={16} className="mr-2 text-emerald-600 shrink-0" />
+                  <span>{gradingSuccess}</span>
+                </div>
+              )}
+
+              {submitError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl text-xs font-bold flex items-center">
+                  <AlertCircle size={16} className="mr-2 text-rose-600 shrink-0" />
+                  <span>{submitError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitCellGrading} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Base Unsorted Inventory Reference
                   </label>
                   <select
-                    value={processingDegree}
-                    onChange={(e) => setProcessingDegree(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-xs font-black text-slate-900 italic focus:ring-1 focus:ring-primary-500 outline-none transition-all uppercase"
+                    value={gradingParentId}
+                    onChange={(e) => setGradingParentId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option>Voltage Calibration Matrix</option>
-                    <option>Cycle Integrity Pulse</option>
-                    <option>Internal Resistance Grading</option>
+                    {(data?.inventory || []).filter((i: any) => (i.category || '').toLowerCase().includes('cell') || (i.name || '').toLowerCase().includes('cell')).map((item: any) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} ({item.qty} Pcs remaining)
+                      </option>
+                    ))}
+                    <option value="RM-CELLS">Lithium Cells (3.7V 3Ah) (General Stock)</option>
                   </select>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-                    Cell Testing Parameters (QC-Core)
-                  </p>
-                  <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-100">
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-500 uppercase">
-                        Voltage (V)
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] font-black text-slate-900 italic outline-none focus:ring-1 focus:ring-primary-500"
-                        placeholder="3.7V - 4.2V"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-500 uppercase">
-                        IR (mΩ)
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] font-black text-slate-900 italic outline-none focus:ring-1 focus:ring-primary-500"
-                        placeholder="< 30mΩ"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-500 uppercase">
-                        Capacity (mAh)
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] font-black text-slate-900 italic outline-none focus:ring-1 focus:ring-primary-500"
-                        placeholder="2500mAh"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-[8px] font-black text-slate-500 uppercase">
-                        Cycle Count
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-[10px] font-black text-slate-900 italic outline-none focus:ring-1 focus:ring-primary-500"
-                        placeholder="0 - 2000"
-                      />
-                    </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                    Tested Cell Serial Reference Match
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. CELL-A-2026-0042"
+                    value={cellSerial}
+                    onChange={(e) => setCellSerial(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono uppercase"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Rest Voltage (V)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={cellVoltage}
+                      onChange={(e) => setCellVoltage(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      IR Impedance (mΩ)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      required
+                      value={cellIR}
+                      onChange={(e) => setCellIR(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-                    Graded Vector Distribution (Output)
-                  </p>
-                  {outputBatches.map((b, i) => (
-                    <div key={i} className="flex space-x-3">
-                      <select
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-[10px] font-black text-slate-900 italic uppercase focus:ring-1 focus:ring-primary-500 outline-none"
-                        value={b.grade}
-                        onChange={(e) => {
-                          const nb = [...outputBatches];
-                          nb[i].grade = e.target.value;
-                          setOutputBatches(nb);
-                        }}
-                      >
-                        <option>GRADE X-A</option>
-                        <option>GRADE X-B</option>
-                        <option>GRADE X-REJECT</option>
-                      </select>
-                      <input
-                        type="number"
-                        placeholder="QTY"
-                        value={b.qty || ""}
-                        onChange={(e) => {
-                          const nb = [...outputBatches];
-                          nb[i].qty = parseInt(e.target.value) || 0;
-                          setOutputBatches(nb);
-                        }}
-                        className="w-24 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-[10px] font-black text-slate-900 focus:ring-1 focus:ring-primary-500 outline-none"
-                      />
-                    </div>
-                  ))}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Coulomb Capacity (mAh)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={cellCapacity}
+                      onChange={(e) => setCellCapacity(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Cycles Count
+                    </label>
+                    <input
+                      type="number"
+                      value={cellCycleCount}
+                      onChange={(e) => setCellCycleCount(parseInt(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Electrodes Temp (°C)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={cellTemp}
+                      onChange={(e) => setCellTemp(parseFloat(e.target.value) || 0)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                      Lab Certifier Sign
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={qcEngineer}
+                      onChange={(e) => setQcEngineer(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex gap-3">
+                  {editingGradedId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingGradedId(null);
+                        setCellSerial('');
+                      }}
+                      className="px-5 py-3 bg-slate-200 text-slate-700 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-slate-300"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
                   <button
-                    onClick={() =>
-                      setOutputBatches([
-                        ...outputBatches,
-                        { grade: "A", qty: 0, rack: "" },
-                      ])
-                    }
-                    className="text-[9px] font-black text-primary-600 uppercase flex items-center hover:text-primary-800 transition-colors"
+                    type="submit"
+                    disabled={isSubmittingGrading}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg shadow-emerald-600/20 active:scale-95 transition-all flex justify-center items-center"
                   >
-                    <Plus size={14} className="mr-2" /> Add Distribution Target
+                    {isSubmittingGrading ? (
+                      <RefreshCw size={16} className="animate-spin" />
+                    ) : (
+                      editingGradedId ? 'UPDATE CELL TEST SPECIFICATION' : 'AUTHORIZE & GRADE CELL'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Right Column: Synchronized Vault Table */}
+            <div className="lg:col-span-7 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">
+                    Quality Control Graded Repository
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Live synchronized vault across Manufacturing Hub & Inventory
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => refetch()}
+                    className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold flex items-center transition-all"
+                  >
+                    <RefreshCw size={14} className="mr-1.5" /> Sync Live
                   </button>
                 </div>
               </div>
 
-              <button
-                onClick={handleProcessGrading}
-                className="w-full bg-emerald-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-[12px] tracking-[0.3em] active:scale-95 transition-all shadow-xl shadow-emerald-500/20"
-              >
-                Commit Transformation Protocol
-              </button>
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute left-3.5 top-3.5 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by serial, inspector, supplier..."
+                    value={gradedSearch}
+                    onChange={(e) => {
+                      setGradedSearch(e.target.value);
+                      setGradedCurrentPage(1);
+                    }}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                  {['ALL', 'A', 'B', 'C', 'REJECT'].map((grade) => (
+                    <button
+                      key={grade}
+                      onClick={() => {
+                        setGradedGradeFilter(grade);
+                        setGradedCurrentPage(1);
+                      }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
+                        gradedGradeFilter === grade
+                          ? "bg-emerald-600 text-white shadow-sm"
+                          : "text-slate-500 hover:text-slate-900"
+                      )}
+                    >
+                      {grade === 'ALL' ? 'All' : `Grade ${grade}`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="overflow-x-auto custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <th className="p-3">Cell Serial / Date</th>
+                      <th className="p-3">Voltage</th>
+                      <th className="p-3">IR Impedance</th>
+                      <th className="p-3">Capacity</th>
+                      <th className="p-3 text-center">Grade</th>
+                      <th className="p-3">QC Certifier</th>
+                      <th className="p-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs">
+                    {paginatedGradedList.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-slate-400 font-bold uppercase text-[11px]">
+                          No graded cells match current search or filter rules.
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedGradedList.map((item: any) => (
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="p-3">
+                            <p className="font-mono font-black text-slate-900 uppercase">{item.serial}</p>
+                            <p className="text-[9px] font-bold text-slate-400">{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : 'Active'}</p>
+                          </td>
+                          <td className="p-3 font-bold text-slate-700">{item.voltage} V</td>
+                          <td className="p-3 font-bold text-slate-700">{item.ir} mΩ</td>
+                          <td className="p-3 font-bold text-slate-700">{item.capacity} mAh</td>
+                          <td className="p-3 text-center">
+                            <span className={cn(
+                              "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-block",
+                              item.grade === 'A' ? "bg-emerald-100 text-emerald-800 border border-emerald-300" :
+                              item.grade === 'B' ? "bg-blue-100 text-blue-800 border border-blue-300" :
+                              item.grade === 'C' ? "bg-amber-100 text-amber-800 border border-amber-300" :
+                              "bg-rose-100 text-rose-800 border border-rose-300"
+                            )}>
+                              Grade {item.grade}
+                            </span>
+                          </td>
+                          <td className="p-3 font-bold text-slate-600">{item.engineer || 'Suresh P.'}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex justify-end space-x-1">
+                              <button
+                                onClick={() => handleStartEditGraded(item)}
+                                className="p-1.5 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+                                title="Edit cell test record"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteGraded(item.id)}
+                                className="p-1.5 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors"
+                                title="Delete record"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              {totalGradedPages > 1 && (
+                <div className="flex justify-between items-center pt-2 text-xs">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">
+                    Showing {(gradedCurrentPage - 1) * gradedItemsPerPage + 1} - {Math.min(gradedCurrentPage * gradedItemsPerPage, filteredGradedList.length)} of {filteredGradedList.length}
+                  </p>
+                  <div className="flex space-x-1">
+                    {Array.from({ length: totalGradedPages }).map((_, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setGradedCurrentPage(i + 1)}
+                        className={cn(
+                          "px-3 py-1 rounded-lg text-[10px] font-black transition-all",
+                          gradedCurrentPage === i + 1
+                            ? "bg-emerald-600 text-white"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        )}
+                      >
+                        {i + 1}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl animate-in fade-in duration-500">
