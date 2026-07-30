@@ -33,7 +33,40 @@ const INITIAL_DB = {
     { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26001059", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
     { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26001060", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
   ],
-  productionHistory: [] as any[],
+  productionHistory: [
+    {
+      id: "ph-101",
+      model: "E-Rikshaw Batteries [72V30A]",
+      qty: 10,
+      serials: ["AESPL-72V30A-26-8812", "AESPL-72V30A-26-8813", "AESPL-72V30A-26-8814", "AESPL-72V30A-26-8815"],
+      date: "2026-07-29",
+      status: "COMPLETED"
+    },
+    {
+      id: "ph-102",
+      model: "High-Efficiency Inverter Battery [BAT-NEXT-200]",
+      qty: 5,
+      serials: ["AESPL-NEXT200-26-9041", "AESPL-NEXT200-26-9042"],
+      date: "2026-07-28",
+      status: "COMPLETED"
+    },
+    {
+      id: "ph-103",
+      model: "Lithium Power Module 48V [LIT-200]",
+      qty: 8,
+      serials: ["AESPL-LIT200-26-4411", "AESPL-LIT200-26-4412"],
+      date: "2026-07-26",
+      status: "COMPLETED"
+    },
+    {
+      id: "ph-104",
+      model: "Heavy Duty VRLA Solar 100Ah",
+      qty: 12,
+      serials: ["AESPL-VRLA100-26-3001", "AESPL-VRLA100-26-3002"],
+      date: "2026-07-24",
+      status: "COMPLETED"
+    }
+  ],
   warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
   notifications: [] as any[],
   leads: [] as any[],
@@ -783,6 +816,16 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
             status: "READY"
           });
         }
+
+        if (!db.productionHistory) db.productionHistory = [];
+        db.productionHistory.unshift({
+          id: `ph-${Date.now()}`,
+          model: targetModel,
+          qty: targetQty,
+          serials,
+          date: new Date().toISOString().split('T')[0],
+          status: "COMPLETED"
+        });
 
         saveLocalDB(db);
         responseData = { success: true, serials, model: targetModel, qty: targetQty };
