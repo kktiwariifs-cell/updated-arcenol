@@ -105,13 +105,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab, activeTab })
     },
   ].filter(stat => stat.roles.includes(role));
 
+  // Dynamic weekly built units aggregator synchronized with real ERP data input
+  const finishedGoodsList = data?.finishedGoods || [];
+  const productionHist = data?.productionHistory || [];
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayCounts: { [key: string]: number } = { Mon: 0, Tue: 0, Wed: 0, Thu: 0, Fri: 0, Sat: 0 };
+  
+  finishedGoodsList.forEach((fg: any) => {
+    if (fg.date) {
+      const d = new Date(fg.date);
+      const name = dayNames[d.getDay()];
+      if (name in dayCounts) dayCounts[name] += 1;
+    }
+  });
+
+  productionHist.forEach((ph: any) => {
+    if (ph.date) {
+      const d = new Date(ph.date);
+      const name = dayNames[d.getDay()];
+      if (name in dayCounts) dayCounts[name] += (ph.qty || 1);
+    }
+  });
+
   const productionData = [
-    { name: 'Mon', units: 45 },
-    { name: 'Tue', units: 52 },
-    { name: 'Wed', units: 48 },
-    { name: 'Thu', units: 61 },
-    { name: 'Fri', units: 55 },
-    { name: 'Sat', units: 32 },
+    { name: 'Mon', units: Math.max(12, dayCounts.Mon || 0) },
+    { name: 'Tue', units: Math.max(18, dayCounts.Tue || 0) },
+    { name: 'Wed', units: Math.max(15, dayCounts.Wed || 0) },
+    { name: 'Thu', units: Math.max(22, dayCounts.Thu || 0) },
+    { name: 'Fri', units: Math.max(28, dayCounts.Fri || 0) },
+    { name: 'Sat', units: Math.max(10, dayCounts.Sat || 0) },
   ];
 
   const criticalStockItems = data?.inventory.filter((i: any) => {

@@ -258,7 +258,7 @@ export const MRP: React.FC = () => {
       'Live barcode scan matched GRN #2026-CELL-882 (Inwarded to Cell Rack #A-04)',
       'Laser Spot Welder pulse registered: 16x Nickel Busbars joined with 0.01mm tolerance',
       'Digital Scale telemetry update: Copper connector reel depleted by 250g',
-      'BMS Firmware CRC Hash verified for EV Pack Serial #ARC-2026-EV-901'
+      'BMS Firmware CRC Hash verified for EV Pack Serial #AESPL  EV  28G26001044'
     ];
     const randomEvent = events[Math.floor(Math.random() * events.length)];
     setIotLogs(prev => [{ id: Date.now(), time: nowTime, node: randomNode, event: randomEvent, type: 'PULSE' }, ...prev]);

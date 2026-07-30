@@ -418,9 +418,9 @@ export const FinishedGoods: React.FC = () => {
   const handleDownloadExcelTemplate = () => {
     const headings = ['Serial ID', 'Product SKU', 'Warehouse Hub', 'Production Batch', 'Entry Date', 'Status'];
     const sampleRows = [
-      ['ARC-72V30A-2026-000991', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['ARC-72V30A-2026-000992', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['ARC-AUTO-2026-114422', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
+      ['AESPL  EV  28G26001044', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  EV  28G26001045', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  AUTO  28G26001049', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
     ];
     const wsData = [headings, ...sampleRows];
     const wb = XLSX.utils.book_new();
@@ -432,9 +432,9 @@ export const FinishedGoods: React.FC = () => {
   const handleDownloadCSVTemplate = () => {
     const headings = ['Serial ID', 'Product SKU', 'Warehouse Hub', 'Production Batch', 'Entry Date', 'Status'];
     const sampleRows = [
-      ['ARC-72V30A-2026-000991', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['ARC-72V30A-2026-000992', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['ARC-AUTO-2026-114422', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
+      ['AESPL  EV  28G26001044', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  EV  28G26001045', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  AUTO  28G26001049', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
     ];
     const csvContent = [headings.join(','), ...sampleRows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

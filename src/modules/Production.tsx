@@ -32,6 +32,8 @@ import {
   Trash2,
   X,
   Download,
+  RefreshCw,
+  Search,
 } from "lucide-react";
 import { useERPData, notifyCrossTabSync } from "../hooks/useERPData";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";

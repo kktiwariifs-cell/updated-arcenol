@@ -184,7 +184,7 @@ async function startServer() {
       }
     ],
     productionHistory: [
-      { id: "ph1", model: "72V30A", qty: 2, serials: ["ARC-72V30A-2024-000101", "ARC-72V30A-2024-000102"], date: "2024-05-10", status: "COMPLETED" }
+      { id: "ph1", model: "72V30A", qty: 2, serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045"], date: "2024-05-10", status: "COMPLETED" }
     ],
     warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
     notifications: [
@@ -231,7 +231,7 @@ async function startServer() {
        ]
     },
     invoices: [
-      { id: "INV-1001", date: "2024-05-12", dealerId: "l1", items: [{ model: "72V30A", qty: 1, serials: ["ARC-72V30A-2024-000101"], price: 35000 }], total: 35000, status: "PAID", tax: 6300 },
+      { id: "INV-1001", date: "2024-05-12", dealerId: "l1", items: [{ model: "72V30A", qty: 1, serials: ["AESPL  EV  28G26001044"], price: 35000 }], total: 35000, status: "PAID", tax: 6300 },
       { id: "INV-1002", date: "2024-05-13", dealerId: "D-101", items: [{ model: "BAT-INV-150", qty: 5, serials: [], price: 18500 }], total: 92500, status: "UNPAID", tax: 16650 },
       { id: "INV-1003", date: "2024-05-14", dealerId: "D-102", items: [{ model: "72V30A", qty: 10, serials: [], price: 45000 }], total: 450000, status: "UNPAID", tax: 81000 },
       { id: "INV-1004", date: "2024-05-15", dealerId: "l1", items: [{ model: "BAT-AUTO-35", qty: 20, serials: [], price: 4500 }], total: 90000, status: "PAID", tax: 16200 },
