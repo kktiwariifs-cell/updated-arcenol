@@ -93,7 +93,65 @@ const INITIAL_DB = {
     ],
     recentScans: [] as any[]
   },
-  invoices: [] as any[],
+  invoices: [
+    {
+      id: "INV-10029",
+      dealerId: "cust-001",
+      customerId: "cust-001",
+      partyName: "Electra Transit Pvt Ltd",
+      customerName: "Electra Transit Pvt Ltd",
+      date: "2026-07-28",
+      billedDate: "2026-07-28",
+      created_at: "2026-07-28T10:00:00.000Z",
+      items: [
+        {
+          model: "BAT-72V-30A",
+          modelId: "BAT-72V-30A",
+          name: "E-Rickshaw Batteries (72V30A)",
+          description: "E-Rickshaw Batteries",
+          qty: 2,
+          price: 45000,
+          serials: ["ARC-72V30A-10091", "ARC-72V30A-10092"]
+        }
+      ],
+      goods: [
+        {
+          description: "E-Rickshaw Batteries",
+          qty: 2,
+          serials: ["ARC-72V30A-10091", "ARC-72V30A-10092"],
+          baseRate: 45000,
+          netVal: 90000
+        }
+      ],
+      subtotal: 90000,
+      discount: 1000,
+      gst: 16020,
+      tax: 16020,
+      grandTotal: 105020,
+      total: 105020,
+      paymentMode: "Credit",
+      status: "UNPAID"
+    },
+    {
+      id: "INV-1001",
+      dealerId: "l1",
+      customerId: "l1",
+      partyName: "Electra Transit Pvt Ltd",
+      customerName: "Electra Transit Pvt Ltd",
+      date: "2026-07-25",
+      billedDate: "2026-07-25",
+      created_at: "2026-07-25T10:00:00.000Z",
+      items: [{ model: "BAT-72V-30A", modelId: "BAT-72V-30A", name: "E-Rickshaw Batteries (72V30A)", qty: 1, serials: ["ARC-72V30A-2024-000101"], price: 35000 }],
+      goods: [{ description: "E-Rickshaw Batteries", qty: 1, serials: ["ARC-72V30A-2024-000101"], baseRate: 35000, netVal: 35000 }],
+      subtotal: 35000,
+      gst: 6300,
+      tax: 6300,
+      grandTotal: 41300,
+      total: 41300,
+      paymentMode: "Digital",
+      status: "PAID"
+    }
+  ],
   warranty: [] as any[],
   complaints: [] as any[],
   engineers: [

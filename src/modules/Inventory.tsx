@@ -4799,35 +4799,47 @@ export const Inventory: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-sans text-xs">
                     {(data?.invoices || []).filter((inv: any) => {
-                      const d = data?.dealers?.find((dl: any) => dl.id === inv.dealerId);
-                      const dCompany = d ? d.company : '';
+                      const customerId = inv.dealerId || inv.customerId || inv.customer_id || '';
+                      const d = data?.dealers?.find((dl: any) => dl.id === customerId || dl.company === customerId) || data?.customers?.find((c: any) => c.id === customerId);
+                      const dCompany = d ? (d.company || d.name) : (inv.partyName || inv.customerName || customerId);
                       const matchSearch = 
                         inv.id.toLowerCase().includes(slSearch.toLowerCase()) ||
                         dCompany.toLowerCase().includes(slSearch.toLowerCase()) ||
-                        inv.dealerId.toLowerCase().includes(slSearch.toLowerCase());
+                        customerId.toLowerCase().includes(slSearch.toLowerCase());
                       return matchSearch;
                     }).map((inv: any) => {
-                      const dl = data?.dealers?.find((d: any) => d.id === inv.dealerId);
+                      const customerId = inv.dealerId || inv.customerId || inv.customer_id || '';
+                      const dl = data?.dealers?.find((d: any) => d.id === customerId || d.company === customerId) || data?.customers?.find((c: any) => c.id === customerId);
+                      const partyName = dl ? (dl.company || dl.name) : (inv.partyName || inv.customerName || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer'));
+                      const displayDate = inv.date || inv.billedDate || (inv.created_at ? inv.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
+                      const itemsList = (inv.items && inv.items.length > 0) ? inv.items : (inv.goods && inv.goods.length > 0) ? inv.goods : [];
+                      const displayTotal = Number(inv.total ?? inv.grandTotal ?? inv.grand_total ?? 0);
+
                       return (
                         <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
                           <td className="py-3.5 px-6 font-mono font-black text-slate-900">{inv.id}</td>
-                          <td className="py-3.5 px-6 font-mono text-[10px] text-slate-500">{inv.date}</td>
+                          <td className="py-3.5 px-6 font-mono text-[10px] text-slate-500">{displayDate}</td>
                           <td className="py-3.5 px-6">
-                            <span className="font-semibold text-slate-800 block">{dl?.company || inv.dealerId}</span>
-                            <span className="text-[9px] font-sans text-slate-400 font-bold uppercase">{dl?.city}, {dl?.state}</span>
+                            <span className="font-semibold text-slate-800 block">{partyName}</span>
+                            <span className="text-[9px] font-sans text-slate-400 font-bold uppercase">{dl?.city || 'Gujarat'}, {dl?.state || 'Western Hub'}</span>
                           </td>
                           <td className="py-3.5 px-6">
                             <div className="space-y-1">
-                              {inv.items?.map((item: any, idx: number) => (
-                                <div key={idx} className="text-[10px]">
-                                  <span className="font-bold text-slate-700">{data?.products?.find((p: any) => p.id === item.modelId)?.name || item.modelId}</span>
-                                  <span className="text-slate-400 font-mono"> x{item.qty}</span>
-                                  <div className="text-[8px] text-slate-400 font-mono">{item.serials?.join(', ')}</div>
-                                </div>
-                              ))}
+                              {itemsList.map((item: any, idx: number) => {
+                                const pObj = data?.products?.find((p: any) => p.id === item.modelId || p.id === item.model || p.name === item.name || p.name === item.description);
+                                return (
+                                  <div key={idx} className="text-[10px]">
+                                    <span className="font-bold text-slate-700">{item.description || item.name || pObj?.name || item.model || item.modelId || 'E-Rickshaw Battery'}</span>
+                                    <span className="text-slate-400 font-mono"> x{item.qty || 1}</span>
+                                    {item.serials && item.serials.length > 0 && (
+                                      <div className="text-[8px] text-slate-400 font-mono">{item.serials.join(', ')}</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           </td>
-                          <td className="py-3.5 px-6 font-mono font-black text-slate-950">{formatCurrency(inv.total)}</td>
+                          <td className="py-3.5 px-6 font-mono font-black text-slate-950">{formatCurrency(displayTotal)}</td>
                           <td className="py-3.5 px-6">
                             <span className={cn(
                               "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-block",

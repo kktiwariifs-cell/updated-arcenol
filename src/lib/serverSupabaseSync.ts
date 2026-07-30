@@ -138,16 +138,20 @@ export function mapWip(w: any) {
 }
 
 export function mapInvoice(inv: any) {
+  const totalVal = Number(inv.total || inv.grandTotal || inv.grand_total || 0);
+  const taxVal = Number(inv.tax || inv.gst || 0);
+  const subtotalVal = Number(inv.subtotal || (totalVal > taxVal ? totalVal - taxVal : totalVal));
+
   return {
     id: String(inv.id),
-    customer_id: inv.dealerId || inv.customer_id || null,
-    biller_signature: inv.biller_signature || 'Authorized Signatory',
+    customer_id: inv.dealerId || inv.customerId || inv.customer_id || 'cust-001',
+    biller_signature: inv.biller_signature || inv.billerSignature || 'Authorized Signatory',
     goods: Array.isArray(inv.items) ? inv.items : (Array.isArray(inv.goods) ? inv.goods : []),
-    subtotal: Number(inv.total || inv.subtotal || 0),
+    subtotal: subtotalVal,
     discount: Number(inv.discount || 0),
-    gst: Number(inv.tax || inv.gst || 0),
-    grand_total: Number(inv.total || inv.grand_total || 0),
-    payment_mode: inv.payment_mode || 'Credit',
+    gst: taxVal,
+    grand_total: totalVal,
+    payment_mode: inv.paymentMode || inv.payment_mode || 'Credit',
     status: inv.status || 'UNPAID'
   };
 }

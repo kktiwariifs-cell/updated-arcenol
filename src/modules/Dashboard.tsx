@@ -52,7 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab, activeTab })
   const convertedLeads = data?.leads.filter((l: any) => l.status === 'CONVERTED').length || 0;
   const winRate = Math.round((convertedLeads / totalLeads) * 100);
   
-  const totalRevenue = data?.invoices.reduce((acc: number, inv: any) => acc + inv.total, 0) || 0;
+  const totalRevenue = (data?.invoices || []).reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0);
   const targetRevenue = 5000000; // Monthly target
   const achievement = Math.min(100, Math.round((totalRevenue / targetRevenue) * 100));
 

@@ -25,9 +25,9 @@ export const ManagementKPI: React.FC = () => {
   );
 
   // Advanced KPI Calculations
-  const totalRevenue = (data?.invoices || []).reduce((acc: number, b: any) => acc + b.total, 0);
+  const totalRevenue = (data?.invoices || []).reduce((acc: number, b: any) => acc + Number(b.total || b.grandTotal || b.grand_total || 0), 0);
   const inventoryValue = (data?.inventory || []).reduce((acc: number, i: any) => acc + (i.qty * i.price), 0);
-  const outstandingAmount = (data?.invoices || []).filter((b: any) => b.status === 'UNPAID').reduce((acc: number, b: any) => acc + b.total, 0);
+  const outstandingAmount = (data?.invoices || []).filter((b: any) => b.status === 'UNPAID').reduce((acc: number, b: any) => acc + Number(b.total || b.grandTotal || b.grand_total || 0), 0);
   
   const totalProduction = (data?.productionHistory || []).reduce((acc: number, p: any) => acc + p.qty, 0);
   const productionEfficiency = 96.2; // Targeted KPI

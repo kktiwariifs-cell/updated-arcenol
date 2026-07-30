@@ -38,7 +38,7 @@ export const RegionalSales: React.FC = () => {
     const regionalInvoices = invoices.filter((inv: any) => 
        regionalDealers.some(d => d.id === inv.dealerId || d.company === inv.dealerId)
     );
-    const sales = regionalInvoices.reduce((acc: number, inv: any) => acc + inv.total, 0);
+    const sales = regionalInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0);
     const dealerCount = regionalDealers.length;
     const warrantyCount = warranty.filter((w: any) => 
        regionalDealers.some(d => d.id === w.dealerId || d.company === w.dealerId)
@@ -52,7 +52,7 @@ export const RegionalSales: React.FC = () => {
     const stateInvoices = invoices.filter((inv: any) => 
        stateDealers.some(d => d.id === inv.dealerId || d.company === inv.dealerId)
     );
-    const sales = stateInvoices.reduce((acc: number, inv: any) => acc + inv.total, 0);
+    const sales = stateInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0);
     const dealerDensity = stateDealers.length;
     const warrantyDensity = warranty.filter((w: any) => 
        stateDealers.some(d => d.id === w.dealerId || d.company === w.dealerId)
@@ -65,7 +65,7 @@ export const RegionalSales: React.FC = () => {
     const cityInvoices = invoices.filter((inv: any) => 
        cityDealers.some(d => d.id === inv.dealerId || d.company === inv.dealerId)
     );
-    const sales = cityInvoices.reduce((acc: number, inv: any) => acc + inv.total, 0);
+    const sales = cityInvoices.reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0);
     return { name: city, sales };
   }).sort((a, b) => b.sales - a.sales).slice(0, 10);
 
@@ -95,7 +95,7 @@ export const RegionalSales: React.FC = () => {
             { label: 'Market Nodes', value: dealers.length, icon: Users, color: 'text-accent-500', bColor: 'bg-accent-500/10', note: 'Dealers Active' },
             { label: 'Cluster Regions', value: regions.length, icon: Globe, color: 'text-blue-500', bColor: 'bg-blue-500/10', note: 'Cross-Territory' },
             { label: 'Warranty Footprint', value: warranty.length, icon: ShieldCheck, color: 'text-emerald-500', bColor: 'bg-emerald-500/10', note: 'Active Protect' },
-            { label: 'Total Volume', value: formatCurrency(invoices.reduce((a, b) => a + b.total, 0)), icon: Zap, color: 'text-amber-500', bColor: 'bg-amber-500/10', note: 'Gross Revenue' },
+            { label: 'Total Volume', value: formatCurrency(invoices.reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)), icon: Zap, color: 'text-amber-500', bColor: 'bg-amber-500/10', note: 'Gross Revenue' },
          ].map((stat, i) => (
             <div key={i} className="bg-white p-8 rounded-[3rem] border border-slate-100 relative overflow-hidden group hover:scale-[1.02] transition-all cursor-pointer shadow-xl shadow-slate-200/50">
                <div className={cn("absolute -right-4 -top-4 opacity-[0.05] group-hover:opacity-20 transition-all", stat.color)}>

@@ -219,64 +219,107 @@ CREATE TABLE IF NOT EXISTS public.lead_followup_logs (
 CREATE TABLE IF NOT EXISTS public.customers (
   id text PRIMARY KEY,
   name text NOT NULL,
+  company text,
   branch text,
   gstin text,
   contact_person text,
   phone text,
   address text,
+  city text,
+  state text,
+  location_hub text,
+  ledger_status text DEFAULT 'APPROVED CREDIT',
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS company text;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS city text;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS state text;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS location_hub text;
+ALTER TABLE public.customers ADD COLUMN IF NOT EXISTS ledger_status text DEFAULT 'APPROVED CREDIT';
+
 -- -------------------------------------------------------------------------
--- TABLE 10: SALES BILLING & INVOICING ARTIFACTS
+-- TABLE 10: SALES BILLING & INVOICING ARTIFACTS (NEW SALE INVOICE)
 -- -------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.invoices (
   id text PRIMARY KEY,
+  voucher_no text DEFAULT 'VCHP-2026',
   customer_id text REFERENCES public.customers(id) ON DELETE SET NULL,
-  biller_signature text DEFAULT 'Aravind Swamy',
+  party_id text,
+  party_name text,
+  biller_signature text DEFAULT 'ARAVIND SWAMY (SUPER_ADMIN)',
   goods jsonb DEFAULT '[]'::jsonb, -- Array of items chosen with assigned serial numbers
+  items jsonb DEFAULT '[]'::jsonb, -- Model-level or SKU-level breakdown
   subtotal numeric DEFAULT 0.00,
   discount numeric DEFAULT 0.00,
+  flat_discount numeric DEFAULT 0.00,
   gst numeric DEFAULT 0.00,
+  tax numeric DEFAULT 0.00,
+  gst_tax_rate numeric DEFAULT 18.00,
   grand_total numeric DEFAULT 0.00,
+  total numeric DEFAULT 0.00,
   payment_mode text DEFAULT 'Credit', -- 'Credit (Mark Unpaid Ledger)', 'Cash', 'Bank'
   status text DEFAULT 'UNPAID', -- 'UNPAID', 'PAID'
+  date text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS voucher_no text DEFAULT 'VCHP-2026';
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS customer_id text;
-ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS biller_signature text DEFAULT 'Aravind Swamy';
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS party_id text;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS party_name text;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS biller_signature text DEFAULT 'ARAVIND SWAMY (SUPER_ADMIN)';
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS goods jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS items jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS subtotal numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS discount numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS flat_discount numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gst numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS tax numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gst_tax_rate numeric DEFAULT 18.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS grand_total numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS total numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS payment_mode text DEFAULT 'Credit';
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS status text DEFAULT 'UNPAID';
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS date text;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
 
 -- -------------------------------------------------------------------------
--- TABLE 11: ACCOUNTING VOUCHERS (PAYMENTS, PURCHASES, EXPENSES)
+-- TABLE 11: ACCOUNTING VOUCHERS (2-RECORD PAYMENT IN & 3-RECORD PURCHASES / EXPENSES)
 -- -------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.accounting_vouchers (
   id text PRIMARY KEY,
-  voucher_type text NOT NULL, -- 'PAYMENT', 'PURCHASE', 'EXPENSE'
+  voucher_no text,
+  voucher_type text NOT NULL, -- 'Payment-In', 'Purchase', 'Expense', 'PAYMENT', 'PURCHASE', 'EXPENSE'
+  vtype text,                 -- Alias for voucher_type
+  party_id text,              -- Select Party Customer / Vendor ID
   party_name text,            -- Party Company / Recipient vendor Name
+  party_company text,         -- Alias for party_name
   category text,              -- Raw Components Category or Operational Expense Category
   amount numeric DEFAULT 0.00,
-  deposit_mode text DEFAULT 'Bank Deposit', -- 'Bank Deposit', 'Cash', 'UPI'
-  settlement_status text DEFAULT 'Paid',    -- 'Paid (Decrease dynamic book balance)', 'Unpaid'
-  payment_notes text,
+  deposit_mode text DEFAULT 'Bank Deposit', -- 'Bank Deposit', 'Cash', 'UPI', 'Cheque'
+  settlement_status text DEFAULT 'Paid (Decrease dynamic book balance)', -- Settlement Status
+  payment_notes text,         -- Reference / Notes (e.g. 'UPI ID: 49301030 @ hdfc')
+  reference_notes text,       -- Alias for payment_notes
+  remarks text,               -- Remarks / Log
+  date text,                  -- Transaction date
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS voucher_no text;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS voucher_type text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS vtype text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS party_id text;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS party_name text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS party_company text;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS category text;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS amount numeric DEFAULT 0.00;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS deposit_mode text DEFAULT 'Bank Deposit';
-ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS settlement_status text DEFAULT 'Paid';
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS settlement_status text DEFAULT 'Paid (Decrease dynamic book balance)';
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS payment_notes text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS reference_notes text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS remarks text;
+ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS date text;
 ALTER TABLE public.accounting_vouchers ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
 
 -- -------------------------------------------------------------------------
@@ -631,6 +674,24 @@ DROP POLICY IF EXISTS "Allow public insert" ON public.procurement_entries;
 DROP POLICY IF EXISTS "Allow public update" ON public.procurement_entries;
 DROP POLICY IF EXISTS "Allow public delete" ON public.procurement_entries;
 
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.wip_process_stages;
+DROP POLICY IF EXISTS "Allow public select" ON public.wip_process_stages;
+DROP POLICY IF EXISTS "Allow public insert" ON public.wip_process_stages;
+DROP POLICY IF EXISTS "Allow public update" ON public.wip_process_stages;
+DROP POLICY IF EXISTS "Allow public delete" ON public.wip_process_stages;
+
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.process_initiations;
+DROP POLICY IF EXISTS "Allow public select" ON public.process_initiations;
+DROP POLICY IF EXISTS "Allow public insert" ON public.process_initiations;
+DROP POLICY IF EXISTS "Allow public update" ON public.process_initiations;
+DROP POLICY IF EXISTS "Allow public delete" ON public.process_initiations;
+
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.mrp_calculations;
+DROP POLICY IF EXISTS "Allow public select" ON public.mrp_calculations;
+DROP POLICY IF EXISTS "Allow public insert" ON public.mrp_calculations;
+DROP POLICY IF EXISTS "Allow public update" ON public.mrp_calculations;
+DROP POLICY IF EXISTS "Allow public delete" ON public.mrp_calculations;
+
 -- Create full CRUD public anonymous policies explicitly to avoid wildcard warnings
 -- 1. arcenol_corporate_units
 CREATE POLICY "Allow public select" ON public.arcenol_corporate_units FOR SELECT USING (true);
@@ -877,13 +938,38 @@ ON CONFLICT (id) DO UPDATE SET
 -- 6. Seed BOM Blueprints
 INSERT INTO public.bom_blueprints (id, model_id, name, category_group, components)
 VALUES 
-  ('bom-001', 'BAT-NEXT-200', 'High-Efficiency Inverter Battery 200Ah', 'Category 2 — Solar / Inverter Battery Inventory', '[{"matId": "mat-005", "qty": 200, "unit": "Pcs"}, {"matId": "mat-006", "qty": 1, "unit": "Pcs"}]'::jsonb)
+  ('bom-001', 'BAT-72V-30A', 'E-Rickshaw Batteries (72V30A)', 'Category 1 — EV Battery Inventory', '[{"matId": "mat-005", "name": "Lithium Cells (3.7V 3Ah)", "batch_qty": 2000, "qty": 200, "unit": "Pcs", "tolerance_percent": 0.5, "effective_demand": "2000 Pcs"}, {"matId": "mat-006", "name": "Smart BMS (72V 50A)", "batch_qty": 10, "qty": 1, "unit": "Pcs", "tolerance_percent": 0.0, "effective_demand": "10 Pcs"}]'::jsonb),
+  ('bom-002', 'BAT-NEXT-200', 'High-Efficiency Inverter Battery 200Ah', 'Category 2 — Solar / Inverter Battery Inventory', '[{"matId": "mat-005", "name": "Lithium Cells (3.7V 3Ah)", "batch_qty": 200, "qty": 200, "unit": "Pcs", "tolerance_percent": 0.5, "effective_demand": "200 Pcs"}, {"matId": "mat-006", "name": "Smart BMS", "batch_qty": 1, "qty": 1, "unit": "Pcs", "tolerance_percent": 0.0, "effective_demand": "1 Pc"}]'::jsonb)
 ON CONFLICT (id) DO NOTHING;
 
--- 7. Seed Work In Progress Runs (WIP Inventory)
+-- 7. Seed WIP Process Stages Registry
+INSERT INTO public.wip_process_stages (id, code, name, display_order)
+VALUES
+  ('stage-1', 'STAGE_CELL_SORTING', 'CELL SORTING & MATRIX ALIGNMENT', 1),
+  ('stage-2', 'STAGE_SPOT_WELDING', 'SPOT WELDING & BUSBAR JOINING', 2),
+  ('stage-3', 'STAGE_BMS_WIRING', 'BMS WIRING & SOLDERING', 3),
+  ('stage-4', 'STAGE_CASING_POTTING', 'CASING & POTTING', 4),
+  ('stage-5', 'STAGE_QUALITY_CHECK', 'QUALITY CHECK', 5)
+ON CONFLICT (id) DO NOTHING;
+
+-- 7B. Seed Work In Progress Runs (Semi-Finished Logical Stock)
 INSERT INTO public.wip_inventory (id, name, qty, stage, last_update, components)
 VALUES 
-  ('wip-001', 'CELL PACK ASSEMBLY RUN 10', 10, 'WELDING', '2026-07-01', '[{"matId": "mat-005", "qty": 2000, "name": "Lithium Cells"}, {"matId": "mat-006", "qty": 10, "name": "BMS Module"}]'::jsonb)
+  ('wip-001', 'CELL PACK ASSEMBLY (72V 30AH)', 12, 'CELL SORTING & MATRIX ALIGNMENT', '2026-07-24', '[{"matId": "mat-005", "qty": 24000, "name": "Lithium Cells"}, {"matId": "mat-006", "qty": 12, "name": "BMS Module"}]'::jsonb),
+  ('wip-002', 'SPOT WELDED PACK MATRIX', 8, 'SPOT WELDING & BUSBAR JOINING', '2026-07-24', '[{"matId": "mat-005", "qty": 16000, "name": "Lithium Cells"}, {"matId": "busbar-01", "qty": 128, "name": "Copper Busbars"}]'::jsonb),
+  ('wip-003', 'BMS MOUNTED PACK', 5, 'BMS WIRING & SOLDERING', '2026-07-24', '[{"matId": "mat-006", "qty": 5, "name": "Smart BMS 72V 50A"}]'::jsonb)
+ON CONFLICT (id) DO NOTHING;
+
+-- 7C. Seed Process Initiations
+INSERT INTO public.process_initiations (id, inventory_target_type, magnitude_count, initial_wip_stage, components, status)
+VALUES
+  ('proc-init-001', 'CELL PACK ASSEMBLY (72V 30AH)', 10, 'CELL SORTING & MATRIX ALIGNMENT', '[{"material": "Lithium Cells (3.7V 3Ah)", "batch_formula": "200 Pcs x 10", "required_qty": "2,000 Pcs"}, {"material": "Smart BMS (72V 50A)", "batch_formula": "1 Pc x 10", "required_qty": "10 Pcs"}]'::jsonb, 'INITIATED')
+ON CONFLICT (id) DO NOTHING;
+
+-- 7D. Seed MRP Materials Calculator
+INSERT INTO public.mrp_calculations (id, battery_model, scheduled_batch_qty, allocated_components, status)
+VALUES
+  ('mrp-001', 'E-RICKSHAW BATTERIES [72V30A]', 10, '[{"material": "Lithium Cells (3.7V 3Ah)", "required_qty": "2,000 Pcs", "stock_available": "50,000 Pcs", "balance": "48,000 Pcs"}, {"material": "Smart BMS (72V 50A)", "required_qty": "10 Pcs", "stock_available": "1,000 Pcs", "balance": "990 Pcs"}]'::jsonb, 'ENGINE READY')
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. Seed New Lead Inquiries & Reminders
@@ -893,25 +979,27 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 9. Seed Customers
-INSERT INTO public.customers (id, name, branch, gstin, contact_person, phone, address)
+INSERT INTO public.customers (id, name, company, branch, gstin, contact_person, phone, address, city, state, location_hub, ledger_status)
 VALUES
-  ('cust-001', 'Electra Transit Pvt Ltd', 'North Hub', '27AAACE1234F1Z0', 'Ramesh Dev', '+91 9900887766', 'Nagpur, Maharashtra'),
-  ('cust-002', 'Sherpa Power Storage', 'Himalayan Branch', '02AAACS4321A1Z1', 'Dorjee Tensing', '+91 9112233445', 'Leh, Ladakh'),
-  ('cust-003', 'Prime Tele-Infrastructure', 'South Circle', '33AAACP5555G1Z9', 'K. Raghavan', '+91 8877665544', 'Bengaluru, Karnataka')
+  ('cust-001', 'Electra Transit Pvt Ltd', 'Electra Transit Pvt Ltd', 'North Hub', '27AAACE1234F1Z0', 'Ramesh Dev', '+91 9900887766', 'Nagpur, Maharashtra', 'Nagpur', 'Maharashtra', 'North Hub', 'APPROVED CREDIT'),
+  ('cust-002', 'Sherpa Power Storage', 'Sherpa Power Storage', 'Himalayan Branch', '02AAACS4321A1Z1', 'Dorjee Tensing', '+91 9112233445', 'Leh, Ladakh', 'Leh', 'Ladakh', 'Himalayan Branch', 'APPROVED CREDIT'),
+  ('cust-003', 'Prime Tele-Infrastructure', 'Prime Tele-Infrastructure', 'South Circle', '33AAACP5555G1Z9', 'K. Raghavan', '+91 8877665544', 'Bengaluru, Karnataka', 'Bengaluru', 'Karnataka', 'South Circle', 'APPROVED CREDIT'),
+  ('cust-004', 'Elite Power Ahmedabad', 'Elite Power Ahmedabad', 'Navrangpura', '24AAAAA0000A1Z5', 'Biren Patel', '+91 9988776655', 'Navrangpura, Ahmedabad, Gujarat', 'Ahmedabad', 'Gujarat', 'West Hub', 'APPROVED CREDIT')
 ON CONFLICT (id) DO NOTHING;
 
--- 10. Seed Invoices
-INSERT INTO public.invoices (id, customer_id, biller_signature, goods, subtotal, discount, gst, grand_total, payment_mode, status)
+-- 10. Seed Invoices (Sale Invoices)
+INSERT INTO public.invoices (id, customer_id, party_id, party_name, biller_signature, goods, items, subtotal, discount, flat_discount, gst, tax, gst_tax_rate, grand_total, total, payment_mode, status, voucher_no, date)
 VALUES
-  ('INV-10029', 'cust-001', 'Aravind Swamy', '[{"description": "E-Rickshaw Batteries", "qty": 2, "serials": ["ARC-72V30A-10091", "ARC-72V30A-10092"], "baseRate": 45000, "netVal": 90000}]'::jsonb, 90000, 1000, 16020, 105020, 'Credit', 'UNPAID')
+  ('INV-10029', 'cust-001', 'cust-001', 'Electra Transit Pvt Ltd', 'ARAVIND SWAMY (SUPER_ADMIN)', '[{"description": "E-Rickshaw Batteries", "qty": 2, "serials": ["ARC-72V30A-10091", "ARC-72V30A-10092"], "baseRate": 45000, "netVal": 90000}]'::jsonb, '[{"model": "BAT-72V-30A", "description": "E-Rickshaw Batteries", "qty": 2, "serials": ["ARC-72V30A-10091", "ARC-72V30A-10092"], "baseRate": 45000, "netVal": 90000}]'::jsonb, 90000, 1000, 1000, 16020, 16020, 18, 105020, 105020, 'Credit', 'UNPAID', 'INV-10029', '2026-07-25'),
+  ('VCHP-2026-001', 'cust-004', 'cust-004', 'Elite Power Ahmedabad', 'ARAVIND SWAMY (SUPER_ADMIN)', '[{"description": "E-Rickshaw Batteries", "qty": 2, "serials": ["ARC-72V30A-10091", "ARC-72V30A-10092"], "baseRate": 45000, "netVal": 90000}]'::jsonb, '[{"model": "BAT-72V-30A", "description": "E-Rickshaw Batteries", "qty": 2, "serials": ["ARC-72V30A-10091", "ARC-72V30A-10092"], "baseRate": 45000, "netVal": 90000}]'::jsonb, 90000, 0, 0, 16200, 16200, 18, 106200, 106200, 'Credit (Mark Unpaid Ledger)', 'UNPAID', 'VCHP-2026-001', '2026-07-28')
 ON CONFLICT (id) DO NOTHING;
 
--- 11. Seed Accounting Vouchers
-INSERT INTO public.accounting_vouchers (id, voucher_type, party_name, category, amount, deposit_mode, settlement_status, payment_notes)
+-- 11. Seed Accounting Vouchers (2-Record Payment In & 3-Record Purchases / Expenses)
+INSERT INTO public.accounting_vouchers (id, voucher_no, voucher_type, vtype, party_id, party_name, party_company, category, amount, deposit_mode, settlement_status, payment_notes, reference_notes, remarks, date)
 VALUES
-  ('VOUCH-P-001', 'PAYMENT', 'Electra Transit Pvt Ltd', 'Sales Deposit Receipt', 50000.00, 'Bank Deposit', 'Paid', 'UPI Reference: TXN994029103'),
-  ('VOUCH-S-002', 'PURCHASE', 'Lead-Tech Electrodes Ltd', 'Raw Lead Graphene Plates', 125000.00, 'Bank Deposit', 'Paid', 'Cheque No: 910291 HDFC'),
-  ('VOUCH-E-003', 'EXPENSE', 'Torrent Power Grid', 'Operational Utilities', 45000.00, 'Bank Deposit', 'Paid', 'Auto-debited grid bill May 2026')
+  ('VOUCH-PAY-101', 'VOUCH-PAY-101', 'Payment-In', 'Payment-In', 'cust-004', 'Elite Power Ahmedabad', 'Elite Power Ahmedabad', 'Sales Deposit Receipt', 50000.00, 'Bank Deposit', 'Paid (Decrease dynamic book balance)', 'UPI ID: 49301030 @ hdfc', 'UPI ID: 49301030 @ hdfc', 'Customer deposit payment received', '2026-07-28'),
+  ('VOUCH-PUR-102', 'VOUCH-PUR-102', 'Purchase', 'Purchase', 'vendor-101', 'Lead-Tech Electrodes Ltd', 'Lead-Tech Electrodes Ltd', 'Raw Lead Graphene Plates', 125000.00, 'Bank Deposit', 'Paid (Decrease dynamic book balance)', 'Cheque No: 910291 HDFC Bank', 'Cheque No: 910291 HDFC Bank', 'Inward raw material invoice purchase', '2026-07-27'),
+  ('VOUCH-EXP-103', 'VOUCH-EXP-103', 'Expense', 'Expense', 'vendor-102', 'Torrent Power Grid', 'Torrent Power Grid', 'Operational Utilities', 45000.00, 'Bank Deposit', 'Paid (Decrease dynamic book balance)', 'Auto-debited grid bill May 2026', 'Auto-debited grid bill May 2026', 'Monthly electricity grid utility charge', '2026-07-26')
 ON CONFLICT (id) DO NOTHING;
 
 -- 12. Seed DTC Handshake Scans
@@ -930,7 +1018,7 @@ ON CONFLICT (id) DO NOTHING;
 -- 14. Seed Batch QR Tracking Label Registers
 INSERT INTO public.batch_qr_labels (id, blueprint_name, prefix, quantity)
 VALUES
-  ('batch-001', 'E-Rickshaw Batteries (72V30A)', 'ARC-INV-', 50)
+  ('batch-001', 'E-Rickshaw Batteries (72V30A)', 'AESPL EV', 50)
 ON CONFLICT (id) DO NOTHING;
 
 -- 15. Seed RMA Help Desk Tickets

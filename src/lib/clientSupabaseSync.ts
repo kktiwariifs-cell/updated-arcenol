@@ -147,18 +147,49 @@ export async function hydrateDbFromSupabase(db: any) {
     try {
       const { data: invs } = await supabase.from('invoices').select('*');
       if (invs && invs.length > 0) {
-        db.invoices = invs.map((i: any) => ({
-          id: String(i.id),
-          customerId: i.customer_id || i.customerId,
-          billerSignature: i.biller_signature || i.billerSignature,
-          goods: Array.isArray(i.goods) ? i.goods : [],
-          subtotal: Number(i.subtotal || 0),
-          discount: Number(i.discount || 0),
-          gst: Number(i.gst || 0),
-          grandTotal: Number(i.grand_total || i.grandTotal || 0),
-          paymentMode: i.payment_mode || i.paymentMode,
-          status: i.status
-        }));
+        db.invoices = invs.map((i: any) => {
+          const customerId = i.customer_id || i.customerId || i.dealerId || 'cust-001';
+          const cust = (db.customers || []).find((c: any) => c.id === customerId) || (db.dealers || []).find((d: any) => d.id === customerId || d.company === customerId);
+          const partyName = i.party_name || i.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
+          
+          const rawGoods = Array.isArray(i.goods) ? i.goods : (Array.isArray(i.items) ? i.items : []);
+          const itemsArr = rawGoods.map((g: any) => ({
+            model: g.model || g.modelId || 'BAT-72V-30A',
+            modelId: g.modelId || g.model || 'BAT-72V-30A',
+            name: g.description || g.name || 'E-Rickshaw Batteries (72V30A)',
+            description: g.description || g.name || 'E-Rickshaw Batteries (72V30A)',
+            qty: Number(g.qty || 1),
+            price: Number(g.baseRate || g.price || 45000),
+            serials: Array.isArray(g.serials) ? g.serials : []
+          }));
+
+          const subtotalVal = Number(i.subtotal || 0);
+          const gstVal = Number(i.gst || i.tax || 0);
+          const grandTotalVal = Number(i.grand_total || i.grandTotal || i.total || (subtotalVal + gstVal));
+          const createdDate = i.created_at ? i.created_at.split('T')[0] : (i.date || i.billedDate || new Date().toISOString().split('T')[0]);
+
+          return {
+            id: String(i.id),
+            customerId,
+            dealerId: customerId,
+            partyName,
+            customerName: partyName,
+            billerSignature: i.biller_signature || i.billerSignature || 'Aravind Swamy',
+            goods: itemsArr,
+            items: itemsArr,
+            subtotal: subtotalVal,
+            discount: Number(i.discount || 0),
+            gst: gstVal,
+            tax: gstVal,
+            grandTotal: grandTotalVal,
+            total: grandTotalVal,
+            paymentMode: i.payment_mode || i.paymentMode || 'Credit',
+            date: createdDate,
+            billedDate: createdDate,
+            created_at: i.created_at || createdDate,
+            status: i.status || 'UNPAID'
+          };
+        });
       }
     } catch (invsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating invoices:', invsCatchErr);

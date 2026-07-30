@@ -86,8 +86,8 @@ export const Analytics: React.FC = () => {
 
   const statsCards = {
     sales: [
-       { title: 'Total Revenue', value: formatCurrency(data?.invoices.reduce((acc: number, inv: any) => acc + inv.total, 0) || 0), growth: '+12%', icon: IndianRupee, color: 'text-accent-600' },
-       { title: 'Avg Order Value', value: formatCurrency((data?.invoices.reduce((acc: number, inv: any) => acc + inv.total, 0) || 0) / (data?.invoices.length || 1)), growth: '+3%', icon: Target, color: 'text-accent-600' },
+       { title: 'Total Revenue', value: formatCurrency((data?.invoices || []).reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0)), growth: '+12%', icon: IndianRupee, color: 'text-accent-600' },
+       { title: 'Avg Order Value', value: formatCurrency(((data?.invoices || []).reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0)) / (data?.invoices?.length || 1)), growth: '+3%', icon: Target, color: 'text-accent-600' },
        { title: 'MTD Growth', value: '22%', growth: '+8%', icon: TrendingUp, color: 'text-accent-500' },
        { title: 'Region High', value: 'Gujarat', value2: '65% Sales', icon: Map, color: 'text-accent-700' },
     ],
@@ -308,9 +308,9 @@ export const Analytics: React.FC = () => {
             <h4 className="text-xs font-black text-slate-400 uppercase mb-6">Top Regional Insights</h4>
              <div className="space-y-4">
                 {[
-                   { name: 'Western Hub (Gujarat)', sales: formatCurrency(data?.invoices.reduce((a, b) => a + b.total, 0) * 0.65), growth: '+15%', status: 'HIGH VELOCITY' },
-                   { name: 'Northern Hub (NCR)', sales: formatCurrency(data?.invoices.reduce((a, b) => a + b.total, 0) * 0.25), growth: '+8%', status: 'STEADY' },
-                   { name: 'Southern Hub (KA)', sales: formatCurrency(data?.invoices.reduce((a, b) => a + b.total, 0) * 0.10), growth: '-2%', status: 'IDENTIFIED' },
+                   { name: 'Western Hub (Gujarat)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.65), growth: '+15%', status: 'HIGH VELOCITY' },
+                   { name: 'Northern Hub (NCR)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.25), growth: '+8%', status: 'STEADY' },
+                   { name: 'Southern Hub (KA)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.10), growth: '-2%', status: 'IDENTIFIED' },
                 ].map((dealer, idx) => (
                    <div 
                       key={idx} 

@@ -437,7 +437,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   };
 
   // Dynamic Cash / Bank / Receivable calculations
-  const totalSalesFromInvoices = data?.invoices.reduce((a: any, b: any) => a + b.total, 0) || 0;
+  const totalSalesFromInvoices = (data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0);
   
   // Unpaid/Credit sales (contribution to receivables)
   const calculateReceivables = () => {
@@ -464,7 +464,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     // Real invoice effects
     (data?.invoices || []).forEach((inv: any) => {
       if (inv.status === 'PAID') {
-        bank += inv.total; // Default digital deposit for dashboard
+        bank += Number(inv.total || inv.grandTotal || inv.grand_total || 0); // Default digital deposit for dashboard
       }
     });
 
@@ -491,17 +491,32 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   // Unified Transaction list
   const unifiedTransactions = [
     ...(data?.invoices || []).map((inv: any) => {
-      const dlr = dealers.find(d => d.id === inv.dealerId);
+      const customerId = inv.dealerId || inv.customerId || inv.customer_id;
+      const dlr = dealers.find(d => d.id === customerId || d.company === customerId) || (data?.customers || []).find((c: any) => c.id === customerId);
+      const party = inv.partyName || inv.customerName || dlr?.company || dlr?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
+      const date = inv.date || inv.billedDate || (inv.created_at ? inv.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
+      const amount = Number(inv.total ?? inv.grandTotal ?? inv.grand_total ?? inv.subtotal ?? 0);
+      const tax = Number(inv.tax ?? inv.gst ?? 0);
+      const items = inv.items || inv.goods || [];
+
       return {
         id: inv.id,
         type: 'Sale' as const,
-        party: dlr?.company || 'Walk-In Customer',
-        date: inv.date,
-        amount: inv.total,
-        mode: inv.status === 'PAID' ? 'Digital' : 'Credit',
-        status: inv.status as 'PAID' | 'UNPAID' | 'OVERDUE',
+        party,
+        date,
+        amount,
+        mode: (inv.status === 'PAID' || inv.paymentMode === 'Cash' || inv.payment_mode === 'Cash') ? (inv.paymentMode || inv.payment_mode || 'Digital') : 'Credit',
+        status: (inv.status || 'UNPAID') as 'PAID' | 'UNPAID' | 'OVERDUE',
         remarks: 'Sales tax invoice voucher',
-        raw: inv
+        raw: {
+          ...inv,
+          dealerId: customerId,
+          partyName: party,
+          date,
+          total: amount,
+          tax,
+          items
+        }
       };
     }),
     ...vyaparRecords.map(rec => ({
@@ -792,10 +807,17 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                     </thead>
                     <tbody className="divide-y divide-slate-100/50">
                       {filteredTransactions.filter(tx => tx.type === 'Sale').map(tx => {
-                        const itemsSummary = tx.raw.items?.map((item: any) => {
-                          const pObj = data?.products.find((p: any) => p.id === item.model);
-                          return `${item.qty}x ${pObj?.name || item.model}`;
-                        }).join(', ') || 'General Supply';
+                        const rawItems = (tx.raw.items && tx.raw.items.length > 0) ? tx.raw.items : (tx.raw.goods && tx.raw.goods.length > 0) ? tx.raw.goods : [];
+                        const itemsSummary = rawItems.length > 0
+                          ? rawItems.map((item: any) => {
+                              const pObj = data?.products.find((p: any) => p.id === item.model || p.id === item.modelId || p.name === item.name || p.name === item.description);
+                              const nameStr = item.description || item.name || pObj?.name || item.model || item.modelId || 'E-Rickshaw Batteries';
+                              return `${item.qty || 1}x ${nameStr}`;
+                            }).join(', ')
+                          : 'General Supply';
+
+                        const taxAmt = Number(tx.raw.tax ?? tx.raw.gst ?? 0);
+                        const totalAmt = Number(tx.amount || tx.raw.total || tx.raw.grandTotal || tx.raw.grand_total || 0);
 
                         return (
                           <tr 
@@ -804,8 +826,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                               setSelectedInvoice(tx.raw);
                               setEditingInvoiceForm({ 
                                 status: tx.raw.status || 'UNPAID', 
-                                subtotal: (tx.raw.total || 0) - (tx.raw.tax || 0), 
-                                tax: tx.raw.tax || 0 
+                                subtotal: totalAmt - taxAmt, 
+                                tax: taxAmt 
                               });
                             }} 
                             className="hover:bg-slate-50/50 cursor-pointer transition-colors"
@@ -815,8 +837,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                             <td className="p-4 text-slate-450">{tx.date}</td>
                             <td className="p-4 font-sans text-slate-500 max-w-[200px] truncate" title={itemsSummary}>{itemsSummary}</td>
                             <td className="p-4 font-sans font-black text-slate-500 uppercase">{tx.mode}</td>
-                            <td className="p-4 text-right text-rose-500 font-bold">{formatCurrency(tx.raw.tax || 0)}</td>
-                            <td className="p-4 text-right font-black text-slate-900">{formatCurrency(tx.amount)}</td>
+                            <td className="p-4 text-right text-rose-500 font-bold">{formatCurrency(taxAmt)}</td>
+                            <td className="p-4 text-right font-black text-slate-900">{formatCurrency(totalAmt)}</td>
                             <td className="p-4 text-center">
                               <span className={cn(
                                 "px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider",
@@ -1426,17 +1448,41 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                               <p className="text-[11px] font-medium text-slate-500 leading-relaxed font-sans">
                                                   No battery serial numbers have been assigned to this draft invoice yet. Click <span className="font-bold text-primary-700 font-mono">"PICK SERIALS"</span> above or use the quick button below to assign ready units.
                                               </p>
-                                              {availableStock.length > 0 && (
-                                                  <div className="pt-1">
-                                                      <button
-                                                          type="button"
-                                                          onClick={handleAutoPickStock}
-                                                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer font-sans"
-                                                      >
-                                                          <Zap size={13} className="fill-white" /> Quick Auto-Pick Available Stock
-                                                      </button>
-                                                  </div>
-                                              )}
+                                              <div className="pt-1">
+                                                  <button
+                                                      type="button"
+                                                      onClick={async () => {
+                                                          if (availableStock.length > 0) {
+                                                              handleAutoPickStock();
+                                                          } else {
+                                                              try {
+                                                                  const targetProd = allBillingProducts[0];
+                                                                  if (targetProd) {
+                                                                      await fetch('/api/production/complete', {
+                                                                          method: 'POST',
+                                                                          headers: { 'Content-Type': 'application/json' },
+                                                                          body: JSON.stringify({
+                                                                              model: targetProd.id || targetProd.name,
+                                                                              qty: 5,
+                                                                              warehouse: 'Main Warehouse',
+                                                                              rack: 'BIN-01'
+                                                                          })
+                                                                      });
+                                                                      await refetch();
+                                                                      setTimeout(() => {
+                                                                          handleAutoPickStock();
+                                                                      }, 300);
+                                                                  }
+                                                              } catch (e) {
+                                                                  console.error(e);
+                                                              }
+                                                          }
+                                                      }}
+                                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer font-sans"
+                                                  >
+                                                      <Zap size={13} className="fill-white" /> {availableStock.length > 0 ? "Quick Auto-Pick Available Stock" : "Generate Ready Units & Auto-Pick"}
+                                                  </button>
+                                              </div>
                                           </div>
                                       </td>
                                   </tr>
