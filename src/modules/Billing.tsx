@@ -57,6 +57,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const [invoicePaymentMode, setInvoicePaymentMode] = useState<'Credit' | 'Cash' | 'Bank' | 'UPI'>('Credit');
   const [invoiceItemDiscount, setInvoiceItemDiscount] = useState<number>(0); // Direct flat discount
 
+  // Picker Modal State
+  const [manualSerialInput, setManualSerialInput] = useState('');
+  const [showAllReadyStock, setShowAllReadyStock] = useState(false);
+  const [isQuickProducing, setIsQuickProducing] = useState(false);
+
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [quickCustomerForm, setQuickCustomerForm] = useState({
     company: '',
@@ -136,6 +141,15 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
 
     if (cleanId && (cleanFg.includes(cleanId) || cleanId.includes(cleanFg))) return true;
     if (cleanName && (cleanFg.includes(cleanName) || cleanName.includes(cleanFg))) return true;
+
+    // Check if model number digits match (e.g., 559 in BAT-559)
+    const numsInFg = fgModel.match(/\d+/g);
+    const numsInId = pId.match(/\d+/g);
+    const numsInName = pName.match(/\d+/g);
+    if (numsInFg && (numsInId || numsInName)) {
+      const combinedTargetNums = [...(numsInId || []), ...(numsInName || [])];
+      if (numsInFg.some(n => combinedTargetNums.includes(n))) return true;
+    }
 
     const keywords = ["72V30A", "BAT-AUTO-35", "BAT-INV-150", "BAT-VRLA-100", "BAT-NEXT-200", "LIT-200", "PROD-EV-BIKE", "SCOOTER", "RICKSHAW", "INVERTER"];
     for (const kw of keywords) {
@@ -1417,29 +1431,35 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                     </div>
                  </div>
               </div>
-           </div>
-        </div>
-      )}
-
-      {/* Serial Picker Dialog Modal */}
+             {/* Serial Picker Dialog Modal */}
       {isSelectingStock && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-[110] p-4">
-              <div className="bg-white rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
+              <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-slate-200 animate-in zoom-in-95 duration-200">
                   <div className="p-6 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
                       <div>
                         <h3 className="font-black text-base text-slate-900 uppercase italic leading-none">Pick Serial Numbers</h3>
-                        <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest mt-1 font-mono">{activeModelForStock}</p>
+                        <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mt-1 font-mono flex items-center gap-2">
+                          <span>{activeModelForStock}</span>
+                          {cart.find(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock })) && (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-md font-mono text-[9px] border border-emerald-300">
+                              {cart.find(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock }))?.serials.length || 0} SELECTED
+                            </span>
+                          )}
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
+                          disabled={isQuickProducing}
                           onClick={async () => {
+                              setIsQuickProducing(true);
                               try {
+                                  const targetModel = activeModelForStock || 'BAT-NEXT-200';
                                   const res = await fetch('/api/production/complete', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
-                                          model: activeModelForStock || 'BAT-NEXT-200',
+                                          model: targetModel,
                                           qty: 5,
                                           warehouse: 'Main Warehouse',
                                           rack: 'BIN-01'
@@ -1449,54 +1469,134 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                   await refetch();
                                   if (resData?.serials && Array.isArray(resData.serials)) {
                                       resData.serials.forEach((s: string) => {
-                                          addToCart(activeModelForStock || 'BAT-NEXT-200', s);
+                                          addToCart(targetModel, s);
                                       });
                                   }
                               } catch (e) {
                                   console.error(e);
+                              } finally {
+                                  setIsQuickProducing(false);
                               }
                           }}
-                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border border-emerald-200 transition-all flex items-center gap-1 cursor-pointer"
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 py-1.5 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border border-emerald-200 transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50"
                         >
-                          <Zap size={12} className="text-emerald-600 fill-emerald-500" /> +5 Units
+                          <Zap size={12} className="text-emerald-600 fill-emerald-500" />
+                          {isQuickProducing ? 'Generating...' : '+5 Units'}
                         </button>
-                        <button onClick={() => setIsSelectingStock(false)} className="p-1 px-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 font-extrabold text-xs">✕</button>
+                        <button onClick={() => setIsSelectingStock(false)} className="p-1.5 px-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 font-extrabold text-xs cursor-pointer">✕</button>
                       </div>
                   </div>
-                  <div className="p-6 space-y-6">
-                      <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-1 select-scrollbar">
-                          {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).map((fg: any) => {
+
+                  <div className="p-6 space-y-5">
+                      {/* Manual Serial Entry Section */}
+                      <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 space-y-2">
+                        <label className="block text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                          <Plus size={12} className="text-primary-600" /> Manual Serial Entry / Barcode Scanner Input
+                        </label>
+                        <form 
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            if (!manualSerialInput.trim()) return;
+                            const targetModel = activeModelForStock || 'BAT-NEXT-200';
+                            addToCart(targetModel, manualSerialInput.trim().toUpperCase());
+                            setManualSerialInput('');
+                          }}
+                          className="flex gap-2"
+                        >
+                          <input
+                            type="text"
+                            value={manualSerialInput}
+                            onChange={(e) => setManualSerialInput(e.target.value)}
+                            placeholder={`e.g. ${activeModelForStock || 'BAT'}-001 or scan barcode...`}
+                            className="flex-1 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                          />
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-xs transition-all"
+                          >
+                            + Add Serial
+                          </button>
+                        </form>
+                      </div>
+
+                      {/* Stock View Mode Filter */}
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowAllReadyStock(false)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border",
+                              !showAllReadyStock 
+                                ? "bg-slate-900 text-white border-slate-900" 
+                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                            )}
+                          >
+                            Filtered ({activeModelForStock})
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowAllReadyStock(true)}
+                            className={cn(
+                              "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer border",
+                              showAllReadyStock 
+                                ? "bg-slate-900 text-white border-slate-900" 
+                                : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                            )}
+                          >
+                            Show All Ready Stock ({availableStock.length} units)
+                          </button>
+                        </div>
+
+                        <span className="text-[9px] font-bold text-slate-400 uppercase">
+                          Select unit chips below
+                        </span>
+                      </div>
+
+                      {/* Serial Chips Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[260px] overflow-y-auto pr-1 select-scrollbar">
+                          {availableStock
+                            .filter((fg: any) => showAllReadyStock || matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock }))
+                            .map((fg: any) => {
                               const isPicked = cart.some(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock }) && c.serials.includes(fg.serial));
                               return (
                                   <button 
-                                    key={fg.id}
+                                    key={fg.id || fg.serial}
                                     type="button"
-                                    onClick={() => addToCart(fg.model || activeModelForStock, fg.serial)}
+                                    onClick={() => addToCart(activeModelForStock || fg.model, fg.serial)}
                                     className={cn(
                                         "p-3 rounded-xl border text-left transition-all relative flex flex-col justify-between h-16 cursor-pointer",
-                                        isPicked ? "bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-500/20 scale-[1.01]" : "bg-white border-slate-200 hover:border-slate-300"
+                                        isPicked ? "bg-emerald-50/90 border-emerald-500 ring-2 ring-emerald-500/20 scale-[1.01]" : "bg-white border-slate-200 hover:border-slate-300"
                                     )}
                                   >
-                                      <span className="text-[7px] font-black text-slate-400 uppercase font-mono tracking-wider">{fg.warehouse}</span>
-                                      <FormattedSerial serial={fg.serial} className="font-mono text-[10px] font-black text-slate-800 tracking-wide mt-1 uppercase" />
-                                      {isPicked && <CheckCircle2 size={13} className="text-emerald-600 absolute right-2.5 top-2.5" />}
+                                      <span className="text-[7px] font-black text-slate-400 uppercase font-mono tracking-wider truncate">{fg.warehouse || 'Main Warehouse'}</span>
+                                      <FormattedSerial serial={fg.serial} className="font-mono text-[10px] font-black text-slate-800 tracking-wide mt-0.5 uppercase" />
+                                      {isPicked && <CheckCircle2 size={13} className="text-emerald-600 absolute right-2 top-2" />}
                                   </button>
                               );
                           })}
-                          {availableStock.filter((fg: any) => matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).length === 0 && (
-                              <div className="col-span-full py-8 text-center space-y-4">
-                                  <p className="text-amber-600 italic font-black uppercase text-[10px] tracking-widest">0 units currently ready in warehouse for {activeModelForStock}.</p>
-                                  <p className="text-slate-500 text-xs font-medium max-w-sm mx-auto">Click below to instantly generate 5 ready units with verified serial numbers for billing.</p>
+
+                          {availableStock.filter((fg: any) => showAllReadyStock || matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock })).length === 0 && (
+                              <div className="col-span-full py-8 text-center space-y-4 bg-amber-50/40 rounded-2xl border border-amber-200/60 p-4">
+                                  <p className="text-amber-800 italic font-black uppercase text-[10px] tracking-widest">
+                                    0 units currently ready in warehouse for {activeModelForStock}.
+                                  </p>
+                                  <p className="text-slate-600 text-xs font-medium max-w-md mx-auto">
+                                    You can enter a serial number manually above, or click below to instantly generate 5 ready units with verified serial numbers for billing.
+                                  </p>
                                   <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                                       <button
                                           type="button"
+                                          disabled={isQuickProducing}
                                           onClick={async () => {
+                                              setIsQuickProducing(true);
                                               try {
+                                                  const targetModel = activeModelForStock || 'BAT-NEXT-200';
                                                   const res = await fetch('/api/production/complete', {
                                                       method: 'POST',
                                                       headers: { 'Content-Type': 'application/json' },
                                                       body: JSON.stringify({
-                                                          model: activeModelForStock || 'BAT-NEXT-200',
+                                                          model: targetModel,
                                                           qty: 5,
                                                           warehouse: 'Main Warehouse',
                                                           rack: 'BIN-01'
@@ -1506,37 +1606,47 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                   await refetch();
                                                   if (resData?.serials && Array.isArray(resData.serials)) {
                                                       resData.serials.forEach((s: string) => {
-                                                          addToCart(activeModelForStock || 'BAT-NEXT-200', s);
+                                                          addToCart(targetModel, s);
                                                       });
                                                   }
                                               } catch (e) {
                                                   console.error(e);
+                                              } finally {
+                                                  setIsQuickProducing(false);
                                               }
                                           }}
-                                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer"
+                                          className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
                                       >
-                                          <Zap size={14} className="fill-white" /> Quick-Produce 5 Ready Units
+                                          <Zap size={14} className="fill-white" />
+                                          {isQuickProducing ? 'Producing Units...' : 'Quick-Produce 5 Ready Units'}
                                       </button>
-                                      {setActiveTab && (
-                                          <button
-                                              type="button"
-                                              onClick={() => {
-                                                  setIsSelectingStock(false);
-                                                  setActiveTab('production-hub');
-                                              }}
-                                              className="inline-flex items-center gap-2 bg-slate-900 hover:bg-black text-white font-black text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-xs transition-all cursor-pointer"
-                                          >
-                                              <ClipboardCheck size={14} className="text-emerald-400" /> Open Production QC Hub
-                                          </button>
-                                      )}
+                                      <button
+                                          type="button"
+                                          onClick={() => setShowAllReadyStock(true)}
+                                          className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white font-black text-xs uppercase tracking-wider px-4 py-3 rounded-xl shadow-xs transition-all cursor-pointer"
+                                      >
+                                          Show All Ready Stock ({availableStock.length})
+                                      </button>
                                   </div>
                               </div>
                           )}
                       </div>
-                      <div className="flex justify-end pt-2 border-t border-slate-100">
-                          <button onClick={() => setIsSelectingStock(false)} className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow shadow-emerald-600/10 cursor-pointer">SAVE PICKING SELECTION</button>
+
+                      <div className="flex justify-between items-center pt-3 border-t border-slate-100">
+                          <span className="text-xs font-mono font-bold text-slate-500">
+                            {cart.find(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock }))?.serials.length || 0} unit(s) assigned to invoice
+                          </span>
+                          <button 
+                            onClick={() => setIsSelectingStock(false)} 
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow shadow-emerald-600/10 cursor-pointer transition-all"
+                          >
+                            SAVE PICKING SELECTION
+                          </button>
                       </div>
                   </div>
+              </div>
+          </div>
+      )}
               </div>
           </div>
       )}

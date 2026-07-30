@@ -747,10 +747,12 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       }
     } else if (urlStr.includes('/api/production/complete')) {
       if (method === 'POST' && body) {
-        const { planId, warehouse, rack } = body;
-        const plan = db.productionPlans.find((p: any) => p.id === planId);
+        const { planId, model, qty, warehouse, rack } = body;
+        const targetModel = model || (planId ? db.productionPlans.find((p: any) => p.id === planId)?.modelId : 'BAT-NEXT-200') || 'BAT-NEXT-200';
+        const targetQty = Number(qty) || 5;
+        
+        const plan = planId ? db.productionPlans.find((p: any) => p.id === planId) : null;
         if (plan && plan.status !== 'COMPLETED') {
-          // Consume items if in RESERVE mode
           if (plan.allocationMode === 'RESERVE') {
             plan.materials.forEach((reqm: any) => {
               const invItem = db.inventory.find((i: any) => i.id === reqm.matId);
@@ -760,33 +762,30 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
               }
             });
           }
-          const serials: string[] = [];
-          for (let i = 0; i < plan.qty; i++) {
-            const serial = `ARC-${plan.modelId}-${new Date().getFullYear()}-${Math.floor(100000 + Math.random() * 900000)}`;
-            serials.push(serial);
-            db.finishedGoods.push({
-              id: `fg-${Date.now()}-${i}`,
-              model: plan.modelId,
-              serial,
-              batch: `BATCH-${plan.id}`,
-              warehouse: warehouse || 'Main Warehouse',
-              rack: rack || 'BIN-01',
-              date: new Date().toISOString().split('T')[0],
-              status: "READY"
-            });
-          }
           plan.status = 'COMPLETED';
-          db.productionHistory.push({
-            id: `ph-${Date.now()}`,
-            model: plan.modelId,
-            qty: plan.qty,
-            serials,
-            date: new Date().toISOString().split('T')[0],
-            status: "COMPLETED"
-          });
-          saveLocalDB(db);
-          responseData = plan;
         }
+
+        const serials: string[] = [];
+        if (!db.finishedGoods) db.finishedGoods = [];
+        const cleanModel = String(targetModel).replace(/[^A-Z0-9]/gi, '').slice(0, 10).toUpperCase();
+
+        for (let i = 0; i < targetQty; i++) {
+          const serial = `AESPL-${cleanModel || 'BAT'}-${new Date().getFullYear().toString().slice(-2)}-${Math.floor(1000 + Math.random() * 9000)}`;
+          serials.push(serial);
+          db.finishedGoods.push({
+            id: `fg-${Date.now()}-${i}`,
+            model: targetModel,
+            serial,
+            batch: `BATCH-${Date.now().toString().slice(-4)}`,
+            warehouse: warehouse || 'Main Warehouse',
+            rack: rack || 'BIN-01',
+            date: new Date().toISOString().split('T')[0],
+            status: "READY"
+          });
+        }
+
+        saveLocalDB(db);
+        responseData = { success: true, serials, model: targetModel, qty: targetQty };
       }
     } else if (urlStr.includes('/api/processing')) {
       if (method === 'POST' && body) {
