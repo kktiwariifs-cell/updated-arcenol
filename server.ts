@@ -260,6 +260,28 @@ async function startServer() {
     failureCategories: ["Cell Failure", "BMS Failure", "Charger Failure", "Water Damage", "Voltage Drop"],
     products: [
       {
+        id: "BAT-NEXT-200",
+        name: "High-Efficiency Inverter Battery 200Ah",
+        category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY",
+        type: "Inverter Battery Pack",
+        price: 48000,
+        bom: [
+          { matId: "RM-CELLS", name: "Lithium Cells", qty: 240, unit: "Pcs", wastage: 1 },
+          { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+        ]
+      },
+      {
+        id: "LIT-200",
+        name: "Lithium Ion NMC Battery 200Ah",
+        category: "CATEGORY 1 — EV BATTERY INVENTORY",
+        type: "Li-Ion Module",
+        price: 52000,
+        bom: [
+          { matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 },
+          { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+        ]
+      },
+      {
         id: "72V30A",
         name: "E-Rickshaw Batteries",
         category: "CATEGORY 1 — EV BATTERY INVENTORY",

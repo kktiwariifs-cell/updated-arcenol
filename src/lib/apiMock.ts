@@ -70,7 +70,13 @@ const INITIAL_DB = {
   warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
   notifications: [] as any[],
   leads: [] as any[],
-  dealers: [] as any[],
+  dealers: [
+    { id: "D-101", company: "Elite Power Ahmedabad", category: "Tier 1 Dealer", gstin: "24AAAAA0000A1Z5", phone: "9988776655", email: "contact@elitepower.com", location: "Navrangpura", city: "Ahmedabad", state: "Gujarat", region: "West", contactPerson: "Amit Mehta", status: "ACTIVE", bankDetails: "HDFC A/C: 50100234...", rankingScore: 92, joinDate: "2023-01-15" },
+    { id: "D-102", company: "Spark EV Rajkot", category: "Certified Service Center", gstin: "24BBBBB1111B1Z2", phone: "9900112233", email: "info@sparkev.in", location: "Metoda GIDC", city: "Rajkot", state: "Gujarat", region: "West", contactPerson: "Suresh Bhai", status: "ACTIVE", bankDetails: "ICICI A/C: 0023101...", rankingScore: 85, joinDate: "2023-03-20" },
+    { id: "D-103", company: "Metro Batteries Delhi", category: "Tier 1 Dealer", gstin: "07AAAAA0000A1Z5", phone: "9811223344", email: "delhi@metro.com", location: "Okhla Industrial Area", city: "New Delhi", state: "Delhi", region: "North", contactPerson: "Vikram Singh", status: "ACTIVE", bankDetails: "SBI A/C: 334455...", rankingScore: 78, joinDate: "2023-06-10" },
+    { id: "D-104", company: "South Solar Chennai", category: "Tier 2 Dealer", gstin: "33AAAAA0000A1Z5", phone: "9844556677", email: "sales@southsolar.com", location: "Adyar", city: "Chennai", state: "Tamil Nadu", region: "South", contactPerson: "Karthik R.", status: "ACTIVE", bankDetails: "Axis A/C: 998877...", rankingScore: 88, joinDate: "2023-02-05" },
+    { id: "D-105", company: "East Energy Kolkata", category: "Distributor", gstin: "19AAAAA0000A1Z5", phone: "9833445566", email: "info@eastenergy.com", location: "Salt Lake", city: "Kolkata", state: "West Bengal", region: "East", contactPerson: "Pranab M.", status: "ACTIVE", bankDetails: "HDFC A/C: 112233...", rankingScore: 72, joinDate: "2023-11-25" },
+  ],
   engagement: {
     stats: {
       activeAppUsers: 0,
@@ -100,6 +106,28 @@ const INITIAL_DB = {
   ],
   failureCategories: ["Cell Failure", "BMS Failure", "Charger Failure", "Water Damage", "Voltage Drop"],
   products: [
+    {
+      id: "BAT-NEXT-200",
+      name: "High-Efficiency Inverter Battery 200Ah",
+      category: "CATEGORY 2 — SOLAR / INVERTER BATTERY INVENTORY",
+      type: "Inverter Battery Pack",
+      price: 48000,
+      bom: [
+        { matId: "RM-CELLS", name: "Lithium Cells", qty: 240, unit: "Pcs", wastage: 1 },
+        { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+      ]
+    },
+    {
+      id: "LIT-200",
+      name: "Lithium Ion NMC Battery 200Ah",
+      category: "CATEGORY 1 — EV BATTERY INVENTORY",
+      type: "Li-Ion Module",
+      price: 52000,
+      bom: [
+        { matId: "RM-CELLS", name: "Lithium Cells", qty: 200, unit: "Pcs", wastage: 1 },
+        { matId: "RM-BMS-72V", name: "BMS", qty: 1, unit: "Pcs", wastage: 0 }
+      ]
+    },
     {
       id: "72V30A",
       name: "E-Rickshaw Batteries",
@@ -515,17 +543,42 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       }
     } else if (urlStr.includes('/api/invoices')) {
       if (method === 'POST' && body) {
-        const total = body.items.reduce((acc: number, item: any) => acc + (item.qty * item.price), 0);
+        const calculatedTotal = (body.items || []).reduce((acc: number, item: any) => acc + (Number(item.qty || 1) * Number(item.price || 35000)), 0);
+        const finalTotal = Number(body.total) || (calculatedTotal * 1.18);
         const newInvoice = {
           id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
           date: new Date().toISOString().split('T')[0],
           dealerId: body.dealerId,
-          items: body.items,
-          total: total,
+          items: body.items || [],
+          total: finalTotal,
           status: 'UNPAID',
-          tax: Math.round(total * 0.18)
+          tax: Number(body.tax) || Math.round(finalTotal * 0.18)
         };
         db.invoices.push(newInvoice);
+
+        // Update stock and activate warranty
+        if (body.items && Array.isArray(body.items)) {
+          body.items.forEach((item: any) => {
+            if (item.serials && Array.isArray(item.serials)) {
+              item.serials.forEach((serial: string) => {
+                const fg = db.finishedGoods?.find((f: any) => f.serial === serial);
+                if (fg) fg.status = 'SOLD';
+
+                if (!db.warranty) db.warranty = [];
+                db.warranty.push({
+                  id: `W-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                  serial,
+                  dealerId: body.dealerId,
+                  startDate: newInvoice.date,
+                  durationMonths: 36,
+                  status: 'ACTIVE',
+                  history: []
+                });
+              });
+            }
+          });
+        }
+
         saveLocalDB(db);
         responseData = newInvoice;
       }
