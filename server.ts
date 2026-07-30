@@ -32,10 +32,10 @@ function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | str
   if (gradeStr) {
     const upper = String(gradeStr).toUpperCase();
     if (upper.includes("AUTO")) gradeTag = "AUTO";
-    else if (upper.includes("INV")) gradeTag = "INV";
+    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER")) gradeTag = "INV";
     else if (upper.includes("ESS")) gradeTag = "ESS";
     else if (upper.includes("VRLA")) gradeTag = "VRLA";
-    else if (upper.includes("EV")) gradeTag = "EV";
+    else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
     else {
       const clean = upper.replace(/[^A-Z]/g, "");
       gradeTag = clean.slice(0, 4) || "EV";

@@ -1,4 +1,5 @@
 import { hydrateDbFromSupabase, syncInventoryRecordToSupabase, syncBulkInventoryToSupabase, deleteInventoryRecordFromSupabase, syncLeadRecordToSupabase, deleteLeadRecordFromSupabase, syncBusinessProfileToSupabase } from './clientSupabaseSync';
+import { generateBatterySerial } from './serialUtils';
 
 const INITIAL_DB = {
   inventory: [] as any[],
@@ -38,7 +39,7 @@ const INITIAL_DB = {
       id: "ph-101",
       model: "E-Rikshaw Batteries [72V30A]",
       qty: 10,
-      serials: ["AESPL-72V30A-26-8812", "AESPL-72V30A-26-8813", "AESPL-72V30A-26-8814", "AESPL-72V30A-26-8815"],
+      serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045", "AESPL  EV  28G26001046"],
       date: "2026-07-29",
       status: "COMPLETED"
     },
@@ -46,7 +47,7 @@ const INITIAL_DB = {
       id: "ph-102",
       model: "High-Efficiency Inverter Battery [BAT-NEXT-200]",
       qty: 5,
-      serials: ["AESPL-NEXT200-26-9041", "AESPL-NEXT200-26-9042"],
+      serials: ["AESPL  INV  28G26001054", "AESPL  INV  28G26001055"],
       date: "2026-07-28",
       status: "COMPLETED"
     },
@@ -54,7 +55,7 @@ const INITIAL_DB = {
       id: "ph-103",
       model: "Lithium Power Module 48V [LIT-200]",
       qty: 8,
-      serials: ["AESPL-LIT200-26-4411", "AESPL-LIT200-26-4412"],
+      serials: ["AESPL  INV  28G26001059", "AESPL  INV  28G26001060"],
       date: "2026-07-26",
       status: "COMPLETED"
     },
@@ -62,7 +63,7 @@ const INITIAL_DB = {
       id: "ph-104",
       model: "Heavy Duty VRLA Solar 100Ah",
       qty: 12,
-      serials: ["AESPL-VRLA100-26-3001", "AESPL-VRLA100-26-3002"],
+      serials: ["AESPL  VRLA  28G26001051"],
       date: "2026-07-24",
       status: "COMPLETED"
     }
@@ -856,7 +857,7 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         const cleanModel = String(targetModel).replace(/[^A-Z0-9]/gi, '').slice(0, 10).toUpperCase();
 
         for (let i = 0; i < targetQty; i++) {
-          const serial = `AESPL-${cleanModel || 'BAT'}-${new Date().getFullYear().toString().slice(-2)}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const serial = generateBatterySerial(targetModel, 1044 + Math.floor(Math.random() * 8000));
           serials.push(serial);
           db.finishedGoods.push({
             id: `fg-${Date.now()}-${i}`,

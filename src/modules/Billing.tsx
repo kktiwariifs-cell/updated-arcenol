@@ -1550,7 +1550,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                             type="text"
                             value={manualSerialInput}
                             onChange={(e) => setManualSerialInput(e.target.value)}
-                            placeholder={`e.g. ${activeModelForStock || 'BAT'}-001 or scan barcode...`}
+                            placeholder="e.g. AESPL  EV  28G26001044 or scan barcode..."
                             className="flex-1 px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-xs font-mono font-bold text-slate-800 uppercase focus:outline-none focus:ring-2 focus:ring-primary-500/30"
                           />
                           <button
