@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileText, Download, Share2, Filter, IndianRupee, MapPin, Calendar, User, ShoppingBag, CheckCircle2, ChevronRight, ArrowLeft, Printer, Trash2, AlertCircle, ShieldCheck, Edit, Copy, ClipboardCheck, ArrowUpRight, ArrowDownLeft, Wallet, Landmark, TrendingUp, Info, X, ChevronDown, Check, FileSpreadsheet, Send, Zap } from 'lucide-react';
+import { Plus, Search, FileText, Download, Share2, Filter, IndianRupee, MapPin, Calendar, User, ShoppingBag, CheckCircle2, ChevronRight, ArrowLeft, Printer, Trash2, AlertCircle, ShieldCheck, Edit, Copy, ClipboardCheck, ArrowUpRight, ArrowDownLeft, Wallet, Landmark, TrendingUp, Info, X, ChevronDown, Check, FileSpreadsheet, Send, Zap, Layers } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
@@ -273,6 +273,18 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
             return prev.map(item => item.modelId === targetModelId ? { ...item, serials: [...item.serials, serial] } : item);
         }
         return [...prev, { modelId: targetModelId, serials: [serial], price }];
+    });
+  };
+
+  const handleAutoPickStock = () => {
+    allBillingProducts.forEach((prod: any) => {
+      const readyUnits = availableStock.filter((fg: any) => matchFgToProduct(fg, prod));
+      if (readyUnits.length > 0) {
+        const firstUnpicked = readyUnits.find((ru: any) => !cart.some(c => c.serials.includes(ru.serial))) || readyUnits[0];
+        if (firstUnpicked) {
+          addToCart(prod.id || prod.name, firstUnpicked.serial);
+        }
+      }
     });
   };
 
@@ -1331,12 +1343,28 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                            </button>
                                        )}
 
+                                       {readyUnits.length > 0 && (
+                                           <button
+                                              type="button"
+                                              onClick={() => {
+                                                  const unpicked = readyUnits.find((ru: any) => !cart.some(c => c.serials.includes(ru.serial))) || readyUnits[0];
+                                                  if (unpicked) {
+                                                      addToCart(product.id || product.name, unpicked.serial);
+                                                  }
+                                              }}
+                                              className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 py-1.5 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-wider border border-emerald-200 transition-all flex items-center gap-1 cursor-pointer"
+                                              title="Quickly add 1 unit to invoice matrix clipboard"
+                                           >
+                                               <Plus size={11} /> Quick Add 1 Unit
+                                           </button>
+                                       )}
+
                                        <button 
                                           onClick={() => { 
                                               setActiveModelForStock(product.id); 
                                               setIsSelectingStock(true); 
                                           }}
-                                          className="bg-white text-primary-600 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border border-primary-100 hover:bg-primary-600 hover:text-white transition-all shadow-xs active:scale-95"
+                                          className="bg-white text-primary-600 py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider border border-primary-100 hover:bg-primary-600 hover:text-white transition-all shadow-xs active:scale-95 cursor-pointer"
                                        >
                                           Pick Serials
                                        </button>
@@ -1387,7 +1415,30 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                               })}
                               {cart.length === 0 && (
                                   <tr>
-                                      <td colSpan={5} className="p-8 text-center text-slate-400 font-bold uppercase tracking-widest py-10">Matrix clipboard is currently empty. Pick units above.</td>
+                                      <td colSpan={5} className="p-6 text-center py-8 bg-slate-50/50 rounded-xl">
+                                          <div className="max-w-md mx-auto space-y-2.5">
+                                              <div className="inline-flex items-center justify-center p-2.5 bg-amber-50 rounded-full border border-amber-200/60 text-amber-600">
+                                                  <Layers size={20} />
+                                              </div>
+                                              <p className="text-xs font-black text-slate-700 uppercase tracking-wider">
+                                                  Matrix Clipboard Is Currently Empty
+                                              </p>
+                                              <p className="text-[11px] font-medium text-slate-500 leading-relaxed font-sans">
+                                                  No battery serial numbers have been assigned to this draft invoice yet. Click <span className="font-bold text-primary-700 font-mono">"PICK SERIALS"</span> above or use the quick button below to assign ready units.
+                                              </p>
+                                              {availableStock.length > 0 && (
+                                                  <div className="pt-1">
+                                                      <button
+                                                          type="button"
+                                                          onClick={handleAutoPickStock}
+                                                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer font-sans"
+                                                      >
+                                                          <Zap size={13} className="fill-white" /> Quick Auto-Pick Available Stock
+                                                      </button>
+                                                  </div>
+                                              )}
+                                          </div>
+                                      </td>
                                   </tr>
                               )}
                            </tbody>

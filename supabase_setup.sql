@@ -112,6 +112,42 @@ CREATE TABLE IF NOT EXISTS public.wip_inventory (
 );
 
 -- -------------------------------------------------------------------------
+-- TABLE 5A: WIP PROCESS STAGES REGISTRY
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.wip_process_stages (
+  id text PRIMARY KEY,
+  code text NOT NULL UNIQUE,
+  name text NOT NULL,
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- -------------------------------------------------------------------------
+-- TABLE 5B: PROCESS INITIATION & MATERIAL ISSUES
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.process_initiations (
+  id text PRIMARY KEY,
+  inventory_target_type text NOT NULL,
+  magnitude_count numeric DEFAULT 0,
+  initial_wip_stage text NOT NULL,
+  components jsonb DEFAULT '[]'::jsonb,
+  status text DEFAULT 'INITIATED',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- -------------------------------------------------------------------------
+-- TABLE 5C: MRP MATERIALS CALCULATOR
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.mrp_calculations (
+  id text PRIMARY KEY,
+  battery_model text NOT NULL,
+  scheduled_batch_qty numeric DEFAULT 0,
+  allocated_components jsonb DEFAULT '[]'::jsonb,
+  status text DEFAULT 'SIMULATED',
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+-- -------------------------------------------------------------------------
 -- TABLE 6: BLUEPRINT CATEGORIES (INVENTORY & NODE GROUP MAPPINGS)
 -- -------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.categories (
@@ -449,6 +485,9 @@ ALTER TABLE public.warehouses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.graded_cells ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wip_inventory ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.wip_process_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.process_initiations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrp_calculations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bom_blueprints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.lead_inquiries ENABLE ROW LEVEL SECURITY;
@@ -718,6 +757,24 @@ CREATE POLICY "Allow public select" ON public.procurement_entries FOR SELECT USI
 CREATE POLICY "Allow public insert" ON public.procurement_entries FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public update" ON public.procurement_entries FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public delete" ON public.procurement_entries FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 21. wip_process_stages
+CREATE POLICY "Allow public select" ON public.wip_process_stages FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.wip_process_stages FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.wip_process_stages FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.wip_process_stages FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 22. process_initiations
+CREATE POLICY "Allow public select" ON public.process_initiations FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.process_initiations FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.process_initiations FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.process_initiations FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 23. mrp_calculations
+CREATE POLICY "Allow public select" ON public.mrp_calculations FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.mrp_calculations FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.mrp_calculations FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.mrp_calculations FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
 
 -- -------------------------------------------------------------------------
 -- SECURITY HARDENING: SECURE EXISTING FUNCTIONS
