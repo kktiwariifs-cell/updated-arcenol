@@ -283,7 +283,9 @@ export const Warranty: React.FC = () => {
                       const complaints = data?.complaints.filter((c:any) => c.serial === w.serial);
                       return (
                         <tr key={w.id} className="hover:bg-slate-50 transition-colors">
-                           <td className="px-6 py-4 font-mono text-sm font-bold text-primary-600">{w.serial}</td>
+                           <td className="px-6 py-4 font-mono text-sm font-bold text-primary-600">
+                              <FormattedSerial serial={w.serial} />
+                           </td>
                            <td className="px-6 py-4">
                               <p className="font-bold text-sm text-slate-900">{dealer?.company || 'Direct Sale'}</p>
                               <p className="text-[10px] text-slate-400">Activated: {w.startDate}</p>

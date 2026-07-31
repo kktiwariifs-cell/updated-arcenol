@@ -22,6 +22,81 @@ import {
   mapBomBlueprint
 } from "./src/lib/serverSupabaseSync";
 
+function normalizeToRevisedSerial(serial: string): string {
+  if (!serial) return 'AESPL  EV  31G26001044';
+  const clean = String(serial).trim();
+
+  // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26001044" or "AESPL EV 28G26001044"
+  const spaceMatch = clean.match(/^AESPL\s+([A-Z0-9]+)\s+([0-9]{2}[A-Z][0-9]{2,8})$/i);
+  if (spaceMatch) {
+    const grade = spaceMatch[1].toUpperCase();
+    const suffix = spaceMatch[2].toUpperCase();
+    return `AESPL  ${grade}  ${suffix}`;
+  }
+
+  // Handle hyphenated pattern e.g. "AESPL-BATNEXT200-26-1265" or "AESPL-72V30A-2026-9790" or "AESPL-EV-26-1265"
+  const hyphenParts = clean.split('-');
+  if (hyphenParts.length >= 2 && hyphenParts[0].toUpperCase() === 'AESPL') {
+    const modelOrGrade = hyphenParts[1].toUpperCase();
+    let grade = 'EV';
+    if (modelOrGrade.includes('AUTO')) grade = 'AUTO';
+    else if (modelOrGrade.includes('INV') || modelOrGrade.includes('NEXT') || modelOrGrade.includes('SOLAR') || modelOrGrade.includes('INVERTER') || modelOrGrade.includes('BATNEXT')) grade = 'INV';
+    else if (modelOrGrade.includes('ESS')) grade = 'ESS';
+    else if (modelOrGrade.includes('VRLA')) grade = 'VRLA';
+    else if (modelOrGrade.includes('EV') || modelOrGrade.includes('72V') || modelOrGrade.includes('LIT') || modelOrGrade.includes('BIKE')) grade = 'EV';
+    else {
+      grade = modelOrGrade.replace(/[^A-Z]/g, '').slice(0, 4) || 'EV';
+    }
+
+    const rest = hyphenParts.slice(2).join('');
+    const digits = rest.replace(/[^0-9]/g, '');
+    let year = '26';
+    let seq = digits;
+    if (digits.length >= 6) {
+      seq = digits.slice(-6);
+    } else if (digits.length > 0) {
+      seq = digits.padStart(6, '0');
+    } else {
+      seq = '001044';
+    }
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const monthChar = String.fromCharCode(65 + now.getMonth());
+
+    return `AESPL  ${grade}  ${day}${monthChar}${year}${seq}`;
+  }
+
+  // Handle ARC- style: e.g. "ARC-72V30A-2026-183880"
+  const arcParts = clean.split('-');
+  if (arcParts.length >= 2 && arcParts[0].toUpperCase() === 'ARC') {
+    const modelOrGrade = arcParts[1].toUpperCase();
+    let grade = 'EV';
+    if (modelOrGrade.includes('AUTO')) grade = 'AUTO';
+    else if (modelOrGrade.includes('INV') || modelOrGrade.includes('NEXT') || modelOrGrade.includes('SOLAR')) grade = 'INV';
+    else if (modelOrGrade.includes('VRLA')) grade = 'VRLA';
+    else if (modelOrGrade.includes('ESS')) grade = 'ESS';
+
+    const rest = arcParts.slice(2).join('');
+    const digits = rest.replace(/[^0-9]/g, '');
+    const seq = digits ? digits.slice(-6).padStart(6, '0') : '001044';
+
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const monthChar = String.fromCharCode(65 + now.getMonth());
+
+    return `AESPL  ${grade}  ${day}${monthChar}26${seq}`;
+  }
+
+  // Unspaced pattern e.g. "AESPLEV28G26001044" or "AESPLINV31G26001265"
+  const unspaced = clean.match(/^AESPL([A-Z]{2,4})(\d{2}[A-Z]\d+)$/i);
+  if (unspaced) {
+    return `AESPL  ${unspaced[1].toUpperCase()}  ${unspaced[2].toUpperCase()}`;
+  }
+
+  return clean;
+}
+
 function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | string): string {
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
@@ -32,7 +107,7 @@ function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | str
   if (gradeStr) {
     const upper = String(gradeStr).toUpperCase();
     if (upper.includes("AUTO")) gradeTag = "AUTO";
-    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER")) gradeTag = "INV";
+    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT")) gradeTag = "INV";
     else if (upper.includes("ESS")) gradeTag = "ESS";
     else if (upper.includes("VRLA")) gradeTag = "VRLA";
     else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
@@ -239,6 +314,13 @@ async function startServer() {
     warranty: [
       { id: "w1", serial: "AESPL  EV  28G26001044", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
       { id: "w2", serial: "AESPL  EV  28G26001045", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w3", serial: "AESPL  INV  31G260001265", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w4", serial: "AESPL  INV  31G260005059", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w5", serial: "AESPL  INV  31G260009790", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w6", serial: "AESPL  INV  31G260003265", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w7", serial: "AESPL  INV  31G260001814", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w8", serial: "AESPL  INV  31G260007532", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w9", serial: "AESPL  INV  31G260004192", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
     ],
     complaints: [
       { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
@@ -2198,8 +2280,9 @@ async function startServer() {
 
   // --- DIRECT SYNC GATEWAY ENDPOINTS ---
   app.post("/api/sync/customer/register-warranty", (req, res) => {
-    const { serial, customerName, email, phone } = req.body;
-    if (!serial) return res.status(400).json({ error: "Serial is required" });
+    const { serial: rawSerial, customerName, email, phone } = req.body;
+    if (!rawSerial) return res.status(400).json({ error: "Serial is required" });
+    const serial = normalizeToRevisedSerial(rawSerial);
 
     // Validate or create finished good
     let fg = db.finishedGoods.find(item => item.serial === serial);
