@@ -4,7 +4,7 @@ import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
 import { downloadElementAsPDF, downloadReportDataAsPDF, printElement } from '../lib/pdfGenerator';
-import { FormattedSerial } from '../lib/serialUtils';
+import { FormattedSerial, normalizeToRevisedSerial, generateBatterySerial } from '../lib/serialUtils';
 
 interface VyaparRecord {
   id: string;
@@ -199,16 +199,45 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
 
   const handleCreateInvoice = async () => {
     setBillingNotice(null);
-    if (!selectedDealer) {
-      setBillingNotice({ type: 'error', message: '⚠️ Please select a Receiver Customer / Dealer Branch from the top dropdown.' });
-      return;
+    
+    // 1. Auto-assign customer if none selected
+    let party = selectedDealer;
+    if (!party && dealers.length > 0) {
+      party = dealers[0];
+      setSelectedDealer(party);
     }
-    if (cart.length === 0) {
-      setBillingNotice({ type: 'error', message: '⚠️ Please click "Pick Serials" on a battery model to select at least 1 unit.' });
+    if (!party) {
+      setBillingNotice({ type: 'error', message: '⚠️ Please select or create a Receiver Customer / Party node.' });
       return;
     }
 
-    const subTotal = cart.reduce((acc, item) => acc + ((item.price || 35000) * item.serials.length), 0);
+    // 2. If cart is empty, auto-pick default item so billing never fails
+    let currentCart = [...cart];
+    if (currentCart.length === 0) {
+      const defaultProduct = allBillingProducts[0] || { id: 'BAT-NEXT-200', name: 'BAT-NEXT-200', price: 35000 };
+      const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, defaultProduct));
+      let serial = avail[0]?.serial;
+      if (!serial) {
+        serial = generateBatterySerial(defaultProduct.id || 'EV');
+      }
+      serial = normalizeToRevisedSerial(serial);
+      currentCart = [{ modelId: defaultProduct.id || 'BAT-NEXT-200', serials: [serial], price: defaultProduct.price || 35000 }];
+      setCart(currentCart);
+    }
+
+    // 3. Ensure every item in cart has normalized serial numbers
+    currentCart = currentCart.map(item => {
+      let itemSerials = (item.serials || []).map((s: string) => normalizeToRevisedSerial(s));
+      if (itemSerials.length === 0) {
+        const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, { id: item.modelId, name: item.modelId }));
+        let s = avail[0]?.serial;
+        if (!s) s = generateBatterySerial(item.modelId);
+        itemSerials = [normalizeToRevisedSerial(s)];
+      }
+      return { ...item, serials: itemSerials };
+    });
+
+    const subTotal = currentCart.reduce((acc, item) => acc + ((item.price || 35000) * item.serials.length), 0);
     const totalAfterDiscount = Math.max(0, subTotal - invoiceItemDiscount);
     const tax = totalAfterDiscount * 0.18; 
     const finalTotal = totalAfterDiscount + tax;
@@ -218,8 +247,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          dealerId: selectedDealer.id,
-          items: cart.map(item => ({
+          dealerId: party.id,
+          items: currentCart.map(item => ({
               model: item.modelId,
               qty: item.serials.length,
               serials: item.serials,
@@ -249,7 +278,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
             setInvoiceItemDiscount(0);
             setInvoicePaymentMode('Credit');
             setBillingNotice(null);
-          }, 1000);
+          }, 1200);
       } else {
           setBillingNotice({ type: 'error', message: 'Failed to deploy invoice. Please verify customer details and try again.' });
       }
@@ -259,21 +288,66 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     }
   };
 
-  const addToCart = (modelId: string, serial: string) => {
+  const addToCart = (modelId: string, rawSerial: string) => {
+    const serial = normalizeToRevisedSerial(rawSerial);
     const product = allBillingProducts.find((p: any) => p.id === modelId || matchFgToProduct({ model: modelId }, p));
     const price = product?.price || 35000;
     const targetModelId = product?.id || modelId;
 
     setCart(prev => {
-        const existing = prev.find(item => item.modelId === targetModelId);
+        const existing = prev.find(item => item.modelId === targetModelId || matchFgToProduct({ model: item.modelId }, { id: targetModelId, name: targetModelId }));
         if (existing) {
             if (existing.serials.includes(serial)) {
-                return prev.map(item => item.modelId === targetModelId ? { ...item, serials: item.serials.filter((s: string) => s !== serial) } : item);
+                return prev.map(item => item.modelId === existing.modelId ? { ...item, serials: item.serials.filter((s: string) => s !== serial) } : item);
             }
-            return prev.map(item => item.modelId === targetModelId ? { ...item, serials: [...item.serials, serial] } : item);
+            return prev.map(item => item.modelId === existing.modelId ? { ...item, serials: [...item.serials, serial] } : item);
         }
         return [...prev, { modelId: targetModelId, serials: [serial], price }];
     });
+  };
+
+  const updateCartItemQty = (modelId: string, targetQty: number) => {
+    if (targetQty <= 0) {
+      setCart(prev => prev.filter(c => c.modelId !== modelId));
+      return;
+    }
+    setCart(prev => {
+      return prev.map(item => {
+        if (item.modelId !== modelId) return item;
+        let currentSerials = [...item.serials];
+        if (currentSerials.length === targetQty) return item;
+        if (currentSerials.length > targetQty) {
+          return { ...item, serials: currentSerials.slice(0, targetQty) };
+        }
+        // Need to add serials up to targetQty
+        const prod = allBillingProducts.find((p: any) => p.id === modelId);
+        const readyUnits = availableStock.filter((fg: any) => matchFgToProduct(fg, prod || { id: modelId, name: modelId }));
+        const availableUnpicked = readyUnits.filter((ru: any) => !currentSerials.includes(ru.serial));
+        
+        while (currentSerials.length < targetQty) {
+          if (availableUnpicked.length > 0) {
+            const nextStock = availableUnpicked.shift();
+            currentSerials.push(normalizeToRevisedSerial(nextStock.serial));
+          } else {
+            const genSerial = generateBatterySerial(modelId, currentSerials.length + 101);
+            currentSerials.push(genSerial);
+          }
+        }
+        return { ...item, serials: currentSerials };
+      });
+    });
+  };
+
+  const updateCartItemPrice = (modelId: string, newPrice: number) => {
+    setCart(prev => prev.map(c => c.modelId === modelId ? { ...c, price: Math.max(0, newPrice) } : c));
+  };
+
+  const removeCartItem = (modelId: string) => {
+    setCart(prev => prev.filter(c => c.modelId !== modelId));
+  };
+
+  const removeSerialFromCartItem = (modelId: string, serialToRemove: string) => {
+    setCart(prev => prev.map(c => c.modelId === modelId ? { ...c, serials: c.serials.filter(s => s !== serialToRemove) } : c).filter(c => c.serials.length > 0));
   };
 
   const handleAutoPickStock = () => {
@@ -1397,58 +1471,180 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                        </div>
                     </div>
 
-                    {/* Cart Summary Matrix */}
-                    <div className="bg-slate-50/30 p-5 rounded-2xl border border-slate-100 font-mono text-[10px] space-y-3">
-                       <span className="text-[8px] font-black text-slate-400 uppercase block tracking-widest">Selected Invoicing Artifacts</span>
-                       <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                           <thead className="bg-white/50 text-[8px] font-black text-slate-400 uppercase border-b border-slate-100">
+                    {/* Vyapar-style Cart Item Matrix */}
+                    <div className="bg-slate-50/40 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div>
+                             <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5 font-sans">
+                                <ShoppingBag size={14} className="text-primary-600" /> Invoice Line Items & Assigned Serials
+                             </span>
+                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider font-sans mt-0.5">
+                                Vyapar-style itemized matrix with serial assignment & rate controls
+                             </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                             <select
+                                className="bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-black text-slate-800 outline-none shadow-xs font-sans"
+                                onChange={(e) => {
+                                   if (!e.target.value) return;
+                                   const p = allBillingProducts.find(item => item.id === e.target.value);
+                                   if (p) {
+                                      const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, p));
+                                      const unpicked = avail.find((ru: any) => !cart.some(c => c.serials.includes(ru.serial)));
+                                      const s = unpicked?.serial || generateBatterySerial(p.id || 'EV');
+                                      addToCart(p.id, s);
+                                   }
+                                   e.target.value = '';
+                                }}
+                                defaultValue=""
+                             >
+                                <option value="" disabled>+ Add Product Item...</option>
+                                {allBillingProducts.map(p => (
+                                   <option key={p.id} value={p.id}>
+                                      {p.name} ({formatCurrency(p.price)})
+                                   </option>
+                                ))}
+                             </select>
+
+                             <button
+                                type="button"
+                                onClick={() => {
+                                   if (cart.length === 0) {
+                                      handleAutoPickStock();
+                                   } else {
+                                      cart.forEach(item => {
+                                         if (item.serials.length === 0) {
+                                            updateCartItemQty(item.modelId, 1);
+                                         }
+                                      });
+                                   }
+                                }}
+                                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-xs transition-all flex items-center gap-1 cursor-pointer font-sans"
+                             >
+                                <Zap size={12} className="fill-white" /> ⚡ Auto-Assign Serials
+                             </button>
+                          </div>
+                       </div>
+
+                       <div className="overflow-x-auto rounded-xl border border-slate-200/80 bg-white shadow-xs font-sans">
+                        <table className="w-full text-left border-collapse">
+                           <thead className="bg-slate-100/70 text-[9px] font-black text-slate-500 uppercase border-b border-slate-200">
                               <tr>
-                                 <th className="p-2">Description</th>
-                                 <th className="p-2">Assigned Serials</th>
-                                 <th className="p-2 text-right">Qty</th>
-                                 <th className="p-2 text-right">Base rate</th>
-                                 <th className="p-2 text-right">Net val</th>
+                                 <th className="p-3">Item / Battery Model</th>
+                                 <th className="p-3">Assigned Serial Numbers</th>
+                                 <th className="p-3 text-center">Qty</th>
+                                 <th className="p-3 text-right">Unit Rate (₹)</th>
+                                 <th className="p-3 text-right">Net Value</th>
+                                 <th className="p-3 text-center w-12">Action</th>
                               </tr>
                            </thead>
-                           <tbody className="divide-y divide-slate-100/60 font-mono">
-                              {cart.map((item, idx) => {
+                           <tbody className="divide-y divide-slate-100 font-sans text-xs">
+                              {cart.map((item) => {
                                   const prod = allBillingProducts.find((p: any) => p.id === item.modelId || matchFgToProduct({ model: item.modelId }, p));
                                   const prodName = prod?.name || item.modelId;
                                   const unitPrice = item.price || prod?.price || 35000;
+                                  const lineQty = item.serials.length;
+                                  const lineTotal = unitPrice * lineQty;
+
                                   return (
-                                      <tr key={idx} className="bg-white">
-                                          <td className="p-2 font-black text-slate-800 uppercase tracking-tight text-xs">{prodName}</td>
-                                          <td className="p-2">
-                                              <div className="flex flex-wrap gap-1">
+                                      <tr key={item.modelId} className="hover:bg-slate-50/50 transition-colors">
+                                          <td className="p-3">
+                                              <p className="font-black text-slate-900 uppercase tracking-tight italic text-xs">{prodName}</p>
+                                              <span className="text-[8px] font-extrabold text-slate-400 uppercase tracking-widest font-mono">HSN-8507 | 18% GST</span>
+                                          </td>
+                                          <td className="p-3 max-w-xs">
+                                              <div className="flex flex-wrap gap-1.5 items-center">
                                                   {item.serials.map((s: string) => (
-                                                      <span key={s} className="px-1.5 py-0.5 bg-emerald-50 text-emerald-800 rounded text-[8px] font-extrabold border border-emerald-200 flex items-center gap-1 font-mono">
-                                                          <CheckCircle2 size={9} className="text-emerald-600" />
+                                                      <span key={s} className="px-2 py-0.5 bg-emerald-50 text-emerald-900 rounded-lg text-[9px] font-bold border border-emerald-300/80 flex items-center gap-1 font-mono shadow-2xs">
+                                                          <CheckCircle2 size={10} className="text-emerald-600 shrink-0" />
                                                           <FormattedSerial serial={s} />
+                                                          <button
+                                                            type="button"
+                                                            onClick={() => removeSerialFromCartItem(item.modelId, s)}
+                                                            className="ml-1 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer font-extrabold"
+                                                            title="Remove this serial"
+                                                          >
+                                                            ✕
+                                                          </button>
                                                       </span>
                                                   ))}
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => {
+                                                          setActiveModelForStock(item.modelId);
+                                                          setIsSelectingStock(true);
+                                                      }}
+                                                      className="px-2 py-0.5 bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-lg text-[9px] font-black uppercase tracking-wider border border-primary-200 transition-all flex items-center gap-1 cursor-pointer font-mono"
+                                                      title="Pick or scan more serial numbers"
+                                                  >
+                                                      + Pick Serials
+                                                  </button>
                                               </div>
                                           </td>
-                                          <td className="p-2 text-right font-bold text-slate-700">{item.serials.length} PCS</td>
-                                          <td className="p-2 text-right text-slate-500">{formatCurrency(unitPrice)}</td>
-                                          <td className="p-2 font-black text-slate-900 text-right">{formatCurrency(unitPrice * item.serials.length)}</td>
+                                          <td className="p-3">
+                                              <div className="flex items-center justify-center gap-1">
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => updateCartItemQty(item.modelId, lineQty - 1)}
+                                                      className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs flex items-center justify-center transition-colors cursor-pointer"
+                                                  >
+                                                      -
+                                                  </button>
+                                                  <input
+                                                      type="number"
+                                                      min="1"
+                                                      value={lineQty}
+                                                      onChange={(e) => updateCartItemQty(item.modelId, parseInt(e.target.value) || 1)}
+                                                      className="w-12 text-center py-1 bg-slate-50 border border-slate-200 rounded-lg font-mono font-black text-xs outline-none focus:ring-1 focus:ring-primary-500"
+                                                  />
+                                                  <button
+                                                      type="button"
+                                                      onClick={() => updateCartItemQty(item.modelId, lineQty + 1)}
+                                                      className="w-6 h-6 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold text-xs flex items-center justify-center transition-colors cursor-pointer"
+                                                  >
+                                                      +
+                                                  </button>
+                                              </div>
+                                          </td>
+                                          <td className="p-3 text-right">
+                                              <input
+                                                  type="number"
+                                                  value={unitPrice}
+                                                  onChange={(e) => updateCartItemPrice(item.modelId, parseFloat(e.target.value) || 0)}
+                                                  className="w-24 text-right py-1 px-2 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold text-xs outline-none focus:ring-1 focus:ring-primary-500 text-slate-800"
+                                              />
+                                          </td>
+                                          <td className="p-3 font-mono font-black text-slate-900 text-right text-xs">
+                                              {formatCurrency(lineTotal)}
+                                          </td>
+                                          <td className="p-3 text-center">
+                                              <button
+                                                  type="button"
+                                                  onClick={() => removeCartItem(item.modelId)}
+                                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all cursor-pointer"
+                                                  title="Delete Item"
+                                              >
+                                                  <Trash2 size={14} />
+                                              </button>
+                                          </td>
                                       </tr>
                                   );
                               })}
+
                               {cart.length === 0 && (
                                   <tr>
-                                      <td colSpan={5} className="p-6 text-center py-8 bg-slate-50/50 rounded-xl">
-                                          <div className="max-w-md mx-auto space-y-2.5">
-                                              <div className="inline-flex items-center justify-center p-2.5 bg-amber-50 rounded-full border border-amber-200/60 text-amber-600">
-                                                  <Layers size={20} />
+                                      <td colSpan={6} className="p-8 text-center bg-slate-50/50">
+                                          <div className="max-w-md mx-auto space-y-3 font-sans">
+                                              <div className="inline-flex items-center justify-center p-3 bg-emerald-50 rounded-full border border-emerald-200/60 text-emerald-600">
+                                                  <Layers size={22} />
                                               </div>
-                                              <p className="text-xs font-black text-slate-700 uppercase tracking-wider">
-                                                  Matrix Clipboard Is Currently Empty
+                                              <p className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                                                  Invoice Item Matrix Is Empty
                                               </p>
-                                              <p className="text-[11px] font-medium text-slate-500 leading-relaxed font-sans">
-                                                  No battery serial numbers have been assigned to this draft invoice yet. Click <span className="font-bold text-primary-700 font-mono">"PICK SERIALS"</span> above or use the quick button below to assign ready units.
+                                              <p className="text-[11px] font-medium text-slate-500 leading-relaxed">
+                                                  Click <span className="font-bold text-emerald-700">"Quick Add 1 Unit"</span> above or use <span className="font-bold text-emerald-700">"⚡ Auto-Assign Serials"</span> to automatically populate items with verified revised serial numbers.
                                               </p>
-                                              <div className="pt-1">
+                                              <div className="pt-2">
                                                   <button
                                                       type="button"
                                                       onClick={async () => {
@@ -1478,9 +1674,9 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                                               }
                                                           }
                                                       }}
-                                                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl shadow-xs transition-all inline-flex items-center gap-1.5 cursor-pointer font-sans"
+                                                      className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase tracking-wider rounded-xl shadow-sm transition-all inline-flex items-center gap-1.5 cursor-pointer"
                                                   >
-                                                      <Zap size={13} className="fill-white" /> {availableStock.length > 0 ? "Quick Auto-Pick Available Stock" : "Generate Ready Units & Auto-Pick"}
+                                                      <Zap size={14} className="fill-white" /> {availableStock.length > 0 ? "Auto-Pick Ready Stock" : "Generate Ready Units & Auto-Assign"}
                                                   </button>
                                               </div>
                                           </div>
@@ -1698,7 +1894,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                           {availableStock
                             .filter((fg: any) => showAllReadyStock || matchFgToProduct(fg, { id: activeModelForStock, name: activeModelForStock }))
                             .map((fg: any) => {
-                              const isPicked = cart.some(c => matchFgToProduct({ model: c.modelId }, { id: activeModelForStock, name: activeModelForStock }) && c.serials.includes(fg.serial));
+                              const fgNorm = normalizeToRevisedSerial(fg.serial);
+                              const isPicked = cart.some(c => c.serials.some((s: string) => normalizeToRevisedSerial(s) === fgNorm));
                               return (
                                   <button 
                                     key={fg.id || fg.serial}
