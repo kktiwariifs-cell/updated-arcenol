@@ -8,7 +8,7 @@ import { FormattedSerial, normalizeToRevisedSerial, generateBatterySerial } from
 
 interface VyaparRecord {
   id: string;
-  type: 'Payment-In' | 'Purchase' | 'Expense';
+  type: 'Payment-In' | 'Payment-Out' | 'Purchase' | 'Expense';
   partyId: string;
   partyName: string;
   date: string;
@@ -35,8 +35,57 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const vyaparRecords = data?.vyaparRecords || [];
 
   // Modal controls
-  const [modalType, setModalType] = useState<'Payment-In' | 'Purchase' | 'Expense' | null>(null);
+  const [modalType, setModalType] = useState<'Payment-In' | 'Payment-Out' | 'Purchase' | 'Expense' | null>(null);
   const [selectedPartyForLedger, setSelectedPartyForLedger] = useState<string | null>(null);
+
+  // Vyapar Friendly Features State
+  const [invoiceFreightCharge, setInvoiceFreightCharge] = useState<number>(0);
+  const [invoicePackagingCharge, setInvoicePackagingCharge] = useState<number>(0);
+  const [invoicePaymentTerms, setInvoicePaymentTerms] = useState<'Due on Receipt' | 'Net 7 Days' | 'Net 15 Days' | 'Net 30 Days'>('Due on Receipt');
+  const [invoicePrintLayout, setInvoicePrintLayout] = useState<'A4' | 'Thermal'>('A4');
+  const [barcodeScanInput, setBarcodeScanInput] = useState<string>('');
+  const [scanFeedback, setScanFeedback] = useState<string | null>(null);
+
+  // WhatsApp & SMS Helper Functions
+  const shareOnWhatsApp = (phone: string, text: string) => {
+    const cleaned = (phone || '').replace(/[^0-9]/g, '');
+    const num = cleaned.length === 10 ? `91${cleaned}` : cleaned || '919876543210';
+    const url = `https://wa.me/${num}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const shareViaSMS = (phone: string, text: string) => {
+    const cleaned = (phone || '').replace(/[^0-9]/g, '');
+    const url = `sms:${cleaned}?body=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  const openPaymentOutModal = (partyId?: string) => {
+    setModalType('Payment-Out');
+    setTxForm({ partyId: partyId || '', partyName: '', amount: '', mode: 'Bank', status: 'PAID', remarks: '', category: 'Vendor Payout' });
+  };
+
+  const handleBarcodeScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && barcodeScanInput.trim()) {
+      e.preventDefault();
+      const query = barcodeScanInput.trim().toUpperCase();
+      const matchedFg = availableStock.find((fg: any) => 
+        (fg.serial && fg.serial.toUpperCase() === query) ||
+        (fg.model && fg.model.toUpperCase() === query)
+      );
+      
+      if (matchedFg) {
+        const prod = allBillingProducts.find((p: any) => matchFgToProduct(matchedFg, p)) || { id: matchedFg.model, name: matchedFg.model };
+        addToCart(prod.id || matchedFg.model, matchedFg.serial);
+        setScanFeedback(`✓ Added ${matchedFg.model} (SN: ${matchedFg.serial})`);
+        setBarcodeScanInput('');
+        setTimeout(() => setScanFeedback(null), 3000);
+      } else {
+        setScanFeedback(`⚠️ Serial/Model "${query}" not found in ready stock.`);
+        setTimeout(() => setScanFeedback(null), 3000);
+      }
+    }
+  };
   
   // Create transaction form state
   const [txForm, setTxForm] = useState({
@@ -489,7 +538,19 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
         remarks: rec.remarks || 'Collected Payment'
       }));
 
-    const merged = [...partySales, ...partyPayments].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const partyPaymentsOut = vyaparRecords
+      .filter((rec: any) => rec.type === 'Payment-Out' && rec.partyId === partyId)
+      .map((rec: any) => ({
+        id: rec.id,
+        date: rec.date,
+        type: 'Payment-Out',
+        amount: rec.amount,
+        mode: rec.mode,
+        status: 'PAID',
+        remarks: rec.remarks || 'Vendor Payout / Refund'
+      }));
+
+    const merged = [...partySales, ...partyPayments, ...partyPaymentsOut].sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     let running = 0;
     return merged.map((t: any) => {
@@ -497,6 +558,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
         running += t.amount;
       } else if (t.type === 'Payment-In') {
         running -= t.amount;
+      } else if (t.type === 'Payment-Out') {
+        running += t.amount;
       }
       return { ...t, runningBalance: running };
     });
@@ -517,15 +580,16 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     }
 
     let finalPartyName = txForm.partyName;
-    if (modalType === 'Payment-In') {
+    if (modalType === 'Payment-In' || modalType === 'Payment-Out') {
       const match = dealers.find(d => d.id === txForm.partyId);
-      finalPartyName = match ? match.company : 'Walk-In Customer';
+      finalPartyName = match ? match.company : txForm.partyName || 'Customer / Vendor Party';
     }
 
+    const prefix = modalType === 'Payment-In' ? 'PAY' : modalType === 'Payment-Out' ? 'POUT' : modalType === 'Purchase' ? 'PUR' : 'EXP';
     const newRec: VyaparRecord = {
-      id: `${modalType === 'Payment-In' ? 'PAY' : modalType === 'Purchase' ? 'PUR' : 'EXP'}-${Date.now()}`,
+      id: `${prefix}-${Date.now()}`,
       type: modalType!,
-      partyId: modalType === 'Payment-In' ? txForm.partyId : 'external',
+      partyId: (modalType === 'Payment-In' || modalType === 'Payment-Out') ? txForm.partyId : 'external',
       partyName: finalPartyName || 'General Party',
       amount: Number(txForm.amount),
       date: new Date().toISOString().split('T')[0],
@@ -594,7 +658,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
       if (rec.type === 'Payment-In') {
         if (rec.mode === 'Cash') cash += rec.amount;
         else bank += rec.amount;
-      } else if (rec.type === 'Expense' || rec.type === 'Purchase') {
+      } else if (rec.type === 'Expense' || rec.type === 'Purchase' || rec.type === 'Payment-Out') {
         if (rec.status === 'PAID') {
           if (rec.mode === 'Cash') cash -= rec.amount;
           else bank -= rec.amount;
@@ -700,10 +764,16 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                 <Plus size={12} /> Sale Invoice
               </button>
               <button 
-                onClick={() => setModalType('Payment-In')} 
-                className="px-4 py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+                onClick={() => openPaymentInModal()} 
+                className="px-4 py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Payment In
+              </button>
+              <button 
+                onClick={() => openPaymentOutModal()} 
+                className="px-4 py-3 bg-rose-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-rose-500/10 cursor-pointer"
+              >
+                <Plus size={12} /> Payment Out
               </button>
               <button 
                 onClick={() => setModalType('Purchase')} 
@@ -1194,14 +1264,14 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
-                                const itemsSummary = ledger.map(item => `${item.date}: ${item.type} of ${formatCurrency(item.amount)} (${item.remarks})`).join('\n');
-                                const totalMsg = `LEDGER STATEMENT FOR ${dl?.company}\nDate: ${new Date().toLocaleDateString()}\nOutstanding Balance: ${formatCurrency(bal)}\n\nStatements:\n${itemsSummary}\n\nPlease settle any due invoice outstanding. Direct UPI payments accepted. Thank you.`;
-                                navigator.clipboard.writeText(totalMsg);
-                                alert("Full double-entry Party Ledger statement copied to system clipboard! You can paste in WhatsApp/Email to send directly.");
+                                const itemsSummary = ledger.map(item => `• ${item.date}: ${item.type} of ${formatCurrency(item.amount)} (${item.remarks})`).join('\n');
+                                const totalMsg = `*LEDGER STATEMENT FOR ${dl?.company}*\nDate: ${new Date().toLocaleDateString()}\nOutstanding Balance: *${formatCurrency(bal)}*\n\n*Recent Transactions:*\n${itemsSummary}\n\nPlease arrange settlement for pending dues. Thank you!`;
+                                shareOnWhatsApp(dl?.phone || '9876543210', totalMsg);
                               }}
-                              className="px-3 py-2 border border-slate-200 hover:bg-slate-50 text-[10px] font-black uppercase hover:text-slate-900 transition-colors rounded-lg flex items-center gap-1"
+                              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase rounded-lg shadow-xs flex items-center gap-1 cursor-pointer"
+                              title="Send WhatsApp Payment Reminder Statement"
                             >
-                              <Send size={10} className="text-slate-450" /> Send Reminder Statement
+                              <Send size={10} className="text-white" /> Send WhatsApp Reminder
                             </button>
                             <button
                               onClick={() => {
@@ -1739,6 +1809,27 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
 
                     {/* Vyapar-style Cart Item Matrix */}
                     <div className="bg-slate-50/40 p-5 rounded-2xl border border-slate-200/80 space-y-4">
+                       <div className="p-3 bg-emerald-500/10 rounded-xl border border-emerald-300/60 mb-3 flex flex-col sm:flex-row items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Zap size={16} className="text-emerald-700 fill-emerald-600 shrink-0" />
+                            <div className="flex-1 sm:w-80">
+                              <input
+                                type="text"
+                                value={barcodeScanInput}
+                                onChange={(e) => setBarcodeScanInput(e.target.value)}
+                                onKeyDown={handleBarcodeScan}
+                                placeholder="⚡ Scan Barcode / Serial & press Enter..."
+                                className="w-full bg-white border border-emerald-300 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/30 uppercase"
+                              />
+                            </div>
+                          </div>
+                          {scanFeedback && (
+                            <span className="text-[10px] font-black uppercase text-emerald-800 bg-white px-2.5 py-1 rounded-md border border-emerald-200 shadow-2xs">
+                              {scanFeedback}
+                            </span>
+                          )}
+                       </div>
+
                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div>
                              <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5 font-sans">
@@ -2421,9 +2512,40 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                         </div>
                       </div>
                       
-                      <div className="flex gap-2">
-                          <button onClick={() => downloadElementAsPDF("tax-invoice-printable-card", `Invoice_${selectedInvoice.id}.pdf`)} className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer" title="Download Tax Invoice as PDF File">
-                             <Download size={11} /> Download PDF
+                      <div className="flex gap-2 flex-wrap items-center">
+                          <div className="flex bg-slate-200/80 p-0.5 rounded-lg border border-slate-300 mr-1">
+                            <button 
+                              onClick={() => setInvoicePrintLayout('A4')} 
+                              className={cn("px-2.5 py-1 text-[9px] font-black uppercase rounded transition-all cursor-pointer", invoicePrintLayout === 'A4' ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900")}
+                            >
+                              📄 A4
+                            </button>
+                            <button 
+                              onClick={() => setInvoicePrintLayout('Thermal')} 
+                              className={cn("px-2.5 py-1 text-[9px] font-black uppercase rounded transition-all cursor-pointer", invoicePrintLayout === 'Thermal' ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900")}
+                            >
+                              🖨️ POS (80mm)
+                            </button>
+                          </div>
+
+                          <button 
+                            onClick={() => {
+                              const d = dealers.find(dl => dl.id === selectedInvoice.dealerId);
+                              shareOnWhatsApp(
+                                d?.phone || '9876543210', 
+                                `Dear *${d?.company || 'Valued Customer'}*,
+Tax Invoice *${selectedInvoice.id}* dated ${selectedInvoice.date} for *${formatCurrency(selectedInvoice.total || displayTotal)}* from Arcenol Energy is generated.
+Thank you!`
+                              );
+                            }} 
+                            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer" 
+                            title="Share Invoice on WhatsApp"
+                          >
+                             <Send size={11} /> WhatsApp
+                          </button>
+
+                          <button onClick={() => downloadElementAsPDF("tax-invoice-printable-card", `Invoice_${selectedInvoice.id}.pdf`)} className="px-3 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer" title="Download Tax Invoice as PDF File">
+                             <Download size={11} /> PDF
                           </button>
                           
                           <button onClick={() => printElement("tax-invoice-printable-card", { title: `Invoice_${selectedInvoice.id}` })} className="px-3 py-2 bg-slate-900 hover:brightness-110 text-white rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer" title="Print Invoice">
@@ -2488,7 +2610,86 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
 
                   {/* Tax Invoice Document Page */}
                   <div className="p-8 overflow-y-auto flex-grow bg-slate-50/50 print-section">
-                      <div id="tax-invoice-printable-card" className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm max-w-2xl mx-auto print-section print:border-none print:shadow-none print:p-0">
+                      {invoicePrintLayout === 'Thermal' ? (
+                        <div id="tax-invoice-printable-card" className="bg-white p-6 rounded-xl border border-slate-300 shadow-md max-w-[320px] mx-auto font-mono text-slate-900 text-[10px] space-y-3 print-section print:p-0 print:border-none">
+                           <div className="text-center border-b border-dashed border-slate-400 pb-3">
+                              <p className="font-black text-sm uppercase tracking-tight">{data?.businessProfile?.companyName || "ARCENOL ENERGY"}</p>
+                              <p className="text-[8px] font-bold text-slate-600 uppercase mt-0.5">Gandhinagar, Gujarat • GST: 24AAHCA9192M1ZP</p>
+                              <p className="text-[9px] font-black uppercase mt-2 bg-slate-100 py-0.5 rounded">POS SALES RECEIPT</p>
+                           </div>
+
+                           <div className="space-y-1 text-[9px] border-b border-dashed border-slate-400 pb-2">
+                              <div className="flex justify-between font-bold">
+                                 <span>INVOICE #:</span>
+                                 <span className="font-black">{selectedInvoice.id}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                 <span>DATE:</span>
+                                 <span>{selectedInvoice.date}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                 <span>PARTY:</span>
+                                 <span className="font-bold uppercase truncate max-w-[140px]">
+                                    {dealers.find(dl => dl.id === selectedInvoice.dealerId)?.company || "Walk-In Customer"}
+                                 </span>
+                              </div>
+                              <div className="flex justify-between">
+                                 <span>STATUS:</span>
+                                 <span className="font-black uppercase">{displayStatus}</span>
+                              </div>
+                           </div>
+
+                           <div className="border-b border-dashed border-slate-400 pb-2">
+                              <table className="w-full text-left">
+                                 <thead>
+                                    <tr className="border-b border-slate-300 text-[8px] uppercase">
+                                       <th className="pb-1">Item</th>
+                                       <th className="pb-1 text-center">Qty</th>
+                                       <th className="pb-1 text-right">Amt</th>
+                                    </tr>
+                                 </thead>
+                                 <tbody className="divide-y divide-slate-100">
+                                    {(selectedInvoice.items || []).map((item: any, idx: number) => {
+                                       const prod = allBillingProducts.find((p: any) => p.id === item.model || matchFgToProduct({ model: item.model }, p));
+                                       return (
+                                          <tr key={idx}>
+                                             <td className="py-1 uppercase font-bold text-[8.5px]">
+                                                {prod?.name || item.model}
+                                                {item.serials && item.serials.length > 0 && (
+                                                   <span className="block text-[7px] text-slate-500 font-normal">S/N: {item.serials.join(', ')}</span>
+                                                )}
+                                             </td>
+                                             <td className="py-1 text-center font-bold">{item.qty || 1}</td>
+                                             <td className="py-1 text-right font-bold">{formatCurrency((item.price * (item.qty || 1)) * scaleFactor * (1 + editedTaxRate))}</td>
+                                          </tr>
+                                       );
+                                    })}
+                                 </tbody>
+                              </table>
+                           </div>
+
+                           <div className="space-y-1 text-right border-b border-dashed border-slate-400 pb-2">
+                              <div className="flex justify-between text-slate-600">
+                                 <span>Taxable Amount:</span>
+                                 <span>{formatCurrency(displayTotal - displayTax)}</span>
+                              </div>
+                              <div className="flex justify-between text-slate-600">
+                                 <span>GST Tax (18%):</span>
+                                 <span>{formatCurrency(displayTax)}</span>
+                              </div>
+                              <div className="flex justify-between text-xs font-black text-slate-900 pt-1">
+                                 <span>GRAND TOTAL:</span>
+                                 <span>{formatCurrency(displayTotal)}</span>
+                              </div>
+                           </div>
+
+                           <div className="text-center pt-1 space-y-1">
+                              <p className="text-[8px] font-bold uppercase text-slate-500">*** Thank You For Your Business ***</p>
+                              <p className="text-[7px] text-slate-400 uppercase">Computer Generated Slip • No Signature Required</p>
+                           </div>
+                        </div>
+                      ) : (
+                        <div id="tax-invoice-printable-card" className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm max-w-2xl mx-auto print-section print:border-none print:shadow-none print:p-0">
                           {/* Invoice Letterhead */}
                           <div className="flex justify-between items-start pb-6 border-b border-slate-200 mb-6 font-sans">
                              <div>
@@ -2613,6 +2814,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                              </div>
                           </div>
                       </div>
+                      )}
                   </div>
               </div>
           </div>
