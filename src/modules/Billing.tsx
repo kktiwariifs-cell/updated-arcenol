@@ -2073,13 +2073,50 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                              </div>
                           </div>
 
-                          <div className="flex justify-between items-center text-rose-600">
-                             <span>GST Tax rate (18%)</span>
-                             <span className="font-mono">{formatCurrency(Math.max(0, cart.reduce((a, b) => a + (b.price * b.serials.length), 0) - invoiceItemDiscount) * 0.18)}</span>
-                          </div>
+                                                     {/* Freight & Shipping Charge */}
+                           <div className="flex justify-between items-center">
+                              <span>Freight / Logistics (₹)</span>
+                              <input 
+                                type="number" 
+                                placeholder="0"
+                                value={invoiceFreightCharge || ''}
+                                onChange={(e) => setInvoiceFreightCharge(Number(e.target.value))}
+                                className="w-24 px-2 py-0.5 border border-slate-200 rounded text-right font-mono text-xs text-slate-900 outline-none"
+                              />
+                           </div>
+
+                           {/* Packaging Charge */}
+                           <div className="flex justify-between items-center">
+                              <span>Packaging Charge (₹)</span>
+                              <input 
+                                type="number" 
+                                placeholder="0"
+                                value={invoicePackagingCharge || ''}
+                                onChange={(e) => setInvoicePackagingCharge(Number(e.target.value))}
+                                className="w-24 px-2 py-0.5 border border-slate-200 rounded text-right font-mono text-xs text-slate-900 outline-none"
+                              />
+                           </div>
+
+                           <div className="flex justify-between items-center text-rose-600">
+                              <span>GST Tax rate (18%)</span>
+                              <span className="font-mono">{formatCurrency(Math.max(0, (cart.reduce((a, b) => a + (b.price * b.serials.length), 0) - invoiceItemDiscount) + invoiceFreightCharge + invoicePackagingCharge) * 0.18)}</span>
+                           </div>
 
                           <div className="space-y-1.5 pt-2">
-                             <label className="block text-[8px] font-black text-slate-400 tracking-widest mb-1">Receipt terms / Mode</label>
+                             <div className="mb-2">
+                                <label className="block text-[8px] font-black text-slate-400 tracking-widest mb-1">Payment Credit Due Terms</label>
+                                <select
+                                  value={invoicePaymentTerms}
+                                  onChange={(e) => setInvoicePaymentTerms(e.target.value as any)}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-[10px] font-black text-slate-800 uppercase"
+                                >
+                                  <option value="Due on Receipt">Due on Receipt (Immediate)</option>
+                                  <option value="Net 7 Days">Net 7 Days Credit</option>
+                                  <option value="Net 15 Days">Net 15 Days Credit</option>
+                                  <option value="Net 30 Days">Net 30 Days Credit</option>
+                                </select>
+                              </div>
+                              <label className="block text-[8px] font-black text-slate-400 tracking-widest mb-1">Receipt terms / Mode</label>
                              <select
                                value={invoicePaymentMode}
                                onChange={(e) => setInvoicePaymentMode(e.target.value as any)}
@@ -2096,7 +2133,7 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                        <div className="flex justify-between items-center">
                           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Final Grand net</span>
                           <span className="text-2xl font-black text-primary-650 italic tracking-tighter">
-                             {formatCurrency(Math.max(0, cart.reduce((a, b) => a + (b.price * b.serials.length), 0) - invoiceItemDiscount) * 1.18)}
+                             {formatCurrency(Math.max(0, (cart.reduce((a, b) => a + (b.price * b.serials.length), 0) - invoiceItemDiscount) + invoiceFreightCharge + invoicePackagingCharge) * 1.18)}
                           </span>
                        </div>
                        
