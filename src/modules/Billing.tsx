@@ -179,6 +179,24 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     e.preventDefault();
     if (!quickCustomerForm.company) return;
 
+    const newCustId = `D-${Date.now()}`;
+    let newDealerObj: any = {
+      id: newCustId,
+      company: quickCustomerForm.company,
+      name: quickCustomerForm.company,
+      category: quickCustomerForm.category || 'Tier 1 Dealer',
+      gstin: quickCustomerForm.gstin || 'N/A',
+      phone: quickCustomerForm.phone || 'N/A',
+      email: quickCustomerForm.email || 'N/A',
+      location: quickCustomerForm.location || 'N/A',
+      city: quickCustomerForm.city || 'N/A',
+      state: quickCustomerForm.state || 'N/A',
+      region: quickCustomerForm.region || 'West',
+      contactPerson: quickCustomerForm.contactPerson || 'N/A',
+      bankDetails: quickCustomerForm.bankDetails || '',
+      status: 'ACTIVE'
+    };
+
     try {
       const response = await fetch('/api/dealers', {
         method: 'POST',
@@ -186,34 +204,77 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
         body: JSON.stringify(quickCustomerForm)
       });
       if (response.ok) {
-        const newDealerObj = await response.json();
-        await refetch();
-        setSelectedDealer(newDealerObj);
-        setShowQuickAddCustomer(false);
-        setQuickCustomerForm({
-          company: '',
-          category: 'Tier 1 Dealer',
-          gstin: '',
-          phone: '',
-          email: '',
-          location: '',
-          city: '',
-          state: '',
-          region: 'West',
-          contactPerson: '',
-          bankDetails: '',
-          status: 'ACTIVE'
-        });
+        const serverDealer = await response.json();
+        if (serverDealer && serverDealer.id) {
+          newDealerObj = { ...newDealerObj, ...serverDealer };
+        }
       }
     } catch (err) {
-      console.error('Error adding new customer:', err);
+      console.warn('[Billing] Server endpoint for dealers unreachable, adding client-side:', err);
     }
+
+    // Direct Supabase client sync
+    try {
+      await supabase.from('customers').upsert({
+        id: String(newDealerObj.id),
+        name: newDealerObj.company || newDealerObj.name,
+        branch: newDealerObj.region || newDealerObj.city || 'Headquarters',
+        gstin: newDealerObj.gstin || 'N/A',
+        contact_person: newDealerObj.contactPerson || 'N/A',
+        phone: newDealerObj.phone || 'N/A',
+        address: newDealerObj.location || newDealerObj.city || 'N/A'
+      });
+    } catch (sbErr) {
+      console.warn('[Billing] Supabase customer upsert warning:', sbErr);
+    }
+
+    // Immediately update local cache
+    if (data) {
+      data.dealers = [newDealerObj, ...(data.dealers || []).filter((d: any) => String(d.id) !== String(newDealerObj.id))];
+      data.customers = [newDealerObj, ...(data.customers || []).filter((c: any) => String(c.id) !== String(newDealerObj.id))];
+      try {
+        localStorage.setItem('arcenol_db_clean', JSON.stringify(data));
+      } catch (e) {}
+    }
+
+    setSelectedDealer(newDealerObj);
+    setShowQuickAddCustomer(false);
+    setQuickCustomerForm({
+      company: '',
+      category: 'Tier 1 Dealer',
+      gstin: '',
+      phone: '',
+      email: '',
+      location: '',
+      city: '',
+      state: '',
+      region: 'West',
+      contactPerson: '',
+      bankDetails: '',
+      status: 'ACTIVE'
+    });
+    setBillingNotice({ type: 'success', message: `🎉 Customer "${newDealerObj.company}" registered and selected!` });
+    await refetch();
+    setTimeout(() => {
+      setBillingNotice(null);
+    }, 2500);
   };
 
-  const dealers = [
+  const dealersMap = new Map<string, any>();
+  [
     ...(data?.dealers || []),
+    ...(data?.customers || []),
     ...(data?.leads?.filter((l: any) => l.status === 'CONVERTED') || [])
-  ];
+  ].forEach((d: any) => {
+    if (d && d.id) {
+      dealersMap.set(String(d.id), {
+        ...d,
+        company: d.company || d.name || 'Unnamed Customer',
+        location: d.location || d.address || d.city || 'Headquarters'
+      });
+    }
+  });
+  const dealers = Array.from(dealersMap.values());
   if (dealers.length === 0) {
     dealers.push({ id: 'D-101', company: 'Elite Power Ahmedabad', location: 'Navrangpura, Ahmedabad' });
   }

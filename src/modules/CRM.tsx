@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
 import {
   Search,
   MapPin,
@@ -368,12 +369,54 @@ export const CRM: React.FC = () => {
   };
 
   const handleAddDealer = async () => {
-    await fetch("/api/dealers", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dealerForm),
-    });
-    showToast(`Certified Partner "${dealerForm.company || 'Dealer'}" registered!`);
+    const newCustId = `D-${Date.now()}`;
+    let newDealerObj: any = {
+      id: newCustId,
+      company: dealerForm.company || "Unnamed Partner",
+      name: dealerForm.company || "Unnamed Partner",
+      category: dealerForm.category || "Tier 1 Dealer",
+      gstin: dealerForm.gstin || "N/A",
+      phone: dealerForm.phone || "N/A",
+      email: dealerForm.email || "N/A",
+      location: dealerForm.location || "N/A",
+      contactPerson: dealerForm.contactPerson || "N/A",
+      bankDetails: dealerForm.bankDetails || "",
+      status: dealerForm.status || "ACTIVE"
+    };
+
+    try {
+      const res = await fetch("/api/dealers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dealerForm),
+      });
+      if (res.ok) {
+        const serverRes = await res.json();
+        if (serverRes && serverRes.id) {
+          newDealerObj = { ...newDealerObj, ...serverRes };
+        }
+      }
+    } catch (err) {}
+
+    try {
+      await supabase.from("customers").upsert({
+        id: String(newDealerObj.id),
+        name: newDealerObj.company || newDealerObj.name,
+        branch: newDealerObj.location || "Headquarters",
+        gstin: newDealerObj.gstin || "N/A",
+        contact_person: newDealerObj.contactPerson || "N/A",
+        phone: newDealerObj.phone || "N/A",
+        address: newDealerObj.location || "N/A"
+      });
+    } catch (sbErr) {}
+
+    if (data) {
+      data.dealers = [newDealerObj, ...(data.dealers || []).filter((d: any) => String(d.id) !== String(newDealerObj.id))];
+      data.customers = [newDealerObj, ...(data.customers || []).filter((c: any) => String(c.id) !== String(newDealerObj.id))];
+      try { localStorage.setItem("arcenol_db_clean", JSON.stringify(data)); } catch (e) {}
+    }
+
+    showToast(`Certified Partner "${newDealerObj.company}" registered!`);
     setShowAddDealer(false);
     setDealerForm({
       company: "",
