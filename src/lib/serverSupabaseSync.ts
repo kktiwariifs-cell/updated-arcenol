@@ -144,15 +144,27 @@ export function mapInvoice(inv: any) {
 
   return {
     id: String(inv.id),
-    customer_id: inv.dealerId || inv.customerId || inv.customer_id || 'cust-001',
-    biller_signature: inv.biller_signature || inv.billerSignature || 'Authorized Signatory',
+    voucher_no: inv.voucher_no || inv.voucherNo || inv.id || 'VCHP-2026',
+    customer_id: inv.dealerId || inv.customerId || inv.customer_id || inv.party_id || 'cust-001',
+    party_id: inv.dealerId || inv.customerId || inv.customer_id || inv.party_id || 'cust-001',
+    party_name: inv.partyName || inv.party_name || inv.customerName || '',
+    biller_signature: inv.biller_signature || inv.billerSignature || inv.biller || 'ARAVIND SWAMY (SUPER_ADMIN)',
     goods: Array.isArray(inv.items) ? inv.items : (Array.isArray(inv.goods) ? inv.goods : []),
+    items: Array.isArray(inv.items) ? inv.items : (Array.isArray(inv.goods) ? inv.goods : []),
     subtotal: subtotalVal,
-    discount: Number(inv.discount || 0),
+    discount: Number(inv.discount || inv.flat_discount || inv.flatDiscount || 0),
+    flat_discount: Number(inv.flat_discount || inv.flatDiscount || inv.discount || 0),
+    freight_charge: Number(inv.freight_charge || inv.freightCharge || inv.freight || 0),
+    packaging_charge: Number(inv.packaging_charge || inv.packagingCharge || inv.packaging || 0),
+    payment_terms: inv.payment_terms || inv.paymentTerms || 'Due on Receipt',
     gst: taxVal,
+    tax: taxVal,
+    gst_tax_rate: Number(inv.gst_tax_rate || inv.gstTaxRate || 18),
     grand_total: totalVal,
+    total: totalVal,
     payment_mode: inv.paymentMode || inv.payment_mode || 'Credit',
-    status: inv.status || 'UNPAID'
+    status: inv.status || 'UNPAID',
+    date: inv.date || new Date().toISOString().split('T')[0]
   };
 }
 
@@ -176,13 +188,20 @@ export function mapComplaint(c: any) {
 export function mapVoucher(v: any) {
   return {
     id: String(v.id),
-    voucher_type: v.type || v.voucher_type || 'PAYMENT',
-    party_name: v.party || v.party_name || 'Vendor/Client',
+    voucher_no: v.voucher_no || v.voucherNo || v.id,
+    voucher_type: v.type || v.voucher_type || v.vtype || 'Payment-In',
+    vtype: v.type || v.voucher_type || v.vtype || 'Payment-In',
+    party_id: v.party_id || v.partyId || '',
+    party_name: v.party || v.party_name || v.partyName || v.party_company || 'Vendor/Client',
+    party_company: v.party || v.party_name || v.partyName || v.party_company || 'Vendor/Client',
     category: v.category || 'General',
     amount: Number(v.amount || 0),
-    deposit_mode: v.mode || v.deposit_mode || 'Bank Deposit',
-    settlement_status: v.status || v.settlement_status || 'Paid',
-    payment_notes: v.notes || v.payment_notes || ''
+    deposit_mode: v.mode || v.deposit_mode || v.depositMode || 'Bank Deposit',
+    settlement_status: v.status || v.settlement_status || v.settlementStatus || 'Paid',
+    payment_notes: v.notes || v.payment_notes || v.paymentNotes || v.remarks || '',
+    reference_notes: v.notes || v.payment_notes || v.paymentNotes || v.remarks || '',
+    remarks: v.remarks || v.notes || '',
+    date: v.date || new Date().toISOString().split('T')[0]
   };
 }
 

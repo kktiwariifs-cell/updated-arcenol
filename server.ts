@@ -1254,7 +1254,7 @@ async function startServer() {
   });
 
   app.post("/api/invoices", (req, res) => {
-    const { dealerId, items, total, tax } = req.body;
+    const { dealerId, items, total, tax, discount, freightCharge, packagingCharge, paymentTerms, paymentMode, biller } = req.body;
     const invId = `INV-${1000 + db.invoices.length + 1}`;
     
     // Find Dealer for Regional Analysis
@@ -1262,12 +1262,25 @@ async function startServer() {
     
     const invoice = {
       id: invId,
+      voucher_no: invId,
       date: new Date().toISOString().split('T')[0],
       dealerId: dealer ? dealer.id : dealerId,
-      items,
-      total,
-      tax,
-      status: "UNPAID"
+      partyName: dealer ? dealer.company : (dealerId || 'Walk-In Customer'),
+      items: items || [],
+      goods: items || [],
+      subtotal: Math.max(0, (total || 0) - (tax || 0)),
+      discount: discount || 0,
+      flat_discount: discount || 0,
+      freight_charge: freightCharge || 0,
+      packaging_charge: packagingCharge || 0,
+      payment_terms: paymentTerms || 'Due on Receipt',
+      total: total || 0,
+      grand_total: total || 0,
+      tax: tax || 0,
+      gst: tax || 0,
+      paymentMode: paymentMode || 'Credit',
+      status: paymentMode === 'Credit' ? "UNPAID" : "PAID",
+      biller: biller || 'ARAVIND SWAMY (SUPER_ADMIN)'
     };
 
     db.invoices.push(invoice);

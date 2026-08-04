@@ -334,9 +334,9 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     });
 
     const subTotal = currentCart.reduce((acc, item) => acc + ((item.price || 35000) * item.serials.length), 0);
-    const totalAfterDiscount = Math.max(0, subTotal - invoiceItemDiscount);
-    const tax = totalAfterDiscount * 0.18; 
-    const finalTotal = totalAfterDiscount + tax;
+    const totalBeforeTax = Math.max(0, subTotal - invoiceItemDiscount) + Number(invoiceFreightCharge || 0) + Number(invoicePackagingCharge || 0);
+    const tax = totalBeforeTax * 0.18; 
+    const finalTotal = totalBeforeTax + tax;
 
     try {
       const res = await fetch('/api/invoices', {
@@ -352,6 +352,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
           })),
           total: finalTotal,
           tax,
+          discount: invoiceItemDiscount,
+          freightCharge: Number(invoiceFreightCharge || 0),
+          packagingCharge: Number(invoicePackagingCharge || 0),
+          paymentTerms: invoicePaymentTerms,
+          paymentMode: invoicePaymentMode,
           biller: currentUser?.name || 'Finance Executive'
         })
       });

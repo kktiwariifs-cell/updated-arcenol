@@ -250,9 +250,13 @@ CREATE TABLE IF NOT EXISTS public.invoices (
   biller_signature text DEFAULT 'ARAVIND SWAMY (SUPER_ADMIN)',
   goods jsonb DEFAULT '[]'::jsonb, -- Array of items chosen with assigned serial numbers
   items jsonb DEFAULT '[]'::jsonb, -- Model-level or SKU-level breakdown
+  assigned_serials jsonb DEFAULT '[]'::jsonb, -- Barcode serial numbers assigned to invoice
   subtotal numeric DEFAULT 0.00,
   discount numeric DEFAULT 0.00,
   flat_discount numeric DEFAULT 0.00,
+  freight_charge numeric DEFAULT 0.00, -- Freight / Logistics Charge (₹)
+  packaging_charge numeric DEFAULT 0.00, -- Packaging Charge (₹)
+  payment_terms text DEFAULT 'Due on Receipt', -- 'Due on Receipt', 'Net 7 Days', 'Net 15 Days', 'Net 30 Days'
   gst numeric DEFAULT 0.00,
   tax numeric DEFAULT 0.00,
   gst_tax_rate numeric DEFAULT 18.00,
@@ -271,9 +275,13 @@ ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS party_name text;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS biller_signature text DEFAULT 'ARAVIND SWAMY (SUPER_ADMIN)';
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS goods jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS items jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS assigned_serials jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS subtotal numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS discount numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS flat_discount numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS freight_charge numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS packaging_charge numeric DEFAULT 0.00;
+ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS payment_terms text DEFAULT 'Due on Receipt';
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gst numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS tax numeric DEFAULT 0.00;
 ALTER TABLE public.invoices ADD COLUMN IF NOT EXISTS gst_tax_rate numeric DEFAULT 18.00;
