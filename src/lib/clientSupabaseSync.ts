@@ -122,22 +122,30 @@ export async function hydrateDbFromSupabase(db: any) {
     try {
       const { data: custs } = await supabase.from('customers').select('*');
       if (custs && custs.length > 0) {
-        db.dealers = custs.map((c: any) => ({
+        const fetchedIds = new Set(custs.map((c: any) => String(c.id)));
+        const mappedCusts = custs.map((c: any) => ({
           id: String(c.id),
           company: c.company || c.name || c.company_name || 'Dealer',
+          name: c.company || c.name || c.company_name || 'Dealer',
           category: c.category || 'Tier 1 Dealer',
           region: c.region || c.branch || 'Headquarters',
+          branch: c.branch || c.region || 'Headquarters',
           gstin: c.gstin || 'N/A',
           contactPerson: c.contact_person || c.contactPerson || 'N/A',
           phone: c.phone || 'N/A',
           email: c.email || 'N/A',
           location: c.location || c.address || 'N/A',
+          address: c.address || c.location || 'N/A',
           city: c.city || 'N/A',
           state: c.state || 'N/A',
           creditLimit: Number(c.credit_limit || c.creditLimit || 500000),
           outstandingBalance: Number(c.outstanding_balance || c.outstandingBalance || 0),
           status: c.status || 'ACTIVE'
         }));
+        const localDealersOnly = (db.dealers || []).filter((d: any) => !fetchedIds.has(String(d.id)));
+        const localCustomersOnly = (db.customers || []).filter((c: any) => !fetchedIds.has(String(c.id)));
+        db.dealers = [...mappedCusts, ...localDealersOnly];
+        db.customers = [...mappedCusts, ...localCustomersOnly];
       }
     } catch (custCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating customers:', custCatchErr);
@@ -149,8 +157,8 @@ export async function hydrateDbFromSupabase(db: any) {
       if (invs && invs.length > 0) {
         const fetchedIds = new Set(invs.map((i: any) => String(i.id)));
         const mappedInvoices = invs.map((i: any) => {
-          const customerId = i.customer_id || i.customerId || i.dealerId || 'cust-001';
-          const cust = (db.customers || []).find((c: any) => c.id === customerId) || (db.dealers || []).find((d: any) => d.id === customerId || d.company === customerId);
+          const customerId = i.customer_id || i.customerId || i.dealerId || i.party_id || 'cust-001';
+          const cust = (db.customers || []).find((c: any) => String(c.id) === String(customerId)) || (db.dealers || []).find((d: any) => String(d.id) === String(customerId) || d.company === customerId);
           const partyName = i.party_name || i.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
           
           const rawGoods = Array.isArray(i.goods) ? i.goods : (Array.isArray(i.items) ? i.items : []);
@@ -172,15 +180,15 @@ export async function hydrateDbFromSupabase(db: any) {
           return {
             id: String(i.id),
             voucher_no: i.voucher_no || i.voucherNo || i.id,
-            customerId,
-            dealerId: customerId,
+            customerId: String(customerId),
+            dealerId: String(customerId),
             partyName,
             customerName: partyName,
             billerSignature: i.biller_signature || i.billerSignature || 'Aravind Swamy',
             goods: itemsArr,
             items: itemsArr,
             subtotal: subtotalVal,
-            discount: Number(i.discount || 0),
+            discount: Number(i.discount || i.flat_discount || 0),
             gst: gstVal,
             tax: gstVal,
             grandTotal: grandTotalVal,

@@ -535,20 +535,26 @@ export async function hydrateFromSupabase(db: any) {
     try {
       const { data: custs } = await supabaseServerClient.from('customers').select('*');
       if (custs && custs.length > 0) {
-        db.dealers = custs.map(c => ({
+        const fetchedIds = new Set(custs.map(c => String(c.id)));
+        const mappedCusts = custs.map(c => ({
           id: String(c.id),
-          company: c.name,
-          category: 'Tier 1 Dealer',
-          gstin: c.gstin,
-          phone: c.phone,
-          email: `${(c.name || 'dealer').toLowerCase().replace(/\s/g, '')}@partner.com`,
-          location: c.address,
-          city: c.branch || 'Headquarters',
-          state: 'Gujarat',
-          region: 'West',
-          contactPerson: c.contact_person,
+          company: c.company || c.name || 'Dealer',
+          name: c.company || c.name || 'Dealer',
+          category: c.category || 'Tier 1 Dealer',
+          gstin: c.gstin || 'N/A',
+          phone: c.phone || 'N/A',
+          email: c.email || `${(c.name || 'dealer').toLowerCase().replace(/\s/g, '')}@partner.com`,
+          location: c.address || c.location || 'N/A',
+          city: c.city || c.branch || 'Headquarters',
+          state: c.state || 'Gujarat',
+          region: c.region || c.branch || 'West',
+          contactPerson: c.contact_person || c.contactPerson || 'N/A',
           status: 'ACTIVE'
         }));
+        const localDealersOnly = (db.dealers || []).filter((d: any) => !fetchedIds.has(String(d.id)));
+        const localCustomersOnly = (db.customers || []).filter((c: any) => !fetchedIds.has(String(c.id)));
+        db.dealers = [...mappedCusts, ...localDealersOnly];
+        db.customers = [...mappedCusts, ...localCustomersOnly];
       }
     } catch (e) {}
 

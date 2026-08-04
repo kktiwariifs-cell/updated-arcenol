@@ -260,30 +260,33 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
     }, 2500);
   };
 
-  const dealersMap = new Map<string, any>();
-  [
-    ...(data?.dealers || []),
-    ...(data?.customers || []),
-    ...(data?.leads?.filter((l: any) => l.status === 'CONVERTED') || [])
-  ].forEach((d: any) => {
-    if (d && d.id) {
-      dealersMap.set(String(d.id), {
-        ...d,
-        company: d.company || d.name || 'Unnamed Customer',
-        location: d.location || d.address || d.city || 'Headquarters'
-      });
+  const dealers = React.useMemo(() => {
+    const dealersMap = new Map<string, any>();
+    [
+      ...(data?.dealers || []),
+      ...(data?.customers || []),
+      ...(data?.leads?.filter((l: any) => l.status === 'CONVERTED') || [])
+    ].forEach((d: any) => {
+      if (d && d.id) {
+        dealersMap.set(String(d.id), {
+          ...d,
+          company: d.company || d.name || 'Unnamed Customer',
+          location: d.location || d.address || d.city || 'Headquarters'
+        });
+      }
+    });
+    const list = Array.from(dealersMap.values());
+    if (list.length === 0) {
+      list.push({ id: 'D-101', company: 'Elite Power Ahmedabad', location: 'Navrangpura, Ahmedabad' });
     }
-  });
-  const dealers = Array.from(dealersMap.values());
-  if (dealers.length === 0) {
-    dealers.push({ id: 'D-101', company: 'Elite Power Ahmedabad', location: 'Navrangpura, Ahmedabad' });
-  }
+    return list;
+  }, [data?.dealers, data?.customers, data?.leads]);
 
   React.useEffect(() => {
     if (!selectedDealer && dealers.length > 0) {
       setSelectedDealer(dealers[0]);
     }
-  }, [dealers]);
+  }, [dealers, selectedDealer]);
 
   const matchFgToProduct = (fg: any, prod: any) => {
     if (!fg || !prod) return false;
@@ -895,8 +898,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const unifiedTransactions = [
     ...(data?.invoices || []).map((inv: any) => {
       const customerId = inv.dealerId || inv.customerId || inv.customer_id;
-      const dlr = dealers.find(d => d.id === customerId || d.company === customerId) || (data?.customers || []).find((c: any) => c.id === customerId);
-      const party = inv.partyName || inv.customerName || dlr?.company || dlr?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
+      const dlr = dealers.find(d => String(d.id) === String(customerId) || d.company === customerId) || (data?.customers || []).find((c: any) => String(c.id) === String(customerId));
+      const party = inv.partyName || inv.party_name || inv.customerName || dlr?.company || dlr?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
       const date = inv.date || inv.billedDate || (inv.created_at ? inv.created_at.split('T')[0] : '') || new Date().toISOString().split('T')[0];
       const amount = Number(inv.total ?? inv.grandTotal ?? inv.grand_total ?? inv.subtotal ?? 0);
       const tax = Number(inv.tax ?? inv.gst ?? 0);
@@ -1697,12 +1700,12 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-black text-slate-900 outline-none focus:ring-1 focus:ring-primary-500/20 shadow-2xs" 
                                  value={selectedDealer?.id || ''} 
                                  onChange={(e) => {
-                                     const d = dealers.find(item => item.id === e.target.value);
-                                     setSelectedDealer(d);
+                                     const d = dealers.find(item => String(item.id) === String(e.target.value));
+                                     setSelectedDealer(d || null);
                                  }}
                               >
                                  <option value="">Select a customer branch...</option>
-                                 {dealers.map(d => <option key={d.id} value={d.id}>{d.company} — {d.location}</option>)}
+                                 {dealers.map(d => <option key={d.id} value={String(d.id)}>{d.company || d.name} — {d.location}</option>)}
                               </select>
 
                               {selectedDealer && (

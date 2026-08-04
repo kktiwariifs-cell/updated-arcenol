@@ -47,9 +47,11 @@ export default function App() {
 
   useEffect(() => {
     if (data?.users && data.users.length > 0) {
-      setUsersList(data.users);
+      if (JSON.stringify(data.users) !== JSON.stringify(usersList)) {
+        setUsersList(data.users);
+      }
     }
-  }, [data?.users, setUsersList]);
+  }, [data?.users, setUsersList, usersList]);
 
   // Secure Credentials Form states
   const [email, setEmail] = useState('');

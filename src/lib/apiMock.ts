@@ -591,12 +591,25 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
     } else if (urlStr.includes('/api/dealers')) {
       if (method === 'POST' && body) {
         const newDealer = { 
+          company: body.company || body.name || 'New Customer',
+          name: body.company || body.name || 'New Customer',
+          category: body.category || 'Tier 1 Dealer',
+          gstin: body.gstin || 'N/A',
+          phone: body.phone || 'N/A',
+          email: body.email || 'N/A',
+          location: body.location || body.address || 'N/A',
+          city: body.city || 'N/A',
+          state: body.state || 'N/A',
+          region: body.region || 'West',
+          contactPerson: body.contactPerson || 'N/A',
+          status: 'ACTIVE',
           ...body, 
-          id: `D-${Date.now()}`,
+          id: body.id || `D-${Date.now()}`,
           rankingScore: 75,
           joinDate: new Date().toISOString().split('T')[0]
         };
-        db.dealers.push(newDealer);
+        db.dealers = [newDealer, ...(db.dealers || []).filter((d: any) => String(d.id) !== String(newDealer.id))];
+        db.customers = [newDealer, ...(db.customers || []).filter((c: any) => String(c.id) !== String(newDealer.id))];
         saveLocalDB(db);
         responseData = newDealer;
       }
@@ -604,16 +617,31 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       if (method === 'POST' && body) {
         const calculatedTotal = (body.items || []).reduce((acc: number, item: any) => acc + (Number(item.qty || 1) * Number(item.price || 35000)), 0);
         const finalTotal = Number(body.total) || (calculatedTotal * 1.18);
+        const invId = body.id || `INV-${Math.floor(1000 + Math.random() * 9000)}`;
+        const party = (db.dealers || []).find((d: any) => String(d.id) === String(body.dealerId)) || (db.customers || []).find((c: any) => String(c.id) === String(body.dealerId));
+        const partyName = body.partyName || party?.company || party?.name || 'Walk-In Customer';
+        
         const newInvoice = {
-          id: `INV-${Math.floor(1000 + Math.random() * 9000)}`,
+          id: invId,
+          voucher_no: invId,
           date: new Date().toISOString().split('T')[0],
-          dealerId: body.dealerId,
+          dealerId: String(body.dealerId || 'cust-001'),
+          customerId: String(body.dealerId || 'cust-001'),
+          partyName,
+          customerName: partyName,
           items: body.items || [],
+          goods: body.items || [],
           total: finalTotal,
-          status: 'UNPAID',
-          tax: Number(body.tax) || Math.round(finalTotal * 0.18)
+          grandTotal: finalTotal,
+          grand_total: finalTotal,
+          subtotal: Math.max(0, finalTotal - (Number(body.tax) || Math.round(finalTotal * 0.18))),
+          status: body.status || (body.paymentMode === 'Credit' ? 'UNPAID' : 'PAID'),
+          tax: Number(body.tax) || Math.round(finalTotal * 0.18),
+          gst: Number(body.tax) || Math.round(finalTotal * 0.18),
+          paymentMode: body.paymentMode || 'Credit',
+          billerSignature: body.biller || 'Finance Executive'
         };
-        db.invoices.push(newInvoice);
+        db.invoices = [newInvoice, ...(db.invoices || []).filter((inv: any) => String(inv.id) !== String(invId))];
 
         // Update stock and activate warranty
         if (body.items && Array.isArray(body.items)) {

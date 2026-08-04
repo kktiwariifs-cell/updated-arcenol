@@ -65,7 +65,9 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     [UserRole.PLANT_SERVICE_ENGINEER]: ['service'],
   };
 
-  const allowedStepIds = user ? (ROLE_STEPS_MAP[user.role] || []) : ['procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'billing', 'warranty', 'service'];
+  const allowedStepIds = React.useMemo(() => {
+    return user ? (ROLE_STEPS_MAP[user.role] || []) : ['procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'billing', 'warranty', 'service'];
+  }, [user?.role]);
 
   const [activeStep, setActiveStep] = useState<string>(() => {
     return allowedStepIds[0] || 'procurement';
@@ -74,8 +76,8 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
 
   // Keep activeStep in sync if the logged-in user changes role dynamically in the same session
   useEffect(() => {
-    if (!allowedStepIds.includes(activeStep)) {
-      setActiveStep(allowedStepIds[0] || 'procurement');
+    if (allowedStepIds.length > 0 && !allowedStepIds.includes(activeStep)) {
+      setActiveStep(allowedStepIds[0]);
     }
   }, [user?.role, allowedStepIds, activeStep]);
 
