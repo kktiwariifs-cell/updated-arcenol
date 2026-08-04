@@ -147,7 +147,8 @@ export async function hydrateDbFromSupabase(db: any) {
     try {
       const { data: invs } = await supabase.from('invoices').select('*');
       if (invs && invs.length > 0) {
-        db.invoices = invs.map((i: any) => {
+        const fetchedIds = new Set(invs.map((i: any) => String(i.id)));
+        const mappedInvoices = invs.map((i: any) => {
           const customerId = i.customer_id || i.customerId || i.dealerId || 'cust-001';
           const cust = (db.customers || []).find((c: any) => c.id === customerId) || (db.dealers || []).find((d: any) => d.id === customerId || d.company === customerId);
           const partyName = i.party_name || i.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
@@ -166,10 +167,11 @@ export async function hydrateDbFromSupabase(db: any) {
           const subtotalVal = Number(i.subtotal || 0);
           const gstVal = Number(i.gst || i.tax || 0);
           const grandTotalVal = Number(i.grand_total || i.grandTotal || i.total || (subtotalVal + gstVal));
-          const createdDate = i.created_at ? i.created_at.split('T')[0] : (i.date || i.billedDate || new Date().toISOString().split('T')[0]);
+          const createdDate = i.date || (i.created_at ? i.created_at.split('T')[0] : (i.billedDate || new Date().toISOString().split('T')[0]));
 
           return {
             id: String(i.id),
+            voucher_no: i.voucher_no || i.voucherNo || i.id,
             customerId,
             dealerId: customerId,
             partyName,
@@ -190,6 +192,8 @@ export async function hydrateDbFromSupabase(db: any) {
             status: i.status || 'UNPAID'
           };
         });
+        const localOnly = (db.invoices || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+        db.invoices = [...mappedInvoices, ...localOnly];
       }
     } catch (invsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating invoices:', invsCatchErr);

@@ -556,19 +556,57 @@ export async function hydrateFromSupabase(db: any) {
     try {
       const { data: invs } = await supabaseServerClient.from('invoices').select('*');
       if (invs && invs.length > 0) {
-        db.invoices = invs.map(inv => ({
-          id: String(inv.id),
-          dealerId: inv.customer_id,
-          biller_signature: inv.biller_signature,
-          items: Array.isArray(inv.goods) ? inv.goods : [],
-          subtotal: Number(inv.subtotal || 0),
-          discount: Number(inv.discount || 0),
-          tax: Number(inv.gst || 0),
-          total: Number(inv.grand_total || 0),
-          payment_mode: inv.payment_mode || 'Credit',
-          status: inv.status || 'UNPAID',
-          date: inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-        }));
+        const fetchedIds = new Set(invs.map(i => String(i.id)));
+        const mappedInvoices = invs.map(inv => {
+          const customerId = inv.customer_id || inv.customerId || inv.dealerId || 'cust-001';
+          const cust = (db.customers || []).find((c: any) => c.id === customerId) || (db.dealers || []).find((d: any) => d.id === customerId || d.company === customerId);
+          const partyName = inv.party_name || inv.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
+          const rawGoods = Array.isArray(inv.goods) ? inv.goods : (Array.isArray(inv.items) ? inv.items : []);
+          const itemsArr = rawGoods.map((g: any) => ({
+            model: g.model || g.modelId || 'BAT-72V-30A',
+            modelId: g.modelId || g.model || 'BAT-72V-30A',
+            name: g.description || g.name || 'E-Rickshaw Batteries (72V30A)',
+            description: g.description || g.name || 'E-Rickshaw Batteries (72V30A)',
+            qty: Number(g.qty || 1),
+            price: Number(g.baseRate || g.price || 45000),
+            serials: Array.isArray(g.serials) ? g.serials : []
+          }));
+          const subtotalVal = Number(inv.subtotal || 0);
+          const taxVal = Number(inv.tax ?? inv.gst ?? 0);
+          const totalVal = Number(inv.total ?? inv.grand_total ?? inv.grandTotal ?? (subtotalVal + taxVal));
+          const invoiceDate = inv.date || (inv.created_at ? new Date(inv.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+
+          return {
+            id: String(inv.id),
+            voucher_no: inv.voucher_no || inv.voucherNo || inv.id,
+            dealerId: customerId,
+            customer_id: customerId,
+            partyName,
+            party_name: partyName,
+            customerName: partyName,
+            biller_signature: inv.biller_signature || 'ARAVIND SWAMY (SUPER_ADMIN)',
+            items: itemsArr,
+            goods: itemsArr,
+            subtotal: subtotalVal,
+            discount: Number(inv.discount || inv.flat_discount || 0),
+            freight_charge: Number(inv.freight_charge || inv.freightCharge || 0),
+            packaging_charge: Number(inv.packaging_charge || inv.packagingCharge || 0),
+            payment_terms: inv.payment_terms || inv.paymentTerms || 'Due on Receipt',
+            tax: taxVal,
+            gst: taxVal,
+            total: totalVal,
+            grand_total: totalVal,
+            grandTotal: totalVal,
+            paymentMode: inv.payment_mode || inv.paymentMode || 'Credit',
+            payment_mode: inv.payment_mode || inv.paymentMode || 'Credit',
+            status: inv.status || 'UNPAID',
+            date: invoiceDate,
+            billedDate: invoiceDate,
+            created_at: inv.created_at || invoiceDate
+          };
+        });
+        const localOnly = (db.invoices || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+        db.invoices = [...mappedInvoices, ...localOnly];
       }
     } catch (e) {}
 
@@ -678,29 +716,39 @@ export async function hydrateFromSupabase(db: any) {
     try {
       const { data: vouchers } = await supabaseServerClient.from('accounting_vouchers').select('*');
       if (vouchers && vouchers.length > 0) {
-        db.vouchers = vouchers.map((v: any) => ({
+        const fetchedIds = new Set(vouchers.map((v: any) => String(v.id)));
+        const mappedVouchers = vouchers.map((v: any) => ({
           id: String(v.id),
-          voucherType: v.voucher_type,
-          partyName: v.party_name,
-          category: v.category,
+          voucher_no: v.voucher_no || v.voucherNo || v.id,
+          voucherType: v.voucher_type || v.vtype || 'Payment-In',
+          party_id: v.party_id || 'external',
+          partyName: v.party_name || v.party || 'Vendor/Client',
+          category: v.category || 'General',
           amount: Number(v.amount || 0),
-          depositMode: v.deposit_mode,
-          settlementStatus: v.settlement_status,
-          paymentNotes: v.payment_notes,
-          date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0]
+          depositMode: v.deposit_mode || 'Bank',
+          settlementStatus: v.settlement_status || 'PAID',
+          paymentNotes: v.payment_notes || v.remarks || '',
+          date: v.date || (v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
         }));
-        db.vyaparRecords = vouchers.map((v: any) => ({
+
+        const mappedVyapar = vouchers.map((v: any) => ({
           id: String(v.id),
-          type: v.voucher_type || 'Payment-In',
-          partyId: 'external',
-          partyName: v.party_name,
-          date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+          type: v.voucher_type || v.vtype || 'Payment-In',
+          partyId: v.party_id || 'external',
+          partyName: v.party_name || v.party || 'Vendor/Client',
+          date: v.date || (v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
           amount: Number(v.amount || 0),
           mode: v.deposit_mode || 'Bank',
           status: v.settlement_status || 'PAID',
-          remarks: v.payment_notes || '',
+          remarks: v.payment_notes || v.remarks || '',
           category: v.category || 'General'
         }));
+
+        const localVouchers = (db.vouchers || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+        const localVyapar = (db.vyaparRecords || []).filter((item: any) => !fetchedIds.has(String(item.id)));
+
+        db.vouchers = [...mappedVouchers, ...localVouchers];
+        db.vyaparRecords = [...mappedVyapar, ...localVyapar];
       }
     } catch (e) {}
 
