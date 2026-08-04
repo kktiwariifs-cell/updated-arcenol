@@ -53,23 +53,41 @@ if (typeof window !== 'undefined') {
 
 const performFetch = async () => {
   try {
-    const res = await fetch('/api/data', { cache: 'no-store' });
-    const contentType = res.headers.get('content-type');
-    if (!res.ok || !contentType || !contentType.includes('application/json')) {
-      // Server is restarting or returning HTML fallback; retain cached state gracefully
-      return;
-    }
-    const json = await res.json();
-    
-    // Always ensure Supabase hydration is performed if client inventory is missing or empty
-    if (!json.inventory || json.inventory.length === 0) {
-      try {
-        await hydrateDbFromSupabase(json);
-      } catch (sbErr) {
-        console.warn('[useERPData] Direct client Supabase hydration warning:', sbErr);
+    let json: any = null;
+    try {
+      const res = await fetch('/api/data', { cache: 'no-store' });
+      const contentType = res.headers.get('content-type');
+      if (res.ok && contentType && contentType.includes('application/json')) {
+        json = await res.json();
       }
+    } catch (e) {
+      console.warn('[useERPData] Server API endpoint unreachable, falling back to client Supabase:', e);
     }
-    
+
+    if (!json) {
+      json = cachedData || {
+        inventory: [],
+        leads: [],
+        dealers: [],
+        customers: [],
+        warehouses: [],
+        gradedInventory: [],
+        wipInventory: [],
+        invoices: [],
+        vouchers: [],
+        vyaparRecords: [],
+        complaints: [],
+        products: []
+      };
+    }
+
+    // Always hydrate from Supabase to sync client-side database
+    try {
+      await hydrateDbFromSupabase(json);
+    } catch (sbErr) {
+      console.warn('[useERPData] Direct client Supabase hydration warning:', sbErr);
+    }
+
     // Ensure logo and settings are backed up and merged seamlessly
     if (typeof window !== 'undefined' && json) {
       const profileBackup = localStorage.getItem('arcenol_business_profile_backup');
