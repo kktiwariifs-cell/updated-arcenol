@@ -764,7 +764,7 @@ export const MRP: React.FC = () => {
               <div className="p-10 overflow-y-auto space-y-10 flex-1 custom-scrollbar text-left bg-white">
                  
                  {/* Top Input Form Grid */}
-                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                     <div>
                        <div className="flex justify-between items-center mb-2.5">
                           <label className="block text-[9.5px] font-black text-slate-400 uppercase tracking-widest">MODEL ARCHITECTURE ID</label>
@@ -798,6 +798,17 @@ export const MRP: React.FC = () => {
                          value={editingProduct.name || ''}
                          onChange={(e) => setEditingProduct({...editingProduct, name: e.target.value})}
                        />
+                    </div>
+                    <div>
+                       <label className="block text-[9.5px] font-black text-slate-400 uppercase tracking-widest mb-2.5">BASE SELLING PRICE (₹)</label>
+                       <input 
+                         type="number" 
+                         className="w-full bg-[#f8fafc] border border-slate-200 rounded-2xl px-5 py-3.5 text-xs font-bold focus:ring-2 focus:ring-[#00a3c4]/20 outline-none transition-all text-slate-900 placeholder:text-slate-300 font-mono"
+                         placeholder="e.g. 35000"
+                         value={editingProduct.price ?? ''}
+                         onChange={(e) => setEditingProduct({...editingProduct, price: parseFloat(e.target.value) || 0})}
+                       />
+                       <p className="mt-1.5 text-[9px] font-bold text-slate-400 italic leading-tight">Catalog Sale Rate</p>
                     </div>
                     <div>
                        <label className="block text-[9.5px] font-black text-slate-400 uppercase tracking-widest mb-2.5">CATEGORY GROUP</label>
@@ -1494,6 +1505,9 @@ export const MRP: React.FC = () => {
                                 <div className="flex items-center space-x-4 mb-1">
                                   <h4 className="font-black text-xl text-slate-900 uppercase italic tracking-tighter">{product.name}</h4>
                                   <span className="text-[9px] font-black text-slate-400 bg-white border border-slate-200 px-3 py-1 rounded-lg tracking-widest shadow-sm">ID: {product.id}</span>
+                                  <span className="text-[9px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg tracking-widest shadow-sm font-mono">
+                                    Base Rate: ₹{Number(product.price || 0).toLocaleString()}
+                                  </span>
                                 </div>
                                 <div className="flex items-center space-x-6 mt-2">
                                    <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest flex items-center italic">
