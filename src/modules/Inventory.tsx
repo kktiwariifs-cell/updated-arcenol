@@ -291,6 +291,7 @@ export const Inventory: React.FC = () => {
 
   const [subSearchProcure, setSubSearchProcure] = useState('');
   const [subSearchGrading, setSubSearchGrading] = useState('');
+  const [subGradeFilterGrading, setSubGradeFilterGrading] = useState('ALL');
 
   // Pagination States for Data Sheets (20 entries per page default)
   const [rmCurrentPage, setRmCurrentPage] = useState(1);
@@ -306,7 +307,7 @@ export const Inventory: React.FC = () => {
 
   useEffect(() => {
     setGradedCurrentPage(1);
-  }, [subSearchGrading]);
+  }, [subSearchGrading, subGradeFilterGrading]);
 
   useEffect(() => {
     setPoCurrentPage(1);
@@ -1518,15 +1519,37 @@ export const Inventory: React.FC = () => {
     );
   });
 
+  const normalizeGrade = (g: any): string => {
+    if (!g) return '';
+    const str = String(g).trim().toUpperCase();
+    const clean = str.replace(/^(GRADE[\s\-_]*|TIER[\s\-_]*)/i, '').trim();
+    if (clean === 'REJECT' || clean === 'REJECTED' || clean === 'SCRAP' || clean === 'D') return 'REJECT';
+    return clean;
+  };
+
   const filteredGradingItems = gradedCells.filter((cell: any) => {
-    if (!subSearchGrading) return true;
-    const term = subSearchGrading.toLowerCase();
-    return (
-      (cell.serial && cell.serial.toLowerCase().includes(term)) ||
-      (cell.grade && cell.grade.toLowerCase().includes(term)) ||
-      (cell.engineer && cell.engineer.toLowerCase().includes(term)) ||
-      (cell.usage && cell.usage.toLowerCase().includes(term))
-    );
+    const searchNorm = subSearchGrading.trim().toLowerCase();
+    const matchesSearch = !searchNorm ||
+      (cell.serial && cell.serial.toLowerCase().includes(searchNorm)) ||
+      (cell.grade && cell.grade.toLowerCase().includes(searchNorm)) ||
+      (cell.engineer && cell.engineer.toLowerCase().includes(searchNorm)) ||
+      (cell.inspector && cell.inspector.toLowerCase().includes(searchNorm)) ||
+      (cell.supplier && cell.supplier.toLowerCase().includes(searchNorm)) ||
+      (cell.usage && cell.usage.toLowerCase().includes(searchNorm)) ||
+      `grade ${normalizeGrade(cell.grade)}`.toLowerCase().includes(searchNorm);
+
+    const filterNorm = normalizeGrade(subGradeFilterGrading);
+    const cellGradeNorm = normalizeGrade(cell.grade);
+
+    const matchesGrade = 
+      subGradeFilterGrading === 'ALL' || 
+      filterNorm === 'ALL' ||
+      filterNorm === '' ||
+      cellGradeNorm === filterNorm ||
+      (cell.grade || '').toUpperCase() === subGradeFilterGrading.toUpperCase() ||
+      (cell.grade || '').toUpperCase().includes(subGradeFilterGrading.toUpperCase());
+
+    return matchesSearch && matchesGrade;
   });
 
   // Computed Values
@@ -1536,10 +1559,10 @@ export const Inventory: React.FC = () => {
   const lowMaterials = inventory.filter((item: any) => item.qty < (item.minStock || 0));
   
   // Graded distribution
-  const gradeA = gradedCells.filter((c: any) => c.grade === 'A').length;
-  const gradeB = gradedCells.filter((c: any) => c.grade === 'B').length;
-  const gradeC = gradedCells.filter((c: any) => c.grade === 'C').length;
-  const rejected = gradedCells.filter((c: any) => c.grade === 'REJECT').length;
+  const gradeA = gradedCells.filter((c: any) => normalizeGrade(c.grade) === 'A').length;
+  const gradeB = gradedCells.filter((c: any) => normalizeGrade(c.grade) === 'B').length;
+  const gradeC = gradedCells.filter((c: any) => normalizeGrade(c.grade) === 'C').length;
+  const rejected = gradedCells.filter((c: any) => normalizeGrade(c.grade) === 'REJECT').length;
   const totalGraded = gradedCells.length;
 
   const avgIR = totalGraded > 0 
@@ -4095,24 +4118,46 @@ export const Inventory: React.FC = () => {
                   </span>
                 </div>
 
-                {/* Graded search input */}
-                <div className="relative">
-                  <Search className="absolute left-4 top-4.5 text-slate-400" size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search by serial number, grade, or specialist..."
-                    value={subSearchGrading}
-                    onChange={(e) => setSubSearchGrading(e.target.value)}
-                    className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-[#009270] transition-colors rounded-2xl py-4 pl-12 pr-6 text-sm font-bold outline-none shadow-3xs text-slate-800 placeholder-slate-400"
-                  />
-                  {subSearchGrading && (
-                    <button 
-                      onClick={() => setSubSearchGrading('')}
-                      className="absolute right-4 top-4.5 text-slate-400 hover:text-slate-900 cursor-pointer"
-                    >
-                      <X size={16} />
-                    </button>
-                  )}
+                {/* Graded search input & grade filter buttons */}
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-4 top-4.5 text-slate-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search by serial number, grade, or specialist..."
+                      value={subSearchGrading}
+                      onChange={(e) => setSubSearchGrading(e.target.value)}
+                      className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-[#009270] transition-colors rounded-2xl py-4 pl-12 pr-10 text-sm font-bold outline-none shadow-3xs text-slate-800 placeholder-slate-400"
+                    />
+                    {subSearchGrading && (
+                      <button 
+                        onClick={() => setSubSearchGrading('')}
+                        className="absolute right-4 top-4.5 text-slate-400 hover:text-slate-900 cursor-pointer"
+                      >
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 shrink-0 items-center flex-wrap gap-1">
+                    {['ALL', 'A', 'B', 'C', 'REJECT'].map((grade) => {
+                      const isSelected = subGradeFilterGrading === grade || (subGradeFilterGrading !== 'ALL' && normalizeGrade(subGradeFilterGrading) === normalizeGrade(grade));
+                      return (
+                        <button
+                          key={grade}
+                          type="button"
+                          onClick={() => setSubGradeFilterGrading(grade)}
+                          className={cn(
+                            "px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                            isSelected
+                              ? "bg-[#009270] text-white shadow-xs font-bold"
+                              : "text-slate-500 hover:text-slate-900"
+                          )}
+                        >
+                          {grade === 'ALL' ? 'All' : grade === 'REJECT' ? 'Grade Reject' : `Grade ${grade}`}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Graded table block */}

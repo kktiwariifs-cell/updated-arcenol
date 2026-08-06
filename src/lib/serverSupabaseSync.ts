@@ -637,6 +637,22 @@ export async function hydrateFromSupabase(db: any) {
       }
     } catch (e) {}
 
+    // 8.5 Warranty
+    try {
+      const { data: warr } = await supabaseServerClient.from('warranty').select('*');
+      if (warr && warr.length > 0) {
+        db.warranty = warr.map((w: any) => ({
+          id: String(w.id),
+          serial: w.serial,
+          dealerId: w.dealer_id || w.dealerId,
+          startDate: w.start_date || w.startDate,
+          durationMonths: Number(w.duration_months || w.durationMonths || 36),
+          status: w.status || 'ACTIVE',
+          history: Array.isArray(w.history) ? w.history : []
+        }));
+      }
+    } catch (e) {}
+
     // 9. Subsidiaries
     try {
       const { data: subs } = await supabaseServerClient.from('arcenol_corporate_units').select('*');

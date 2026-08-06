@@ -230,6 +230,24 @@ export async function hydrateDbFromSupabase(db: any) {
       console.warn('[Client Supabase Sync] Error hydrating complaints:', compsCatchErr);
     }
 
+    // 7.5 Warranty
+    try {
+      const { data: warr } = await supabase.from('warranty').select('*');
+      if (warr && warr.length > 0) {
+        db.warranty = warr.map((w: any) => ({
+          id: String(w.id),
+          serial: w.serial,
+          dealerId: w.dealer_id || w.dealerId,
+          startDate: w.start_date || w.startDate,
+          durationMonths: Number(w.duration_months || w.durationMonths || 36),
+          status: w.status || 'ACTIVE',
+          history: Array.isArray(w.history) ? w.history : []
+        }));
+      }
+    } catch (warrCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating warranty:', warrCatchErr);
+    }
+
     // 8. Lead Inquiries
     try {
       const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));

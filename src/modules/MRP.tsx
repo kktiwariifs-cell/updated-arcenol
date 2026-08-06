@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   Cpu, 
   Settings, 
@@ -23,7 +23,17 @@ import {
   Edit,
   Sliders,
   Download,
-  Search
+  Search,
+  Printer,
+  PieChart,
+  DollarSign,
+  Percent,
+  Truck,
+  Wrench,
+  Boxes,
+  FileSpreadsheet,
+  ShieldCheck,
+  Tag
 } from 'lucide-react';
 import { formatCurrency, cn } from '../lib/utils';
 import { useERPData } from '../hooks/useERPData';
@@ -137,9 +147,274 @@ export const MRP: React.FC = () => {
 
     return Array.from(set);
   })();
-  const [activeTab, setActiveTab] = useState<'planning' | 'bom'>('planning');
+  const [activeTab, setActiveTab] = useState<'planning' | 'bom' | 'costing'>('planning');
   const [selectedModel, setSelectedModel] = useState('');
   const [productionQty, setProductionQty] = useState<number>(10);
+
+  // Costing Calculator Tools States
+  const [costingSelectedCategory, setCostingSelectedCategory] = useState<string>('ALL');
+  const [costingSelectedModel, setCostingSelectedModel] = useState<string>('');
+  const [costingBatchQty, setCostingBatchQty] = useState<number>(50);
+  const [costingAccessoriesPerUnit, setCostingAccessoriesPerUnit] = useState<number>(1200);
+  const [costingFreightPerBatch, setCostingFreightPerBatch] = useState<number>(15000);
+  const [costingWastagePercent, setCostingWastagePercent] = useState<number>(2.5);
+  const [costingLaborHoursPerUnit, setCostingLaborHoursPerUnit] = useState<number>(3.0);
+  const [costingLaborRatePerHour, setCostingLaborRatePerHour] = useState<number>(250);
+  const [costingAdminOverheadPercent, setCostingAdminOverheadPercent] = useState<number>(5.0);
+  const [costingTargetMarginPercent, setCostingTargetMarginPercent] = useState<number>(20.0);
+  const [costingAppliedSuccessMsg, setCostingAppliedSuccessMsg] = useState<string | null>(null);
+
+  // Store product-specific parameter profiles so each final product keeps its own operational coefficients
+  const [productCostingProfiles, setProductCostingProfiles] = useState<Record<string, {
+    batchQty: number;
+    accessoriesPerUnit: number;
+    freightPerBatch: number;
+    wastagePercent: number;
+    laborHoursPerUnit: number;
+    laborRatePerHour: number;
+    adminOverheadPercent: number;
+    targetMarginPercent: number;
+  }>>({});
+
+  // Helper to generate intelligent default operational rates based on product category & scale
+  const getProductDefaults = useCallback((prod: any) => {
+    const cat = (prod?.category || '').toUpperCase();
+    const name = (prod?.name || '').toUpperCase();
+    const id = (prod?.id || '').toUpperCase();
+
+    if (cat.includes('EV') || name.includes('EV') || name.includes('SCOOTER') || name.includes('AUTO') || id.includes('BAT')) {
+      return {
+        batchQty: 50,
+        accessoriesPerUnit: 1400,
+        freightPerBatch: 18000,
+        wastagePercent: 2.5,
+        laborHoursPerUnit: 3.5,
+        laborRatePerHour: 250,
+        adminOverheadPercent: 5.0,
+        targetMarginPercent: 22.0
+      };
+    } else if (cat.includes('SOLAR') || name.includes('SOLAR') || name.includes('INVERTER')) {
+      return {
+        batchQty: 100,
+        accessoriesPerUnit: 850,
+        freightPerBatch: 12000,
+        wastagePercent: 2.0,
+        laborHoursPerUnit: 2.0,
+        laborRatePerHour: 220,
+        adminOverheadPercent: 4.5,
+        targetMarginPercent: 18.0
+      };
+    } else if (cat.includes('ESS') || name.includes('ESS') || name.includes('INDUSTRIAL') || name.includes('CONTAINER')) {
+      return {
+        batchQty: 25,
+        accessoriesPerUnit: 3500,
+        freightPerBatch: 30000,
+        wastagePercent: 3.0,
+        laborHoursPerUnit: 6.0,
+        laborRatePerHour: 300,
+        adminOverheadPercent: 6.0,
+        targetMarginPercent: 25.0
+      };
+    }
+
+    return {
+      batchQty: 50,
+      accessoriesPerUnit: 1200,
+      freightPerBatch: 15000,
+      wastagePercent: 2.5,
+      laborHoursPerUnit: 3.0,
+      laborRatePerHour: 250,
+      adminOverheadPercent: 5.0,
+      targetMarginPercent: 20.0
+    };
+  }, []);
+
+  useEffect(() => {
+    if (allProducts && allProducts.length > 0 && !costingSelectedModel) {
+      setCostingSelectedModel(allProducts[0].id || allProducts[0].model_id);
+    }
+  }, [allProducts, costingSelectedModel]);
+
+  // Compute active product for costing engine
+  const currentCostingProduct = useMemo(() => {
+    if (!costingSelectedModel) return allProducts[0] || null;
+    return allProducts.find((p: any) => (p.id || p.model_id) === costingSelectedModel) || allProducts[0] || null;
+  }, [allProducts, costingSelectedModel]);
+
+  // Dynamic parameter switching when selecting a different final product model
+  useEffect(() => {
+    if (!costingSelectedModel || !allProducts || allProducts.length === 0) return;
+    const prod = allProducts.find((p: any) => (p.id || p.model_id) === costingSelectedModel) || allProducts[0];
+    const pid = prod?.id || prod?.model_id;
+    if (!pid) return;
+
+    const profile = productCostingProfiles[pid] || getProductDefaults(prod);
+    setCostingBatchQty(profile.batchQty ?? 50);
+    setCostingAccessoriesPerUnit(profile.accessoriesPerUnit);
+    setCostingFreightPerBatch(profile.freightPerBatch);
+    setCostingWastagePercent(profile.wastagePercent);
+    setCostingLaborHoursPerUnit(profile.laborHoursPerUnit);
+    setCostingLaborRatePerHour(profile.laborRatePerHour);
+    setCostingAdminOverheadPercent(profile.adminOverheadPercent);
+    setCostingTargetMarginPercent(profile.targetMarginPercent);
+  }, [costingSelectedModel, getProductDefaults]);
+
+  // Update profile for current product when inputs change
+  const updateCurrentProfile = useCallback((updates: Partial<{
+    batchQty: number;
+    accessoriesPerUnit: number;
+    freightPerBatch: number;
+    wastagePercent: number;
+    laborHoursPerUnit: number;
+    laborRatePerHour: number;
+    adminOverheadPercent: number;
+    targetMarginPercent: number;
+  }>) => {
+    if (!costingSelectedModel) return;
+    setProductCostingProfiles(prev => {
+      const existing = prev[costingSelectedModel] || getProductDefaults(currentCostingProduct);
+      return {
+        ...prev,
+        [costingSelectedModel]: {
+          ...existing,
+          ...updates
+        }
+      };
+    });
+  }, [costingSelectedModel, currentCostingProduct, getProductDefaults]);
+
+  // Compute Raw Material unit cost based on BOM and Inventory stock pricing
+  const currentProductBOMCost = useMemo(() => {
+    if (!currentCostingProduct || !currentCostingProduct.bom) return 0;
+    const invMap = new Map<string, number>();
+    (data?.inventory || []).forEach((inv: any) => {
+      const idKey = (inv.code || inv.id || '').toUpperCase();
+      const nameKey = (inv.name || '').toUpperCase();
+      const val = Number(inv.price || inv.unitCost || 150);
+      if (idKey) invMap.set(idKey, val);
+      if (nameKey) invMap.set(nameKey, val);
+    });
+
+    return currentCostingProduct.bom.reduce((acc: number, bItem: any) => {
+      const matId = (bItem.matId || bItem.id || bItem.code || '').toUpperCase();
+      const matName = (bItem.name || '').toUpperCase();
+      let unitPrice = invMap.get(matId) || invMap.get(matName) || Number(bItem.unitCost || bItem.price || 150);
+      const qty = Number(bItem.qty || 0);
+      const wastage = Number(bItem.wastage || 0);
+      const itemCost = qty * (1 + wastage / 100) * unitPrice;
+      return acc + itemCost;
+    }, 0);
+  }, [currentCostingProduct, data?.inventory]);
+
+  // Cost Pooling Calculations for Current Costing Product
+  const costingBreakdown = useMemo(() => {
+    const batchQty = Math.max(1, costingBatchQty);
+    const rmUnitCost = currentProductBOMCost;
+    const rmBatchCost = rmUnitCost * batchQty;
+
+    const accUnitCost = Math.max(0, costingAccessoriesPerUnit);
+    const accBatchCost = accUnitCost * batchQty;
+
+    const freightBatchCost = Math.max(0, costingFreightPerBatch);
+    const freightUnitCost = freightBatchCost / batchQty;
+
+    const subtotalMatFreightBatch = rmBatchCost + accBatchCost + freightBatchCost;
+
+    const wastagePercent = Math.max(0, costingWastagePercent);
+    const wastageBatchCost = subtotalMatFreightBatch * (wastagePercent / 100);
+    const wastageUnitCost = wastageBatchCost / batchQty;
+
+    const laborHoursPerUnit = Math.max(0, costingLaborHoursPerUnit);
+    const laborRatePerHour = Math.max(0, costingLaborRatePerHour);
+    const laborUnitCost = laborHoursPerUnit * laborRatePerHour;
+    const laborBatchCost = laborUnitCost * batchQty;
+
+    const directPrimeBatchCost = subtotalMatFreightBatch + wastageBatchCost + laborBatchCost;
+
+    const adminPercent = Math.max(0, costingAdminOverheadPercent);
+    const adminBatchCost = directPrimeBatchCost * (adminPercent / 100);
+    const adminUnitCost = adminBatchCost / batchQty;
+
+    const totalBatchCOGS = directPrimeBatchCost + adminBatchCost;
+    const unitCOGS = totalBatchCOGS / batchQty;
+
+    const marginPercent = Math.max(0, costingTargetMarginPercent);
+    const targetUnitSalePrice = marginPercent < 100 ? unitCOGS / (1 - marginPercent / 100) : unitCOGS * (1 + marginPercent / 100);
+    const totalBatchRevenue = targetUnitSalePrice * batchQty;
+    const totalBatchProfit = totalBatchRevenue - totalBatchCOGS;
+    const unitProfit = targetUnitSalePrice - unitCOGS;
+
+    const rmShare = totalBatchCOGS > 0 ? (rmBatchCost / totalBatchCOGS) * 100 : 0;
+    const accShare = totalBatchCOGS > 0 ? (accBatchCost / totalBatchCOGS) * 100 : 0;
+    const freightShare = totalBatchCOGS > 0 ? (freightBatchCost / totalBatchCOGS) * 100 : 0;
+    const wastageShare = totalBatchCOGS > 0 ? (wastageBatchCost / totalBatchCOGS) * 100 : 0;
+    const laborShare = totalBatchCOGS > 0 ? (laborBatchCost / totalBatchCOGS) * 100 : 0;
+    const adminShare = totalBatchCOGS > 0 ? (adminBatchCost / totalBatchCOGS) * 100 : 0;
+
+    return {
+      batchQty,
+      rmUnitCost,
+      rmBatchCost,
+      accUnitCost,
+      accBatchCost,
+      freightUnitCost,
+      freightBatchCost,
+      wastageUnitCost,
+      wastageBatchCost,
+      laborUnitCost,
+      laborBatchCost,
+      adminUnitCost,
+      adminBatchCost,
+      totalBatchCOGS,
+      unitCOGS,
+      targetUnitSalePrice,
+      totalBatchRevenue,
+      totalBatchProfit,
+      unitProfit,
+      rmShare,
+      accShare,
+      freightShare,
+      wastageShare,
+      laborShare,
+      adminShare
+    };
+  }, [
+    costingBatchQty,
+    currentProductBOMCost,
+    costingAccessoriesPerUnit,
+    costingFreightPerBatch,
+    costingWastagePercent,
+    costingLaborHoursPerUnit,
+    costingLaborRatePerHour,
+    costingAdminOverheadPercent,
+    costingTargetMarginPercent
+  ]);
+
+  const handleUpdateProductSellingPrice = async (targetId: string, newPrice: number) => {
+    const prod = allProducts.find((p: any) => (p.id || p.model_id) === targetId);
+    if (!prod) return;
+    const updated = {
+      ...prod,
+      price: newPrice
+    };
+    try {
+      const res = await fetch(`/api/products/${encodeURIComponent(targetId)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      });
+      if (res.ok) {
+        setCostingAppliedSuccessMsg(`Successfully updated base rate for ${targetId} to ₹${newPrice.toLocaleString()} in Catalog.`);
+        refetch();
+        setTimeout(() => setCostingAppliedSuccessMsg(null), 4000);
+      } else {
+        alert("Failed to update product price.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error updating price.");
+    }
+  };
 
   useEffect(() => {
     if (allProducts && allProducts.length > 0 && !selectedModel) {
@@ -1087,6 +1362,13 @@ export const MRP: React.FC = () => {
              className={cn("px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all", activeTab === 'bom' ? "bg-white text-primary-600 shadow-xl" : "text-slate-500 hover:text-slate-900")}
            >
              Master BOM
+           </button>
+           <button 
+             onClick={() => setActiveTab('costing')} 
+             className={cn("px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5", activeTab === 'costing' ? "bg-white text-primary-600 shadow-xl" : "text-slate-500 hover:text-slate-900")}
+             id="btn_mrp_header_costing_calculator"
+           >
+             <Calculator size={13} /> Costing Calculator Tools
            </button>
            <button 
              onClick={() => setIsCategoryModalOpen(true)}
@@ -2090,6 +2372,679 @@ export const MRP: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* COSTING CALCULATOR TOOLS TAB */}
+      {activeTab === 'costing' && (
+        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 text-left">
+          
+          {/* Top Banner: Description of Analysis, Tools & Method */}
+          <div className="p-8 md:p-10 bg-[#e3d7c5] text-slate-900 rounded-[3rem] shadow-xl relative overflow-hidden border border-[#d1c4b0]">
+            <div className="absolute -right-12 -bottom-12 opacity-10 pointer-events-none text-slate-900">
+              <Calculator size={320} />
+            </div>
+            
+            <div className="relative z-10 space-y-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <span className="px-4 py-1.5 bg-[#d4c7b2] text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#c5b7a0] flex items-center gap-2">
+                  <ShieldCheck size={14} className="text-[#008099]" /> Batch-Wise Cost Pooling Framework & Analysis Method
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 cursor-pointer active:scale-95 shadow-md"
+                >
+                  <Printer size={15} /> Print / Export Report
+                </button>
+              </div>
+
+              <div>
+                <h2 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 uppercase italic">
+                  Costing Calculator Tools
+                </h2>
+                <p className="text-xs text-slate-800 mt-2 max-w-4xl leading-relaxed">
+                  <strong className="text-slate-950">Analysis & Pooling Methodology:</strong> This batch-wise production costing model pools 
+                  direct and indirect cost heads into a unified unit economics engine. It aggregates 
+                  <strong className="text-slate-950"> Raw Material Costs (BOM-linked live inventory rates)</strong>, 
+                  <strong className="text-slate-950"> Accessories & Hardware Addons</strong>, 
+                  <strong className="text-slate-950"> Inward Freight & Logistics Absorption</strong>, 
+                  <strong className="text-slate-950"> Assembly Scrap & Scrap Yield Factors</strong>, 
+                  <strong className="text-slate-950"> Direct Labor Operator/Technician Man-Hours</strong>, and 
+                  <strong className="text-slate-950"> Administrative, Marketing & Factory Overhead %</strong> to calculate true 
+                  <strong className="text-slate-950"> Batch COGS</strong>, <strong className="text-slate-950">Unit COGS</strong>, and <strong className="text-slate-950">Target Commercial Base Price</strong> with overall profit margin goals.
+                </p>
+              </div>
+
+              {/* 6 Key Cost Pool Pillars Info Chips */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 pt-2">
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-[#008099]">1. Raw Materials</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">BOM Stock Pooling</p>
+                </div>
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-amber-900">2. Accessories</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">Busbars, Wiring & Packs</p>
+                </div>
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-emerald-900">3. Transportation</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">Inward Transit Freight</p>
+                </div>
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-red-900">4. Wastage Buffer</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">Process Scrap Allowance</p>
+                </div>
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-indigo-900">5. Direct Labor</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">Technician Man-Hours</p>
+                </div>
+                <div className="p-3.5 bg-white/70 border border-[#cbbea8] rounded-2xl shadow-3xs">
+                  <p className="text-[9px] font-black uppercase tracking-wider text-purple-900">6. Admin & SG&A</p>
+                  <p className="text-[11px] font-black text-slate-900 mt-1">Overhead & Profit Margin</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {costingAppliedSuccessMsg && (
+            <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-between shadow-sm animate-in fade-in">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 size={18} className="text-emerald-600" /> {costingAppliedSuccessMsg}
+              </span>
+              <button onClick={() => setCostingAppliedSuccessMsg(null)} className="text-emerald-600 hover:text-emerald-900 font-black">
+                <X size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Model Selection & Batch Quantity Parameters Bar */}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                  <Boxes size={20} className="text-[#009cbc]" /> Batch Production Model Selector
+                </h3>
+                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-1">
+                  Select product category and model SKU blueprint to dynamically simulate batch costing
+                </p>
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => setCostingSelectedCategory('ALL')}
+                  className={cn(
+                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                    costingSelectedCategory === 'ALL'
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  )}
+                >
+                  All Categories ({allProducts.length})
+                </button>
+                {categoryNames.map((catName) => {
+                  const count = allProducts.filter((p: any) => p.category === catName).length;
+                  return (
+                    <button
+                      key={catName}
+                      type="button"
+                      onClick={() => setCostingSelectedCategory(catName)}
+                      className={cn(
+                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                        costingSelectedCategory === catName
+                          ? "bg-[#009cbc] text-white shadow-md"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      )}
+                    >
+                      {catName.replace(/^CATEGORY \d+ — /, '')} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Product Selector */}
+              <div className="md:col-span-2 space-y-2">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Target Product Model Blueprint
+                </label>
+                <div className="relative">
+                  <select
+                    value={costingSelectedModel}
+                    onChange={(e) => setCostingSelectedModel(e.target.value)}
+                    className="w-full bg-[#f8fafc] border border-slate-300 rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-[#009cbc]/20 cursor-pointer appearance-none"
+                  >
+                    {allProducts
+                      .filter((p: any) => costingSelectedCategory === 'ALL' || p.category === costingSelectedCategory)
+                      .map((p: any) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.id}) — Current Catalog Price: ₹{Number(p.price || 0).toLocaleString()}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Batch Size Selection */}
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                  Production Batch Quantity (Units)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    value={costingBatchQty}
+                    onChange={(e) => {
+                      const v = Math.max(1, parseInt(e.target.value, 10) || 1);
+                      setCostingBatchQty(v);
+                      updateCurrentProfile({ batchQty: v });
+                    }}
+                    className="w-full bg-[#f8fafc] border border-slate-300 rounded-2xl px-4 py-3.5 text-xs font-black text-slate-900 font-mono outline-none focus:ring-2 focus:ring-[#009cbc]/20"
+                  />
+                  <div className="flex gap-1 shrink-0">
+                    {[25, 50, 100, 250, 500].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setCostingBatchQty(preset);
+                          updateCurrentProfile({ batchQty: preset });
+                        }}
+                        className={cn(
+                          "px-2.5 py-3.5 rounded-xl text-[10px] font-black font-mono transition-all cursor-pointer border",
+                          costingBatchQty === preset
+                            ? "bg-[#009cbc] text-white border-[#009cbc]"
+                            : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                        )}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Interactive Cost Inputs Panel & Summary Cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            {/* Column 1 & 2: Cost Pool Parameter Inputs Form */}
+            <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
+              <div className="border-b border-slate-100 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                    <Sliders size={18} className="text-[#009cbc]" /> Cost Pool Inputs & Operational Coefficients
+                  </h3>
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                    Adjust variable inputs to simulate batch production unit economics
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-cyan-50 text-cyan-800 border border-cyan-200 rounded-xl text-[9px] font-black uppercase tracking-wider">
+                    Model SKU: {currentCostingProduct?.id || '—'}
+                  </span>
+                  <span className="px-3 py-1 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl text-[9.5px] font-black uppercase tracking-wider">
+                    Live Simulating
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* 1. Raw Materials Pool (Read-only BOM total with indicator) */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Package size={14} className="text-[#009cbc]" /> 1. Raw Material Cost (BOM)
+                    </label>
+                    <span className="text-[9px] font-black text-slate-400 uppercase">Auto-Calculated</span>
+                  </div>
+                  <div className="text-lg font-black text-slate-900 font-mono">
+                    ₹{costingBreakdown.rmUnitCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-xs text-slate-400 font-bold">/ Unit</span>
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    Pooled from {currentCostingProduct?.bom?.length || 0} BOM items @ live inventory SKU prices.
+                  </p>
+                </div>
+
+                {/* 2. Accessories & Hardware Addons */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Wrench size={14} className="text-amber-600" /> 2. Accessories & Hardware (₹/Unit)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={costingAccessoriesPerUnit}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseFloat(e.target.value) || 0);
+                      setCostingAccessoriesPerUnit(v);
+                      updateCurrentProfile({ accessoriesPerUnit: v });
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-black font-mono text-slate-900 outline-none focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    Wiring harness, busbars, packaging brackets, handles & thermal pads per unit.
+                  </p>
+                </div>
+
+                {/* 3. Transportation / Inward Freight */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Truck size={14} className="text-emerald-600" /> 3. Inward Freight & Logistics (₹/Batch)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={costingFreightPerBatch}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseFloat(e.target.value) || 0);
+                      setCostingFreightPerBatch(v);
+                      updateCurrentProfile({ freightPerBatch: v });
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-black font-mono text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    Batch inward raw material transportation & handling (₹{costingBreakdown.freightUnitCost.toFixed(2)}/unit).
+                  </p>
+                </div>
+
+                {/* 4. Scrap & Process Wastage Allowance */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <AlertTriangle size={14} className="text-red-500" /> 4. Assembly Scrap & Wastage Buffer (%)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={costingWastagePercent}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseFloat(e.target.value) || 0);
+                      setCostingWastagePercent(v);
+                      updateCurrentProfile({ wastagePercent: v });
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-black font-mono text-slate-900 outline-none focus:ring-2 focus:ring-red-500/20"
+                  />
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    Expected yield loss allowance during cell sorting, welding & potting (₹{costingBreakdown.wastageUnitCost.toFixed(2)}/unit).
+                  </p>
+                </div>
+
+                {/* 5. Direct Labor Hours & Wage Rate */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-3 md:col-span-2">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                    <Activity size={14} className="text-indigo-600" /> 5. Direct Labor & Assembly Technician Cost
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <span className="block text-[9px] font-extrabold text-slate-400 uppercase mb-1">Man-Hours / Unit</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={costingLaborHoursPerUnit}
+                        onChange={(e) => {
+                          const v = Math.max(0, parseFloat(e.target.value) || 0);
+                          setCostingLaborHoursPerUnit(v);
+                          updateCurrentProfile({ laborHoursPerUnit: v });
+                        }}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2 text-xs font-black font-mono text-slate-900 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[9px] font-extrabold text-slate-400 uppercase mb-1">Technician Hourly Wage Rate (₹/Hr)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={costingLaborRatePerHour}
+                        onChange={(e) => {
+                          const v = Math.max(0, parseFloat(e.target.value) || 0);
+                          setCostingLaborRatePerHour(v);
+                          updateCurrentProfile({ laborRatePerHour: v });
+                        }}
+                        className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2 text-xs font-black font-mono text-slate-900 outline-none"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    Total Labor Cost: ₹{costingBreakdown.laborUnitCost.toLocaleString()}/unit (₹{costingBreakdown.laborBatchCost.toLocaleString()} per batch).
+                  </p>
+                </div>
+
+                {/* 6. Admin Overhead & Marketing */}
+                <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+                      <Percent size={14} className="text-purple-600" /> 6. Admin, Plant & Marketing Overhead (%)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={costingAdminOverheadPercent}
+                    onChange={(e) => {
+                      const v = Math.max(0, parseFloat(e.target.value) || 0);
+                      setCostingAdminOverheadPercent(v);
+                      updateCurrentProfile({ adminOverheadPercent: v });
+                    }}
+                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-black font-mono text-slate-900 outline-none focus:ring-2 focus:ring-purple-500/20"
+                  />
+                  <p className="text-[9px] font-bold text-slate-400 leading-tight">
+                    SG&A, plant power, quality assurance testing & marketing share (₹{costingBreakdown.adminUnitCost.toFixed(2)}/unit).
+                  </p>
+                </div>
+
+                {/* 7. Target Gross Profit Margin % */}
+                <div className="p-5 bg-[#f0fcfd] border border-[#d1f7fc] rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-black text-[#009cbc] uppercase tracking-wider flex items-center gap-1.5">
+                      <TrendingUp size={14} className="text-[#009cbc]" /> 7. Target Gross Profit Margin Goal (%)
+                    </label>
+                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    max="90"
+                    step="1"
+                    value={costingTargetMarginPercent}
+                    onChange={(e) => {
+                      const v = Math.min(90, Math.max(0, parseFloat(e.target.value) || 0));
+                      setCostingTargetMarginPercent(v);
+                      updateCurrentProfile({ targetMarginPercent: v });
+                    }}
+                    className="w-full bg-white border border-[#a5f3fc] rounded-xl px-4 py-2.5 text-sm font-black font-mono text-[#008ba3] outline-none focus:ring-2 focus:ring-[#009cbc]/20"
+                  />
+                  <p className="text-[9px] font-bold text-[#009cbc]/70 leading-tight">
+                    Target gross margin percentage on final sale revenue.
+                  </p>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Column 3: Live Results KPI Card & Pricing Actions */}
+            <div className="space-y-6">
+              
+              <div className="p-8 bg-[#e3d7c5] text-slate-900 rounded-[2.5rem] border border-[#d1c4b0] shadow-xl space-y-6">
+                <div className="border-b border-[#c5b7a0] pb-4">
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#008099]">
+                    Live Unit Economics Summary
+                  </span>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic mt-1">
+                    Batch Valuation Matrix
+                  </h3>
+                  <p className="text-[10px] text-slate-700 font-black uppercase mt-0.5">
+                    Batch Size: {costingBreakdown.batchQty} Units
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  
+                  {/* Total Batch COGS */}
+                  <div className="p-4 bg-white/70 border border-[#cbbea8] rounded-2xl flex items-center justify-between shadow-3xs">
+                    <div>
+                      <p className="text-[9.5px] font-black uppercase text-slate-700 tracking-wider">Total Batch COGS</p>
+                      <p className="text-lg font-black text-slate-950 font-mono mt-0.5">
+                        ₹{costingBreakdown.totalBatchCOGS.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-bold text-slate-700 uppercase">Per Unit</p>
+                      <p className="text-xs font-black text-[#008099] font-mono">
+                        ₹{costingBreakdown.unitCOGS.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Target Selling Price */}
+                  <div className="p-5 bg-[#008099]/15 border border-[#008099]/30 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9.5px] font-black uppercase tracking-wider text-[#006e84] flex items-center gap-1">
+                        <Tag size={12} /> Target Sale Price / Unit
+                      </span>
+                      <span className="text-[9px] font-black px-2 py-0.5 bg-[#008099] text-white rounded">
+                        +{costingTargetMarginPercent}% Margin
+                      </span>
+                    </div>
+                    <div className="text-2xl font-black text-slate-950 font-mono">
+                      ₹{costingBreakdown.targetUnitSalePrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-slate-700 font-bold pt-1 border-t border-slate-900/10">
+                      <span>Catalog Base Price:</span>
+                      <span className="font-mono text-slate-950">₹{Number(currentCostingProduct?.price || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Profitability Projections */}
+                  <div className="p-4 bg-emerald-800/10 border border-emerald-800/25 rounded-2xl space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-950">
+                      <span>Projected Batch Gross Revenue</span>
+                      <span className="font-mono">₹{costingBreakdown.totalBatchRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] font-black uppercase text-emerald-950 pt-1 border-t border-emerald-900/15">
+                      <span>Estimated Net Batch Profit</span>
+                      <span className="font-mono text-sm">₹{costingBreakdown.totalBatchProfit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Apply Price Button */}
+                <button
+                  type="button"
+                  onClick={() => handleUpdateProductSellingPrice(currentCostingProduct?.id, Math.round(costingBreakdown.targetUnitSalePrice))}
+                  className="w-full py-4 bg-[#008099] hover:bg-[#006e84] text-white font-black text-xs uppercase tracking-widest rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Save size={16} /> Apply Target Price to Catalog
+                </button>
+              </div>
+
+              {/* Visual Cost Pool Percentage Distribution Bar */}
+              <div className="p-6 bg-white rounded-[2rem] border border-slate-200 shadow-sm space-y-4">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                  <PieChart size={16} className="text-[#009cbc]" /> Cost Structure Allocation (%)
+                </h4>
+
+                <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+                  <div style={{ width: `${costingBreakdown.rmShare}%` }} className="bg-[#009cbc]" title={`Raw Materials: ${costingBreakdown.rmShare.toFixed(1)}%`} />
+                  <div style={{ width: `${costingBreakdown.accShare}%` }} className="bg-amber-500" title={`Accessories: ${costingBreakdown.accShare.toFixed(1)}%`} />
+                  <div style={{ width: `${costingBreakdown.freightShare}%` }} className="bg-emerald-500" title={`Freight: ${costingBreakdown.freightShare.toFixed(1)}%`} />
+                  <div style={{ width: `${costingBreakdown.wastageShare}%` }} className="bg-red-500" title={`Wastage: ${costingBreakdown.wastageShare.toFixed(1)}%`} />
+                  <div style={{ width: `${costingBreakdown.laborShare}%` }} className="bg-indigo-500" title={`Labor: ${costingBreakdown.laborShare.toFixed(1)}%`} />
+                  <div style={{ width: `${costingBreakdown.adminShare}%` }} className="bg-purple-500" title={`Admin & Overhead: ${costingBreakdown.adminShare.toFixed(1)}%`} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-[9.5px] font-bold uppercase text-slate-600 pt-1">
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-[#009cbc]" /> RM: {costingBreakdown.rmShare.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-amber-500" /> Accs: {costingBreakdown.accShare.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-emerald-500" /> Freight: {costingBreakdown.freightShare.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-red-500" /> Wastage: {costingBreakdown.wastageShare.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-indigo-500" /> Labor: {costingBreakdown.laborShare.toFixed(1)}%</div>
+                  <div className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded bg-purple-500" /> Admin: {costingBreakdown.adminShare.toFixed(1)}%</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Itemized BOM Raw Material Breakdown Table */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                  <FileSpreadsheet size={20} className="text-[#009cbc]" /> Itemized BOM Material Cost Share — {currentCostingProduct?.name} ({currentCostingProduct?.id})
+                </h3>
+                <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                  Pooled raw material components, unit costs, and batch totals for {costingBreakdown.batchQty} units
+                </p>
+              </div>
+              <span className="text-xs font-black font-mono text-[#009cbc] bg-[#f0fcfd] px-4 py-2 rounded-xl border border-[#d1f7fc]">
+                Pooled RM Total: ₹{costingBreakdown.rmBatchCost.toLocaleString()} (₹{costingBreakdown.rmUnitCost.toLocaleString()}/unit)
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
+                    <th className="p-4 pl-8">Component SKU</th>
+                    <th className="p-4">Material Name</th>
+                    <th className="p-4 text-center">BOM Qty / Unit</th>
+                    <th className="p-4 text-center">Batch Total Qty ({costingBreakdown.batchQty} Units)</th>
+                    <th className="p-4 text-right">Unit Rate (₹)</th>
+                    <th className="p-4 text-right">Total Batch Cost (₹)</th>
+                    <th className="p-4 pr-8 text-right">% of RM Pool</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-mono">
+                  {(currentCostingProduct?.bom || []).map((bItem: any, idx: number) => {
+                    const matCode = bItem.matId || bItem.id || bItem.code || `RM-${idx + 1}`;
+                    const invMatched = (data?.inventory || []).find(
+                      (inv: any) =>
+                        (inv.code || inv.id || '').toUpperCase() === matCode.toUpperCase() ||
+                        (inv.name || '').toUpperCase() === (bItem.name || '').toUpperCase()
+                    );
+                    const unitRate = invMatched ? Number(invMatched.price || invMatched.unitCost || 150) : Number(bItem.unitCost || bItem.price || 150);
+                    const qtyPerUnit = Number(bItem.qty || 0);
+                    const wastage = Number(bItem.wastage || 0);
+                    const effectiveQtyPerUnit = qtyPerUnit * (1 + wastage / 100);
+                    const totalBatchQty = effectiveQtyPerUnit * costingBreakdown.batchQty;
+                    const itemBatchCost = totalBatchQty * unitRate;
+                    const sharePct = costingBreakdown.rmBatchCost > 0 ? (itemBatchCost / costingBreakdown.rmBatchCost) * 100 : 0;
+
+                    return (
+                      <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 pl-8 font-black text-slate-900">{matCode}</td>
+                        <td className="p-4 font-sans font-bold text-slate-800">{bItem.name}</td>
+                        <td className="p-4 text-center font-bold text-slate-600">
+                          {qtyPerUnit} {bItem.unit || 'Pcs'} {wastage > 0 ? <span className="text-[9px] text-amber-600">(+{wastage}% waste)</span> : ''}
+                        </td>
+                        <td className="p-4 text-center font-black text-slate-900">
+                          {totalBatchQty.toLocaleString(undefined, { maximumFractionDigits: 1 })} {bItem.unit || 'Pcs'}
+                        </td>
+                        <td className="p-4 text-right font-bold text-slate-700">₹{unitRate.toLocaleString()}</td>
+                        <td className="p-4 text-right font-black text-[#009cbc]">₹{itemBatchCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <td className="p-4 pr-8 text-right font-black text-slate-900">{sharePct.toFixed(1)}%</td>
+                      </tr>
+                    );
+                  })}
+                  {(!currentCostingProduct?.bom || currentCostingProduct.bom.length === 0) && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-slate-400 font-sans italic">
+                        No BOM component breakdown specified for this product blueprint.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Category-Wise Batch Production Cost Comparison Matrix */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200 overflow-hidden shadow-sm space-y-6 p-8">
+            <div>
+              <h3 className="text-base font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                <TrendingUp size={20} className="text-[#009cbc]" /> Category-Wise Batch Economics Matrix
+              </h3>
+              <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mt-0.5">
+                Side-by-side costing comparison across EV, Solar, and ESS product categories for a batch of {costingBreakdown.batchQty} units
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
+                    <th className="p-4 pl-6">Category Group</th>
+                    <th className="p-4">Model SKU & Name</th>
+                    <th className="p-4 text-right">BOM RM Cost / Unit</th>
+                    <th className="p-4 text-right">Unit COGS</th>
+                    <th className="p-4 text-right">Target Sale Price</th>
+                    <th className="p-4 text-right">Catalog Price</th>
+                    <th className="p-4 text-right">Estimated Margin / Unit</th>
+                    <th className="p-4 pr-6 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-mono">
+                  {allProducts.map((p: any) => {
+                    const invMap = new Map<string, number>();
+                    (data?.inventory || []).forEach((inv: any) => {
+                      const idKey = (inv.code || inv.id || '').toUpperCase();
+                      const nameKey = (inv.name || '').toUpperCase();
+                      const val = Number(inv.price || inv.unitCost || 150);
+                      if (idKey) invMap.set(idKey, val);
+                      if (nameKey) invMap.set(nameKey, val);
+                    });
+
+                    const rmCost = (p.bom || []).reduce((acc: number, bItem: any) => {
+                      const matId = (bItem.matId || bItem.id || bItem.code || '').toUpperCase();
+                      const matName = (bItem.name || '').toUpperCase();
+                      let unitPrice = invMap.get(matId) || invMap.get(matName) || Number(bItem.unitCost || bItem.price || 150);
+                      const qty = Number(bItem.qty || 0);
+                      const wastage = Number(bItem.wastage || 0);
+                      return acc + (qty * (1 + wastage / 100) * unitPrice);
+                    }, 0);
+
+                    const pProfile = productCostingProfiles[p.id] || getProductDefaults(p);
+                    const batchQty = Math.max(1, pProfile.batchQty || costingBatchQty);
+                    const rmBatch = rmCost * batchQty;
+                    const accBatch = pProfile.accessoriesPerUnit * batchQty;
+                    const freightBatch = pProfile.freightPerBatch;
+                    const subtotalMat = rmBatch + accBatch + freightBatch;
+                    const wastageBatch = subtotalMat * (pProfile.wastagePercent / 100);
+                    const laborBatch = batchQty * pProfile.laborHoursPerUnit * pProfile.laborRatePerHour;
+                    const primeBatch = subtotalMat + wastageBatch + laborBatch;
+                    const adminBatch = primeBatch * (pProfile.adminOverheadPercent / 100);
+                    const totalCOGS = primeBatch + adminBatch;
+                    const unitCOGS = totalCOGS / batchQty;
+                    const targetPrice = pProfile.targetMarginPercent < 100 ? unitCOGS / (1 - pProfile.targetMarginPercent / 100) : unitCOGS * (1 + pProfile.targetMarginPercent / 100);
+                    const catalogPrice = Number(p.price || 0);
+                    const profitPerUnit = targetPrice - unitCOGS;
+
+                    return (
+                      <tr key={p.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-4 pl-6 font-sans">
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-700 text-[9px] font-black rounded border border-slate-200 uppercase">
+                            {(p.category || 'Uncategorized').replace(/^CATEGORY \d+ — /, '')}
+                          </span>
+                        </td>
+                        <td className="p-4 font-sans font-bold text-slate-900">
+                          {p.name} <span className="font-mono text-xs text-slate-400">({p.id})</span>
+                        </td>
+                        <td className="p-4 text-right font-bold text-slate-700">₹{rmCost.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <td className="p-4 text-right font-black text-slate-900">₹{unitCOGS.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <td className="p-4 text-right font-black text-[#009cbc]">₹{targetPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <td className="p-4 text-right font-bold text-slate-600">₹{catalogPrice.toLocaleString()}</td>
+                        <td className="p-4 text-right font-black text-emerald-600">₹{profitPerUnit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</td>
+                        <td className="p-4 pr-6 text-center font-sans">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateProductSellingPrice(p.id, Math.round(targetPrice))}
+                            className="px-3 py-1.5 bg-[#009cbc] hover:bg-[#008ba3] text-white rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-xs active:scale-95"
+                          >
+                            Apply Rate
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       )}
 

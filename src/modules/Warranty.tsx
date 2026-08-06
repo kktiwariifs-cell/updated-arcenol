@@ -116,6 +116,52 @@ export const Warranty: React.FC = () => {
 
   const [isSyncing, setIsSyncing] = useState(false);
 
+  const activeWarranties = React.useMemo(() => {
+    if (Array.isArray(data?.warranty) && data.warranty.length > 0) {
+      return data.warranty;
+    }
+    // Auto fallback: extract serial numbers from invoices or finishedGoods if data.warranty is empty
+    const fallbackList: any[] = [];
+    if (Array.isArray(data?.invoices)) {
+      data.invoices.forEach((inv: any) => {
+        const items = inv.goods || inv.items || [];
+        items.forEach((item: any) => {
+          if (Array.isArray(item.serials)) {
+            item.serials.forEach((s: string, idx: number) => {
+              if (s && !fallbackList.some(w => w.serial === s)) {
+                fallbackList.push({
+                  id: `w-auto-${inv.id}-${idx}`,
+                  serial: s,
+                  dealerId: inv.dealerId || inv.customerId || 'l1',
+                  startDate: inv.date || inv.billedDate || '2024-05-12',
+                  durationMonths: 36,
+                  status: 'ACTIVE',
+                  history: []
+                });
+              }
+            });
+          }
+        });
+      });
+    }
+    if (Array.isArray(data?.finishedGoods)) {
+      data.finishedGoods.forEach((fg: any) => {
+        if (fg.serial && (fg.status === 'SOLD' || fg.status === 'ACTIVE') && !fallbackList.some(w => w.serial === fg.serial)) {
+          fallbackList.push({
+            id: `w-fg-${fg.id}`,
+            serial: fg.serial,
+            dealerId: 'Direct Dealer Billing',
+            startDate: fg.date || '2024-05-12',
+            durationMonths: 36,
+            status: 'ACTIVE',
+            history: []
+          });
+        }
+      });
+    }
+    return fallbackList;
+  }, [data?.warranty, data?.invoices, data?.finishedGoods]);
+
   const handleAction = (actionName: string, callback: () => void | Promise<void>) => {
     if (isSyncing) return;
     setIsSyncing(true);
@@ -218,13 +264,13 @@ export const Warranty: React.FC = () => {
               </div>
            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               <div className="p-6 rounded-xl border-none bg-slate-900 text-white shadow-xl shadow-slate-200 transition-all hover:scale-[1.02] cursor-default">
                  <div className="flex justify-between items-start">
                     <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">Active Warranties</p>
                     <Shield size={16} className="opacity-40" />
                  </div>
-                 <p className="text-3xl font-black">{data?.warranty.length || 0}</p>
+                 <p className="text-3xl font-black">{activeWarranties.length}</p>
                  <div className="mt-4 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-primary-500 w-3/4"></div>
                  </div>
@@ -236,7 +282,7 @@ export const Warranty: React.FC = () => {
                     <BadgeCheck size={16} className="opacity-40" />
                  </div>
                  <p className="text-3xl font-black">
-                    {data?.warranty.length ? Math.round((data.warranty.filter((w: any) => w.status === 'ACTIVE').length / data.warranty.length) * 100) : 0}%
+                    {activeWarranties.length ? Math.round((activeWarranties.filter((w: any) => w.status === 'ACTIVE').length / activeWarranties.length) * 100) : 0}%
                  </p>
                  <p className="text-[10px] mt-1 font-bold opacity-80">Authenticated Assets</p>
               </div>
@@ -278,40 +324,50 @@ export const Warranty: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                   {data?.warranty.slice().reverse().map((w: any) => {
-                      const dealer = data?.leads.find((l:any) => l.id === w.dealerId);
-                      const complaints = data?.complaints.filter((c:any) => c.serial === w.serial);
-                      return (
-                        <tr key={w.id} className="hover:bg-slate-50 transition-colors">
-                           <td className="px-6 py-4 font-mono text-sm font-bold text-primary-600">
-                              <FormattedSerial serial={w.serial} />
-                           </td>
-                           <td className="px-6 py-4">
-                              <p className="font-bold text-sm text-slate-900">{dealer?.company || 'Direct Sale'}</p>
-                              <p className="text-[10px] text-slate-400">Activated: {w.startDate}</p>
-                           </td>
-                           <td className="px-6 py-4 text-xs font-medium text-slate-600">
-                              {new Date(new Date(w.startDate).setFullYear(new Date(w.startDate).getFullYear() + 3)).toISOString().split('T')[0]}
-                           </td>
-                           <td className="px-6 py-4">
-                              <span className="px-2 py-1 bg-accent-100 text-accent-700 rounded-full text-[9px] font-bold uppercase tracking-tighter">
-                                 {w.status}
-                              </span>
-                           </td>
-                           <td className="px-6 py-4">
-                              <div className="flex space-x-1">
-                                 {complaints.length > 0 ? (
-                                    <span className="bg-amber-100 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-bold">
-                                       {complaints.length} CLAIM(S)
-                                    </span>
-                                 ) : (
-                                    <span className="text-slate-400 italic text-[10px]">No issues</span>
-                                 )}
-                              </div>
-                           </td>
-                        </tr>
-                      );
-                   })}
+                   {activeWarranties.length > 0 ? (
+                      activeWarranties.slice().reverse().map((w: any) => {
+                         const dealer = data?.leads.find((l:any) => l.id === w.dealerId);
+                         const complaints = data?.complaints ? data.complaints.filter((c:any) => c.serial === w.serial) : [];
+                         return (
+                           <tr key={w.id} className="hover:bg-slate-50 transition-colors">
+                              <td className="px-6 py-4 font-mono text-sm font-bold text-primary-600">
+                                 <FormattedSerial serial={w.serial} />
+                              </td>
+                              <td className="px-6 py-4">
+                                 <p className="font-bold text-sm text-slate-900">{dealer?.company || 'Direct Sale'}</p>
+                                 <p className="text-[10px] text-slate-400">Activated: {w.startDate}</p>
+                              </td>
+                              <td className="px-6 py-4 text-xs font-medium text-slate-600">
+                                 {new Date(new Date(w.startDate).setFullYear(new Date(w.startDate).getFullYear() + 3)).toISOString().split('T')[0]}
+                              </td>
+                              <td className="px-6 py-4">
+                                 <span className="px-2 py-1 bg-accent-100 text-accent-700 rounded-full text-[9px] font-bold uppercase tracking-tighter">
+                                    {w.status}
+                                 </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                 <div className="flex space-x-1">
+                                    {complaints.length > 0 ? (
+                                       <span className="bg-amber-100 text-amber-700 text-[9px] px-2 py-0.5 rounded-full font-bold">
+                                          {complaints.length} CLAIM(S)
+                                       </span>
+                                    ) : (
+                                       <span className="text-slate-400 italic text-[10px]">No issues</span>
+                                    )}
+                                 </div>
+                              </td>
+                           </tr>
+                         );
+                      })
+                   ) : (
+                      <tr>
+                         <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-medium">
+                            <Shield size={32} className="mx-auto mb-2 opacity-30 text-slate-500" />
+                            <p className="font-bold text-sm text-slate-600">No Active Warranty Records Found</p>
+                            <p className="text-xs text-slate-400 mt-1">Issue an invoice with serial numbers or use the verification gateway to register new warranties.</p>
+                         </td>
+                      </tr>
+                   )}
                 </tbody>
               </table>
            </div>

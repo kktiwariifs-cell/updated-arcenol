@@ -344,11 +344,19 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
     }
   };
 
+  const normalizeGrade = (g: any): string => {
+    if (!g) return '';
+    const str = String(g).trim().toUpperCase();
+    const clean = str.replace(/^(GRADE[\s\-_]*|TIER[\s\-_]*)/i, '').trim();
+    if (clean === 'REJECT' || clean === 'REJECTED' || clean === 'SCRAP' || clean === 'D') return 'REJECT';
+    return clean;
+  };
+
   const gradedCellsList = data?.gradedInventory || [];
-  const countGradeA = gradedCellsList.filter((c: any) => c.grade === 'A').length;
-  const countGradeB = gradedCellsList.filter((c: any) => c.grade === 'B').length;
-  const countGradeC = gradedCellsList.filter((c: any) => c.grade === 'C').length;
-  const countReject = gradedCellsList.filter((c: any) => c.grade === 'REJECT').length;
+  const countGradeA = gradedCellsList.filter((c: any) => normalizeGrade(c.grade) === 'A').length;
+  const countGradeB = gradedCellsList.filter((c: any) => normalizeGrade(c.grade) === 'B').length;
+  const countGradeC = gradedCellsList.filter((c: any) => normalizeGrade(c.grade) === 'C').length;
+  const countReject = gradedCellsList.filter((c: any) => normalizeGrade(c.grade) === 'REJECT').length;
   const totalGradedCount = gradedCellsList.length;
 
   const avgIRValue = totalGradedCount > 0 
@@ -360,11 +368,28 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
     : "0.0";
 
   const filteredGradedList = gradedCellsList.filter((c: any) => {
-    const matchesSearch = !gradedSearch || 
-      (c.serial || '').toLowerCase().includes(gradedSearch.toLowerCase()) ||
-      (c.engineer || '').toLowerCase().includes(gradedSearch.toLowerCase()) ||
-      (c.supplier || '').toLowerCase().includes(gradedSearch.toLowerCase());
-    const matchesGrade = gradedGradeFilter === 'ALL' || c.grade === gradedGradeFilter;
+    const searchNorm = gradedSearch.trim().toLowerCase();
+    const matchesSearch = !searchNorm || 
+      (c.serial || '').toLowerCase().includes(searchNorm) ||
+      (c.engineer || '').toLowerCase().includes(searchNorm) ||
+      (c.inspector || '').toLowerCase().includes(searchNorm) ||
+      (c.supplier || '').toLowerCase().includes(searchNorm) ||
+      (c.usage || '').toLowerCase().includes(searchNorm) ||
+      (c.name || '').toLowerCase().includes(searchNorm) ||
+      (c.grade || '').toLowerCase().includes(searchNorm) ||
+      `grade ${normalizeGrade(c.grade)}`.toLowerCase().includes(searchNorm);
+
+    const filterNorm = normalizeGrade(gradedGradeFilter);
+    const cellGradeNorm = normalizeGrade(c.grade);
+
+    const matchesGrade = 
+      gradedGradeFilter === 'ALL' || 
+      filterNorm === 'ALL' ||
+      filterNorm === '' ||
+      cellGradeNorm === filterNorm ||
+      (c.grade || '').toUpperCase() === gradedGradeFilter.toUpperCase() ||
+      (c.grade || '').toUpperCase().includes(gradedGradeFilter.toUpperCase());
+
     return matchesSearch && matchesGrade;
   });
 
@@ -2008,24 +2033,28 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
-                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200">
-                  {['ALL', 'A', 'B', 'C', 'REJECT'].map((grade) => (
-                    <button
-                      key={grade}
-                      onClick={() => {
-                        setGradedGradeFilter(grade);
-                        setGradedCurrentPage(1);
-                      }}
-                      className={cn(
-                        "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all",
-                        gradedGradeFilter === grade
-                          ? "bg-emerald-600 text-white shadow-sm"
-                          : "text-slate-500 hover:text-slate-900"
-                      )}
-                    >
-                      {grade === 'ALL' ? 'All' : `Grade ${grade}`}
-                    </button>
-                  ))}
+                <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 flex-wrap gap-1">
+                  {['ALL', 'A', 'B', 'C', 'REJECT'].map((grade) => {
+                    const isSelected = gradedGradeFilter === grade || (gradedGradeFilter !== 'ALL' && normalizeGrade(gradedGradeFilter) === normalizeGrade(grade));
+                    return (
+                      <button
+                        key={grade}
+                        type="button"
+                        onClick={() => {
+                          setGradedGradeFilter(grade);
+                          setGradedCurrentPage(1);
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                          isSelected
+                            ? "bg-emerald-600 text-white shadow-sm font-bold"
+                            : "text-slate-500 hover:text-slate-900"
+                        )}
+                      >
+                        {grade === 'ALL' ? 'All' : grade === 'REJECT' ? 'Grade Reject' : `Grade ${grade}`}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

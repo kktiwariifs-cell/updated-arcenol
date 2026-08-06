@@ -77,8 +77,13 @@ const performFetch = async () => {
         vouchers: [],
         vyaparRecords: [],
         complaints: [],
+        warranty: [],
         products: []
       };
+    }
+
+    if (!json.warranty) {
+      json.warranty = cachedData?.warranty || [];
     }
 
     // Always hydrate from Supabase to sync client-side database
