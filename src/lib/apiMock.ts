@@ -472,9 +472,18 @@ function getLocalDB() {
   return INITIAL_DB;
 }
 
+const syncBroadcastChannel = typeof window !== 'undefined' && 'BroadcastChannel' in window ? new BroadcastChannel('arcenol_sync_channel') : null;
+
 function saveLocalDB(db: any) {
   if (typeof window === 'undefined') return;
   localStorage.setItem('arcenol_db_clean', JSON.stringify(db));
+  if (syncBroadcastChannel) {
+    try {
+      syncBroadcastChannel.postMessage({ type: 'ERP_DATA_UPDATED', timestamp: Date.now() });
+    } catch (e) {
+      // Ignore broadcast channel errors
+    }
+  }
 }
 
 async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Response> {
@@ -1275,6 +1284,28 @@ if (typeof window !== 'undefined') {
       }
     }
   }
+
+  // Cross-device automatic background sync & tab window focus sync for Vercel static deployments
+  const triggerAutoSync = () => {
+    try {
+      const db = getLocalDB();
+      hydrateDbFromSupabase(db).then(() => {
+        saveLocalDB(db);
+      }).catch(() => {});
+    } catch (e) {}
+  };
+
+  // Initial sync on startup
+  setTimeout(triggerAutoSync, 1500);
+
+  // Poll Supabase every 8 seconds for multi-device sync
+  setInterval(triggerAutoSync, 8000);
+
+  // Sync on tab focus or window visibility change
+  window.addEventListener('focus', triggerAutoSync);
+  window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') triggerAutoSync();
+  });
 }
 
 export {};
