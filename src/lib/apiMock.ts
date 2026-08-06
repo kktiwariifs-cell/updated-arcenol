@@ -70,12 +70,7 @@ const INITIAL_DB = {
   ],
   warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
   notifications: [] as any[],
-  leads: [
-    { id: "l1", company: "Green Motors Ahmedabad", category: "Dealer", location: "Ahmedabad, GJ", contactPerson: "Rajesh Shah", phone: "9876543210", leadSource: "Website", requirement: "72V Battery Packs x 50", status: "QUOTATION_SENT", followUpDate: "2024-05-20", followUpTime: "11:00", notes: "Negotiating on bulk discount." },
-    { id: "l2", company: "EV Solutions Delhi", category: "Distributor", location: "New Delhi, DL", contactPerson: "Aman Varma", phone: "9123456789", leadSource: "Exhibition", requirement: "Li-ion Cells Bulk Purchase", status: "INTERESTED", followUpDate: "2024-05-18", followUpTime: "15:30", notes: "Interested in the new smart BMS feature." },
-    { id: "l3", company: "Surat Power Hub", category: "Dealer", location: "Surat, GJ", contactPerson: "Mahesh Patel", phone: "9825012345", leadSource: "Referral", requirement: "100Ah Inverter Batteries", status: "NEW", followUpDate: "2024-05-22", followUpTime: "10:00", notes: "Initial inquiry." },
-    { id: "l4", company: "Rajasthan Solar Enterprise", category: "Distributor", location: "Jaipur, RJ", contactPerson: "Sunil Sharma", phone: "9414011223", leadSource: "Cold Call", requirement: "Solar Storage Systems", status: "QUALIFIED", followUpDate: "2024-05-25", followUpTime: "14:00", notes: "Site survey completed." }
-  ],
+  leads: [] as any[],
   dealers: [
     { id: "D-101", company: "Elite Power Ahmedabad", category: "Tier 1 Dealer", gstin: "24AAAAA0000A1Z5", phone: "9988776655", email: "contact@elitepower.com", location: "Navrangpura", city: "Ahmedabad", state: "Gujarat", region: "West", contactPerson: "Amit Mehta", status: "ACTIVE", bankDetails: "HDFC A/C: 50100234...", rankingScore: 92, joinDate: "2023-01-15" },
     { id: "D-102", company: "Spark EV Rajkot", category: "Certified Service Center", gstin: "24BBBBB1111B1Z2", phone: "9900112233", email: "info@sparkev.in", location: "Metoda GIDC", city: "Rajkot", state: "Gujarat", region: "West", contactPerson: "Suresh Bhai", status: "ACTIVE", bankDetails: "ICICI A/C: 0023101...", rankingScore: 85, joinDate: "2023-03-20" },
@@ -157,25 +152,8 @@ const INITIAL_DB = {
       status: "PAID"
     }
   ],
-  warranty: [
-    { id: "w1", serial: "AESPL  EV  28G26001044", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [{ date: "2024-05-12", type: "ACTIVATED", description: "Standard 36-Month Warranty Activated on Sale" }] },
-    { id: "w2", serial: "AESPL  EV  28G26001045", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [{ date: "2024-05-12", type: "ACTIVATED", description: "Standard 36-Month Warranty Activated on Sale" }] },
-    { id: "w3", serial: "AESPL  INV  31G260001265", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w4", serial: "AESPL  INV  31G260005059", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w5", serial: "AESPL  INV  31G260009790", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w6", serial: "AESPL  INV  31G260003265", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w7", serial: "AESPL  INV  31G260001814", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w8", serial: "AESPL  INV  31G260007532", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
-    { id: "w9", serial: "AESPL  INV  31G260004192", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] }
-  ],
-  complaints: [
-    { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
-    { id: "C-1002", serial: "AESPL  EV  28G26001045", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: "2024-05-15", resolvedDate: "", notes: "Unit not turning on.", engineer: "Unassigned", rootCause: "Cell Failure" },
-    { id: "C-1003", serial: "AESPL  EV  28G26001046", type: "Voltage Drop", stage: "UNDER_INSPECTION", status: "OPEN", date: "2024-05-16", resolvedDate: "", notes: "Sudden power cut.", engineer: "Ramesh K.", rootCause: "Voltage Drop" },
-    { id: "C-1004", serial: "AESPL  AUTO  28G26001049", type: "No Backup", stage: "READY_FOR_DISPATCH", status: "OPEN", date: "2024-05-14", resolvedDate: "", notes: "Aging cells.", engineer: "Suresh P.", rootCause: "Cell Failure" },
-    { id: "C-1005", serial: "AESPL  INV  28G26001050", type: "High Temp", stage: "REPAIR_STARTED", status: "OPEN", date: "2024-05-12", resolvedDate: "", notes: "Fan not working.", engineer: "Anita D.", rootCause: "BMS Failure" },
-    { id: "C-1006", serial: "OLD-GEN-BATT-9900", type: "Water Damage", stage: "CLOSED", status: "RESOLVED", date: "2024-05-08", resolvedDate: "2024-05-11", notes: "Seal leaked.", engineer: "Ramesh K.", rootCause: "Water Damage" }
-  ],
+  warranty: [] as any[],
+  complaints: [] as any[],
   engineers: [
     { id: "E1", name: "Suresh P.", casesSolved: 0, avgTat: 0, rating: 5.0 },
     { id: "E2", name: "Ramesh K.", casesSolved: 0, avgTat: 0, rating: 5.0 },

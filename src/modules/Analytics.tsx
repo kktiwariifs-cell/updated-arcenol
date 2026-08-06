@@ -68,9 +68,12 @@ export const Analytics: React.FC = () => {
 
   // Dynamic Sales Trend synchronized with real invoices
   const invoicesList = data?.invoices || [];
-  const monthSales: { [key: string]: number } = { Jan: 0, Feb: 0, Mar: 0, Apr: 0, May: 0, Jun: 0, Jul: 0 };
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthSales: { [key: string]: number } = {};
+  monthNames.forEach(m => { monthSales[m] = 0; });
+  
   invoicesList.forEach((inv: any) => {
-    const invDate = new Date(inv.date || inv.billedDate || Date.now());
+    const invDate = new Date(inv.date || inv.billedDate || inv.created_at || Date.now());
     const mName = invDate.toLocaleString('default', { month: 'short' });
     const tot = Number(inv.total || inv.grandTotal || inv.grand_total || 0);
     if (mName in monthSales) {
@@ -78,56 +81,76 @@ export const Analytics: React.FC = () => {
     }
   });
 
-  const salesData = [
-    { month: 'Jan', sales: Math.max(350000, monthSales.Jan), target: 400000 },
-    { month: 'Feb', sales: Math.max(420000, monthSales.Feb), target: 450000 },
-    { month: 'Mar', sales: Math.max(380000, monthSales.Mar), target: 450000 },
-    { month: 'Apr', sales: Math.max(510000, monthSales.Apr), target: 500000 },
-    { month: 'May', sales: Math.max(650000, monthSales.May), target: 600000 },
-    { month: 'Jul', sales: Math.max(480000, monthSales.Jul), target: 500000 },
-  ];
+  const salesData = monthNames.slice(0, 7).map(m => ({
+    month: m,
+    sales: monthSales[m] || 0,
+    target: (monthSales[m] || 0) > 0 ? Math.round((monthSales[m] || 0) * 1.1) : 0
+  }));
 
-  const failureData = failureDistribution && failureDistribution.length > 0 
-    ? failureDistribution 
-    : [
-        { name: 'BMS Failure', value: 45 },
-        { name: 'Cell Drift', value: 25 },
-        { name: 'Water Damage', value: 15 },
-        { name: 'Mechanical', value: 10 },
-        { name: 'Charger', value: 5 },
-      ];
-
+  const failureData = failureDistribution;
   const COLORS = ['#083344', '#0891b2', '#06b6d4', '#22d3ee', '#164e63'];
 
-  const totalProducedUnits = (data?.finishedGoods?.length || 0) + (data?.productionHistory || []).reduce((acc: number, p: any) => acc + Number(p.qty || 1), 0) || 52;
-  const networkSizeCount = (data?.dealers?.length || 0) + (data?.leads || []).filter((l: any) => ['CONVERTED', 'DEALER', 'WON', 'ACTIVE'].includes(l.status)).length || 5;
-  const activeCRMLeadsCount = (data?.leads || []).length || 12;
-  const totalAssetsTracked = Math.max(data?.finishedGoods?.length || 0, data?.warranty?.length || 0, 15);
+  // Calculate real metrics directly from database state
+  const totalInvoiceRev = invoicesList.reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0);
+  const avgOrderVal = invoicesList.length > 0 ? Math.round(totalInvoiceRev / invoicesList.length) : 0;
+
+  // Real region aggregation from invoices & dealers
+  const regionSalesMap: { [region: string]: number } = {};
+  invoicesList.forEach((inv: any) => {
+    const dealer = (data?.dealers || []).find((d: any) => d.id === inv.dealerId || d.id === inv.customerId) 
+      || (data?.leads || []).find((l: any) => l.id === inv.dealerId || l.id === inv.customerId);
+    const regionName = dealer?.state ? `${dealer.city ? dealer.city + ', ' : ''}${dealer.state}` : (inv.partyName || 'Direct Billing');
+    const amount = Number(inv.total || inv.grandTotal || inv.grand_total || 0);
+    regionSalesMap[regionName] = (regionSalesMap[regionName] || 0) + amount;
+  });
+
+  const sortedRegions = Object.entries(regionSalesMap).sort((a, b) => b[1] - a[1]);
+  const topRegionName = sortedRegions.length > 0 ? sortedRegions[0][0] : 'N/A';
+  const topRegionSalesPct = totalInvoiceRev > 0 && sortedRegions.length > 0
+    ? `${Math.round((sortedRegions[0][1] / totalInvoiceRev) * 100)}% Sales`
+    : '0% Sales';
+
+  const totalProducedUnits = (data?.finishedGoods?.length || 0) + (data?.productionHistory || []).reduce((acc: number, p: any) => acc + Number(p.qty || 1), 0);
+  const dailyAverageProduced = totalProducedUnits > 0 ? Math.round(totalProducedUnits / 30) : 0;
+  
+  const damagedUnits = (data?.finishedGoods || []).filter((fg: any) => fg.status === 'DAMAGED' || fg.status === 'HOLD').length;
+  const rejectionRateStr = totalProducedUnits > 0 ? `${((damagedUnits / totalProducedUnits) * 100).toFixed(1)}%` : '0%';
+
+  const totalDealersCount = (data?.dealers || []).length;
+  const totalLeadsCount = (data?.leads || []).length;
+  const convertedLeadsCount = (data?.leads || []).filter((l: any) => ['CONVERTED', 'DEALER', 'WON', 'ACTIVE'].includes(l.status)).length;
+  const activeCRMLeadsCount = totalLeadsCount - convertedLeadsCount;
+  const leadConversionRateStr = totalLeadsCount > 0 ? `${Math.round((convertedLeadsCount / totalLeadsCount) * 100)}%` : '0%';
+
+  const openComplaintsCount = complaints.filter((c: any) => c.status === 'OPEN').length;
+  const closedComplaintsCount = complaints.filter((c: any) => c.status === 'RESOLVED' || c.status === 'CLOSED').length;
+  const failureIncidenceStr = totalProducedUnits > 0 ? `${((complaints.length / totalProducedUnits) * 100).toFixed(1)}%` : '0%';
+  const topFailureModeObj = failureDistribution.length > 0 ? failureDistribution[0] : null;
 
   const statsCards = {
     sales: [
-       { title: 'Total Revenue', value: formatCurrency((data?.invoices || []).reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0)), growth: '+12%', icon: IndianRupee, color: 'text-accent-600' },
-       { title: 'Avg Order Value', value: formatCurrency(((data?.invoices || []).reduce((acc: number, inv: any) => acc + Number(inv.total || inv.grandTotal || inv.grand_total || 0), 0)) / (data?.invoices?.length || 1)), growth: '+3%', icon: Target, color: 'text-accent-600' },
-       { title: 'MTD Growth', value: '22%', growth: '+8%', icon: TrendingUp, color: 'text-accent-500' },
-       { title: 'Region High', value: 'Gujarat', value2: '65% Sales', icon: Map, color: 'text-accent-700' },
+       { title: 'Total Revenue', value: formatCurrency(totalInvoiceRev), icon: IndianRupee, color: 'text-accent-600' },
+       { title: 'Avg Order Value', value: formatCurrency(avgOrderVal), icon: Target, color: 'text-accent-600' },
+       { title: 'Total Invoices', value: invoicesList.length.toString(), icon: TrendingUp, color: 'text-accent-500' },
+       { title: 'Top Sales Region', value: topRegionName, value2: topRegionSalesPct, icon: Map, color: 'text-accent-700' },
     ],
     production: [
-       { title: 'Total Produced', value: totalProducedUnits, growth: '+250', icon: Layers, color: 'text-slate-800' },
-       { title: 'Daily Average', value: Math.max(1, Math.round(totalProducedUnits / 30)), growth: '+5', icon: Activity, color: 'text-accent-600' },
-       { title: 'Rejection Rate', value: '1.2%', growth: '-0.3%', icon: AlertTriangle, color: 'text-amber-600' },
-       { title: 'OEE Efficiency', value: '92%', growth: '+2%', icon: Zap, color: 'text-accent-600' },
+       { title: 'Total Produced', value: totalProducedUnits, icon: Layers, color: 'text-slate-800' },
+       { title: 'Daily Average', value: dailyAverageProduced, icon: Activity, color: 'text-accent-600' },
+       { title: 'Rejection / Hold Rate', value: rejectionRateStr, icon: AlertTriangle, color: 'text-amber-600' },
+       { title: 'Ready Inventory', value: (data?.finishedGoods || []).filter((fg: any) => fg.status === 'READY').length.toString(), icon: Zap, color: 'text-accent-600' },
     ],
     dealer: [
-       { title: 'Network Size', value: networkSizeCount, value2: 'Verified Channels', icon: Users, color: 'text-accent-600' },
-       { title: 'Active CRM Leads', value: activeCRMLeadsCount, growth: '+12', icon: History, color: 'text-amber-600' },
-       { title: 'Active Conversion', value: '92%', growth: '+4%', icon: BadgeCheck, color: 'text-accent-600' },
-       { title: 'Top Channel', value: 'Gujarat', value2: 'Ahmedabad Hub', icon: Truck, color: 'text-accent-700' },
+       { title: 'Dealer Network Size', value: totalDealersCount, value2: 'Verified Channels', icon: Users, color: 'text-accent-600' },
+       { title: 'Active CRM Leads', value: activeCRMLeadsCount, icon: History, color: 'text-amber-600' },
+       { title: 'Lead Conversion Rate', value: leadConversionRateStr, icon: BadgeCheck, color: 'text-accent-600' },
+       { title: 'Top Channel', value: topRegionName, icon: Truck, color: 'text-accent-700' },
     ],
     warranty: [
-       { title: 'Failure Incidence', value: `${((complaints.length / totalAssetsTracked) * 100).toFixed(2)}%`, growth: '-0.1%', icon: ShieldCheck, color: 'text-accent-600' },
-       { title: 'Top Failure Mode', value: failureDistribution[0]?.name || 'Cell Failure', value2: `${failureDistribution[0]?.value || 1} Cases`, icon: AlertTriangle, color: 'text-red-500' },
-       { title: 'Open RMA Nodes', value: (data?.complaints || []).filter((c: any) => c.status === 'OPEN').length || 4, growth: '-12%', icon: Zap, color: 'text-amber-500' },
-       { title: 'Avg Repair Cycle', value: '3.8 Days', growth: '-0.5d', icon: Activity, color: 'text-blue-500' },
+       { title: 'Failure Incidence', value: failureIncidenceStr, icon: ShieldCheck, color: 'text-accent-600' },
+       { title: 'Top Failure Mode', value: topFailureModeObj ? topFailureModeObj.name : 'None', value2: topFailureModeObj ? `${topFailureModeObj.value} Cases` : '0 Cases', icon: AlertTriangle, color: 'text-red-500' },
+       { title: 'Open Service / RMA', value: openComplaintsCount, icon: Zap, color: 'text-amber-500' },
+       { title: 'Resolved Cases', value: closedComplaintsCount, icon: Activity, color: 'text-blue-500' },
     ]
   };
 
@@ -299,24 +322,24 @@ export const Analytics: React.FC = () => {
             </div>
 
             <div 
-               onClick={() => alert("Ecosystem Health Integrity: 99.18%\n- Connectivity: OK\n- ERP Sync: Locked\n- Latency: 12ms") }
+               onClick={() => alert(`Ecosystem Operational Health:\n- Invoices: ${invoicesList.length}\n- Open Service Cases: ${openComplaintsCount}\n- Status: ${openComplaintsCount > 5 ? 'STRESSED' : 'OPTIMAL'}`)}
                className="dashboard-card bg-slate-900 border-none text-white overflow-hidden relative cursor-pointer hover:bg-slate-800 transition-all active:scale-[0.99] group"
             >
                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
                   <ShieldAlert size={80} />
                </div>
                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Operational Health</p>
-               <h5 className="text-xl font-black">Success Rate: 99.18%</h5>
-               <p className="text-[10px] text-accent-400 font-bold mt-1">Status: {data?.complaints.filter((c:any) => c.status === 'OPEN').length > 5 ? 'STRESSED' : 'OPTIMAL'}</p>
+               <h5 className="text-xl font-black">Status: {openComplaintsCount > 5 ? 'STRESSED' : 'OPTIMAL'}</h5>
+               <p className="text-[10px] text-accent-400 font-bold mt-1">Resolution Rate: {complaints.length > 0 ? `${Math.round((closedComplaintsCount / complaints.length) * 100)}%` : '100%'}</p>
                
                <div className="mt-6 flex space-x-2">
                   <div className="flex-1 bg-white/10 p-3 rounded-xl border border-white/10">
                      <p className="text-[8px] font-black text-slate-500 uppercase">Invoices</p>
-                     <p className="text-sm font-black">{data?.invoices.length || 0}</p>
+                     <p className="text-sm font-black">{invoicesList.length}</p>
                   </div>
                   <div className="flex-1 bg-white/10 p-3 rounded-xl border border-white/10 text-amber-500">
                      <p className="text-[8px] font-black text-slate-500 uppercase">Service</p>
-                     <p className="text-sm font-black">{data?.complaints.length || 0}</p>
+                     <p className="text-sm font-black">{complaints.length}</p>
                   </div>
                </div>
             </div>
@@ -326,28 +349,35 @@ export const Analytics: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
          <div className="lg:col-span-1 dashboard-card">
             <h4 className="text-xs font-black text-slate-400 uppercase mb-6">Top Regional Insights</h4>
-             <div className="space-y-4">
-                {[
-                   { name: 'Western Hub (Gujarat)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.65), growth: '+15%', status: 'HIGH VELOCITY' },
-                   { name: 'Northern Hub (NCR)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.25), growth: '+8%', status: 'STEADY' },
-                   { name: 'Southern Hub (KA)', sales: formatCurrency(((data?.invoices || []).reduce((a: any, b: any) => a + Number(b.total || b.grandTotal || b.grand_total || 0), 0)) * 0.10), growth: '-2%', status: 'IDENTIFIED' },
-                ].map((dealer, idx) => (
-                   <div 
-                      key={idx} 
-                      onClick={() => alert(`Regional Deep Dive: ${dealer.name}\nGrowth: ${dealer.growth}\nStatus: ${dealer.status}\nPrimary Revenue: ${dealer.sales}`)}
-                      className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 cursor-pointer active:scale-[0.98] group"
-                   >
-                      <div>
-                         <p className="text-xs font-black text-slate-900 group-hover:text-primary-600 transition-colors">{dealer.name}</p>
-                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{dealer.status}</p>
-                      </div>
-                      <div className="text-right">
-                         <p className="text-xs font-black text-primary-600">{dealer.sales}</p>
-                         <p className={cn("text-[9px] font-bold", dealer.growth.startsWith('+') ? "text-accent-500" : "text-red-500")}>{dealer.growth}</p>
-                      </div>
-                   </div>
-                ))}
-             </div>
+             {sortedRegions.length > 0 ? (
+                <div className="space-y-4">
+                   {sortedRegions.map(([regName, amount], idx) => {
+                      const pct = totalInvoiceRev > 0 ? Math.round((amount / totalInvoiceRev) * 100) : 0;
+                      return (
+                         <div 
+                            key={idx} 
+                            onClick={() => alert(`Regional Deep Dive: ${regName}\nShare: ${pct}%\nTotal Revenue: ${formatCurrency(amount)}`)}
+                            className="flex justify-between items-center p-3 rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100 cursor-pointer active:scale-[0.98] group"
+                         >
+                            <div>
+                               <p className="text-xs font-black text-slate-900 group-hover:text-primary-600 transition-colors">{regName}</p>
+                               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{pct > 40 ? 'HIGH VOLUME' : 'ACTIVE'}</p>
+                            </div>
+                            <div className="text-right">
+                               <p className="text-xs font-black text-primary-600">{formatCurrency(amount)}</p>
+                               <p className="text-[9px] font-bold text-accent-500">{pct}% of total</p>
+                            </div>
+                         </div>
+                      );
+                   })}
+                </div>
+             ) : (
+                <div className="py-12 text-center text-slate-400">
+                   <Map size={28} className="mx-auto mb-2 text-slate-300" />
+                   <p className="text-xs font-bold text-slate-600">No Regional Sales Recorded</p>
+                   <p className="text-[10px] text-slate-400 mt-1">Invoices will automatically populate location trends.</p>
+                </div>
+             )}
          </div>
 
          <div className="lg:col-span-2 dashboard-card border-none bg-primary-600 text-white shadow-2xl shadow-primary-200 p-8 flex flex-col justify-between group overflow-hidden relative">
@@ -366,12 +396,14 @@ export const Analytics: React.FC = () => {
                </div>
                
                <p className="text-2xl font-black leading-tight max-w-xl">
-                  {data?.inventory.some((i:any) => i.qty < 50) ? (
-                    <>Supply Chain Alert: <span className="text-amber-300 underline underline-offset-4 decoration-amber-300/30 font-black">{data.inventory.find((i:any) => i.qty < 50).name}</span> is critical. Recommend <span className="italic text-primary-200">immediate restock</span> to prevent production stall.</>
-                  ) : data?.complaints.filter((c:any) => c.status === 'OPEN').length > 5 ? (
-                    <>Quality Stress Detected: <span className="text-red-300 underline underline-offset-4 font-black">{data.complaints.filter((c:any) => c.status === 'OPEN').length} pending repairs</span>. Shift engineering priority to service resolution.</>
+                  {(data?.inventory || []).some((i: any) => Number(i.qty) < 50) ? (
+                    <>Supply Chain Alert: <span className="text-amber-300 underline underline-offset-4 decoration-amber-300/30 font-black">{(data.inventory.find((i: any) => Number(i.qty) < 50)).name}</span> stock is low ({(data.inventory.find((i: any) => Number(i.qty) < 50)).qty} units). Recommend <span className="italic text-primary-200">restocking</span>.</>
+                  ) : openComplaintsCount > 0 ? (
+                    <>Quality Alert: <span className="text-red-300 underline underline-offset-4 font-black">{openComplaintsCount} open service case(s)</span> pending resolution. Shift engineering priority to service center.</>
+                  ) : totalInvoiceRev > 0 ? (
+                    <>Operations Nominal: Recorded total revenue at <span className="text-accent-300 underline underline-offset-4 font-black">{formatCurrency(totalInvoiceRev)}</span> across <span className="text-white">{invoicesList.length} invoice(s)</span>.</>
                   ) : (
-                    <>Expansion Window: Growth velocity is <span className="text-accent-300 underline underline-offset-4 font-black text-accent-100">optimal at 94%</span>. Strategic initiative locked: Scale distribution in <span className="text-white">Western Cluster</span>.</>
+                    <>System Ready: All ERP modules active. Ready for production logging, dealer registration, and billing.</>
                   )}
                </p>
             </div>
@@ -382,9 +414,9 @@ export const Analytics: React.FC = () => {
                      <IndianRupee size={22} className="text-primary-100" />
                   </div>
                   <div>
-                     <p className="text-[10px] font-black text-primary-200 uppercase tracking-widest leading-none mb-1">Inventory Asset</p>
+                     <p className="text-[10px] font-black text-primary-200 uppercase tracking-widest leading-none mb-1">Inventory Asset Valuation</p>
                      <p className="text-xl font-black">
-                        {formatCurrency(data?.inventory.reduce((a:number, b:any) => a + (b.qty * b.price), 0) || 0)}
+                        {formatCurrency((data?.inventory || []).reduce((a: number, b: any) => a + (Number(b.qty || 0) * Number(b.price || 0)), 0))}
                      </p>
                   </div>
                </div>
@@ -393,9 +425,9 @@ export const Analytics: React.FC = () => {
                      <Target size={22} className="text-primary-100" />
                   </div>
                   <div>
-                     <p className="text-[10px] font-black text-primary-200 uppercase tracking-widest leading-none mb-1">MTD Conversion</p>
+                     <p className="text-[10px] font-black text-primary-200 uppercase tracking-widest leading-none mb-1">Lead Conversion Rate</p>
                      <p className="text-xl font-black">
-                        {Math.round(((data?.leads.filter((l:any) => l.status === 'CONVERTED').length || 0) / (data?.leads.length || 1)) * 100)}%
+                        {leadConversionRateStr}
                      </p>
                   </div>
                </div>
