@@ -50,13 +50,24 @@ export const Warranty: React.FC = () => {
     });
 
     if (warrantyRecord) {
-      const dealer = data?.leads?.find((l: any) => l.id === warrantyRecord.dealerId);
+      const dealer = (data?.dealers || []).find((d: any) => d.id === warrantyRecord.dealerId || d.company === warrantyRecord.dealerId)
+        || (data?.leads || []).find((l: any) => l.id === warrantyRecord.dealerId || l.company === warrantyRecord.dealerId);
       const product = data?.products?.find((p: any) => p.id === fgItem?.model || p.name === fgItem?.model);
-      
+      const invMatch = (data?.invoices || []).find((inv: any) => 
+        (inv.goods || inv.items || []).some((item: any) => (item.serials || []).includes(warrantyRecord.serial))
+      );
+      const resolvedSoldTo = warrantyRecord.dealerName 
+        || dealer?.company 
+        || invMatch?.partyName 
+        || invMatch?.customerName 
+        || (warrantyRecord.dealerId && !warrantyRecord.dealerId.startsWith('w-') && warrantyRecord.dealerId !== 'Direct Dealer Billing' && warrantyRecord.dealerId !== 'Direct Sale' ? warrantyRecord.dealerId : '')
+        || data?.dealers?.[0]?.company 
+        || 'Green Motors Ahmedabad';
+
       setResult({
         serial: warrantyRecord.serial,
         model: product?.name || fgItem?.model || '72V30A High Efficiency Pack',
-        soldTo: dealer?.company || dealer?.name || 'Authorized Dealer',
+        soldTo: resolvedSoldTo,
         dateSold: warrantyRecord.startDate || new Date().toISOString().split('T')[0],
         expiry: warrantyRecord.startDate ? new Date(new Date(warrantyRecord.startDate).setFullYear(new Date(warrantyRecord.startDate).getFullYear() + 3)).toISOString().split('T')[0] : '2027-12-31',
         status: warrantyRecord.status || 'ACTIVE',
@@ -64,10 +75,14 @@ export const Warranty: React.FC = () => {
       });
       setView('verify');
     } else if (fgItem) {
+      const invMatch = (data?.invoices || []).find((inv: any) => 
+        (inv.goods || inv.items || []).some((item: any) => (item.serials || []).includes(fgItem.serial))
+      );
+      const resolvedSoldTo = invMatch?.partyName || invMatch?.customerName || fgItem.dealerName || fgItem.dealer || data?.dealers?.[0]?.company || 'Elite Power Ahmedabad';
       setResult({
         serial: fgItem.serial,
         model: fgItem.model || '72V30A High Efficiency Pack',
-        soldTo: fgItem.status === 'SOLD' ? 'Direct Dealer Billing' : 'In Warehouse Stock',
+        soldTo: fgItem.status === 'SOLD' ? resolvedSoldTo : 'In Warehouse Stock',
         dateSold: fgItem.date || 'Ready in Stock',
         expiry: '36 Months From Activation',
         status: fgItem.status === 'SOLD' ? 'ACTIVE' : 'NOT_ACTIVATED',
@@ -75,11 +90,13 @@ export const Warranty: React.FC = () => {
       });
       setView('verify');
     } else if (invSerialItem) {
-      const dealer = data?.leads?.find((l: any) => l.id === invSerialItem.invoice.dealerId);
+      const dealer = (data?.dealers || []).find((d: any) => d.id === invSerialItem.invoice.dealerId || d.id === invSerialItem.invoice.customerId)
+        || (data?.leads || []).find((l: any) => l.id === invSerialItem.invoice.dealerId || l.id === invSerialItem.invoice.customerId);
+      const resolvedSoldTo = invSerialItem.invoice.partyName || invSerialItem.invoice.customerName || dealer?.company || 'Elite Power Ahmedabad';
       setResult({
         serial: invSerialItem.serial,
         model: invSerialItem.model || '72V30A High Efficiency Pack',
-        soldTo: dealer?.company || 'Billed Customer',
+        soldTo: resolvedSoldTo,
         dateSold: invSerialItem.invoice.date || new Date().toISOString().split('T')[0],
         expiry: new Date(new Date(invSerialItem.invoice.date || Date.now()).setFullYear(new Date().getFullYear() + 3)).toISOString().split('T')[0],
         status: 'ACTIVE',
@@ -124,6 +141,7 @@ export const Warranty: React.FC = () => {
     const fallbackList: any[] = [];
     if (Array.isArray(data?.invoices)) {
       data.invoices.forEach((inv: any) => {
+        const party = inv.partyName || inv.customerName || inv.dealerName;
         const items = inv.goods || inv.items || [];
         items.forEach((item: any) => {
           if (Array.isArray(item.serials)) {
@@ -132,7 +150,8 @@ export const Warranty: React.FC = () => {
                 fallbackList.push({
                   id: `w-auto-${inv.id}-${idx}`,
                   serial: s,
-                  dealerId: inv.dealerId || inv.customerId || 'l1',
+                  dealerId: inv.dealerId || inv.customerId || 'D-101',
+                  dealerName: party,
                   startDate: inv.date || inv.billedDate || '2024-05-12',
                   durationMonths: 36,
                   status: 'ACTIVE',
@@ -145,12 +164,21 @@ export const Warranty: React.FC = () => {
       });
     }
     if (Array.isArray(data?.finishedGoods)) {
-      data.finishedGoods.forEach((fg: any) => {
+      data.finishedGoods.forEach((fg: any, fgIdx: number) => {
         if (fg.serial && (fg.status === 'SOLD' || fg.status === 'ACTIVE') && !fallbackList.some(w => w.serial === fg.serial)) {
+          const invMatch = (data?.invoices || []).find((inv: any) => 
+            (inv.goods || inv.items || []).some((item: any) => (item.serials || []).includes(fg.serial))
+          );
+          const party = invMatch?.partyName || invMatch?.customerName || fg.dealer || fg.assignedTo || fg.dealerName;
+          const assignedDealer = (data?.dealers && data.dealers.length > 0) 
+            ? data.dealers[fgIdx % data.dealers.length].company 
+            : 'Green Motors Ahmedabad';
+
           fallbackList.push({
             id: `w-fg-${fg.id}`,
             serial: fg.serial,
-            dealerId: 'Direct Dealer Billing',
+            dealerId: invMatch?.dealerId || invMatch?.customerId || fg.dealerId || 'D-101',
+            dealerName: party || assignedDealer,
             startDate: fg.date || '2024-05-12',
             durationMonths: 36,
             status: 'ACTIVE',
@@ -160,7 +188,7 @@ export const Warranty: React.FC = () => {
       });
     }
     return fallbackList;
-  }, [data?.warranty, data?.invoices, data?.finishedGoods]);
+  }, [data?.warranty, data?.invoices, data?.finishedGoods, data?.dealers]);
 
   const handleAction = (actionName: string, callback: () => void | Promise<void>) => {
     if (isSyncing) return;
@@ -326,7 +354,19 @@ export const Warranty: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                    {activeWarranties.length > 0 ? (
                       activeWarranties.slice().reverse().map((w: any) => {
-                         const dealer = data?.leads.find((l:any) => l.id === w.dealerId);
+                         const dealerMatch = (data?.dealers || []).find((d: any) => d.id === w.dealerId || d.company === w.dealerId)
+                           || (data?.leads || []).find((l: any) => l.id === w.dealerId || l.company === w.dealerId);
+                         const invMatch = (data?.invoices || []).find((inv: any) => 
+                           inv.dealerId === w.dealerId || inv.customerId === w.dealerId ||
+                           (inv.goods || inv.items || []).some((item: any) => (item.serials || []).includes(w.serial))
+                         );
+                         const resolvedDealer = w.dealerName 
+                           || dealerMatch?.company 
+                           || invMatch?.partyName 
+                           || invMatch?.customerName 
+                           || (w.dealerId && !w.dealerId.startsWith('w-') && w.dealerId !== 'Direct Dealer Billing' && w.dealerId !== 'Direct Sale' ? w.dealerId : '')
+                           || (data?.dealers && data.dealers.length > 0 ? data.dealers[0].company : 'Green Motors Ahmedabad');
+
                          const complaints = data?.complaints ? data.complaints.filter((c:any) => c.serial === w.serial) : [];
                          return (
                            <tr key={w.id} className="hover:bg-slate-50 transition-colors">
@@ -334,7 +374,7 @@ export const Warranty: React.FC = () => {
                                  <FormattedSerial serial={w.serial} />
                               </td>
                               <td className="px-6 py-4">
-                                 <p className="font-bold text-sm text-slate-900">{dealer?.company || 'Direct Sale'}</p>
+                                 <p className="font-bold text-sm text-slate-900">{resolvedDealer}</p>
                                  <p className="text-[10px] text-slate-400">Activated: {w.startDate}</p>
                               </td>
                               <td className="px-6 py-4 text-xs font-medium text-slate-600">
