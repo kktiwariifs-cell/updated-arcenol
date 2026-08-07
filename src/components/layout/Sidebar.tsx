@@ -262,9 +262,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
         <div className="p-3.5 border-t border-white/15 bg-black/20 backdrop-blur-md relative z-10 shrink-0 space-y-2">
           {(isOpen || mobileOpen) && (
             <div className="flex items-center space-x-2 bg-black/40 border border-white/20 px-2.5 py-1 rounded-lg shadow-sm">
-              <span className="w-2 h-2 rounded-full bg-red-400 shrink-0 shadow-sm animate-pulse" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-sm animate-pulse" />
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white drop-shadow-sm truncate">
-                SYSTEM LOGOUT
+                ACTIVE SESSION
               </span>
             </div>
           )}
