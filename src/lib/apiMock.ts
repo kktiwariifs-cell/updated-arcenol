@@ -867,6 +867,21 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
           engineer: 'Unassigned'
         };
         db.complaints.push(newComplaint);
+        
+        // Update matching warranty history
+        if (body.serial) {
+          const wArr = db.warranty || [];
+          const wMatch = wArr.find((w: any) => w.serial === body.serial);
+          if (wMatch) {
+            if (!wMatch.history) wMatch.history = [];
+            wMatch.history.push({
+              date: newComplaint.date,
+              type: "CLAIM_FILED",
+              description: `${newComplaint.type || 'Service Claim'}: ${newComplaint.notes || 'Submitted via portal'}`
+            });
+          }
+        }
+
         saveLocalDB(db);
         responseData = newComplaint;
       }
