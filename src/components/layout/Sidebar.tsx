@@ -103,12 +103,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
         isOpen ? "w-64" : "w-64 lg:w-20"
       )} style={{ 
         backgroundImage: "url('/sidebar_bg_pattern.jpg')",
-        backgroundSize: '280px',
+        backgroundSize: '240px',
         backgroundRepeat: 'repeat',
-        backgroundPosition: 'top left'
+        backgroundPosition: 'center top'
       }}>
-        {/* Darkening & glass overlay for maximum text legibility over pattern */}
-        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-none"></div>
+        {/* Subtle glass effect for subtle depth without hiding the original copper pattern */}
+        <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
 
         <div className="p-6 flex items-center justify-between border-b border-white/10 bg-white/5 backdrop-blur-sm">
           {isOpen || mobileOpen ? (
