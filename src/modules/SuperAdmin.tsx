@@ -237,7 +237,11 @@ export const SuperAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'profile' | 'users'>('profile');
 
   // User credentials management states and hooks
-  const { usersList, addUser, updateUser, deleteUser, resetDefaultUsers, loginWithCredentials } = useAuthStore();
+  const { usersList, addUser, updateUser, deleteUser, resetDefaultUsers, loginWithCredentials, fetchUsersFromServer } = useAuthStore();
+
+  useEffect(() => {
+    fetchUsersFromServer();
+  }, [fetchUsersFromServer]);
   const [userForm, setUserForm] = useState({
     name: '',
     email: '',
@@ -2370,21 +2374,21 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                         }
 
                         if (isEditingUser) {
-                          const ok = updateUser(isEditingUser, userForm);
-                          if (ok) {
+                          const res = updateUser(isEditingUser, userForm);
+                          if (res.success) {
                             setUserSuccess(`Operator ${userForm.name} updated successfully.`);
                             setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
                             setIsEditingUser(null);
                           } else {
-                            setUserErrors('Could not save changes. Email may already be associated with another operator node.');
+                            setUserErrors(res.error || 'Could not save changes. Email may already be associated with another operator node.');
                           }
                         } else {
-                          const registered = addUser(userForm);
-                          if (registered) {
+                          const res = addUser(userForm);
+                          if (res.success) {
                             setUserSuccess(`Operator ${userForm.name} deployed. Registered to standard authentication.`);
                             setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
                           } else {
-                            setUserErrors('The email address supplied is already bound to an active clearance profile.');
+                            setUserErrors(res.error || 'The email address supplied is already bound to an active clearance profile.');
                           }
                         }
                       }} 
@@ -2491,6 +2495,163 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+      {/* EDIT OPERATOR MODAL OVERLAY */}
+      {isEditingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 no-print p-4">
+          <div className="bg-white max-w-lg w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-5 text-left">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-sky-100 text-sky-600 rounded-2xl">
+                  <Edit size={20} />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-sm uppercase tracking-tight">
+                    Edit Operator Clearance
+                  </h4>
+                  <p className="text-xs text-slate-500 font-bold">
+                    Target Node: <span className="text-sky-700 font-black">{userForm.name || 'Operator'}</span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingUser(null);
+                  setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+                  setUserErrors('');
+                  setUserSuccess('');
+                }}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {userErrors && (
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-bold">
+                {userErrors}
+              </div>
+            )}
+            {userSuccess && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-bold">
+                {userSuccess}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                setUserErrors('');
+                setUserSuccess('');
+
+                if (!userForm.name.trim() || !userForm.email.trim() || !userForm.password.trim()) {
+                  setUserErrors('Operator name, email, and security pass are required.');
+                  return;
+                }
+
+                const res = updateUser(isEditingUser, userForm);
+                if (res.success) {
+                  setUserSuccess(`Operator ${userForm.name} updated successfully.`);
+                  setTimeout(() => {
+                    setIsEditingUser(null);
+                    setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+                    setUserSuccess('');
+                  }, 1000);
+                } else {
+                  setUserErrors(res.error || 'Failed to save changes.');
+                }
+              }}
+              className="space-y-4"
+            >
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 font-mono block">Operator Name</label>
+                <input
+                  type="text"
+                  value={userForm.name}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  required
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-sky-500/20"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 font-mono block">Authorization Email (Login)</label>
+                <input
+                  type="email"
+                  value={userForm.email}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  required
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-sky-500/20 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 font-mono block">Security Code / Password</label>
+                <input
+                  type="text"
+                  value={userForm.password}
+                  onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
+                  required
+                  className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-sky-500/20 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-400 font-mono block">Clearance Tier (Role)</label>
+                  <select
+                    value={userForm.role}
+                    onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value as UserRole }))}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-2.5 py-2 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-sky-500/20"
+                  >
+                    <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
+                    <option value={UserRole.ADMIN}>Ops Admin</option>
+                    <option value={UserRole.STORE_KEEPER}>Inventory Logistics</option>
+                    <option value={UserRole.PRODUCTION_TEAM}>Manufacturing</option>
+                    <option value={UserRole.QUALITY_TEAM}>Quality Control</option>
+                    <option value={UserRole.SALES_PERSON}>Sales CRM</option>
+                    <option value={UserRole.BILLER}>Finance Hub</option>
+                    <option value={UserRole.WARRANTY_TEAM}>Warranty Team</option>
+                    <option value={UserRole.SERVICE_TEAM}>RMA Center</option>
+                    <option value={UserRole.PLANT_SERVICE_ENGINEER}>Plant Engineer</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-400 font-mono block">Department</label>
+                  <input
+                    type="text"
+                    value={userForm.department}
+                    onChange={(e) => setUserForm(prev => ({ ...prev, department: e.target.value }))}
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:ring-2 focus:ring-sky-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditingUser(null);
+                    setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+                    setUserErrors('');
+                    setUserSuccess('');
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-sky-600/20 cursor-pointer transition-all"
+                >
+                  Save Operator Changes
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

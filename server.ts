@@ -2578,6 +2578,10 @@ async function startServer() {
     res.json((db as any).whLayoutConfig);
   });
 
+  app.get("/api/users", (req, res) => {
+    res.json((db as any).users || []);
+  });
+
   app.post("/api/users", (req, res) => {
     (db as any).users = (db as any).users || [];
     (db as any).users.push(req.body);

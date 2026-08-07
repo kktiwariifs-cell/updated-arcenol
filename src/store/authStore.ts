@@ -33,6 +33,7 @@ interface AuthState {
   deleteUser: (id: string) => { success: boolean; error?: string };
   resetDefaultUsers: () => void;
   setUsersList: (list: User[]) => void;
+  fetchUsersFromServer: () => Promise<void>;
 }
 
 const DEFAULT_USERS: User[] = [
@@ -162,6 +163,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   setUsersList: (list) => {
     set({ usersList: list });
     saveUsers(list);
+  },
+
+  fetchUsersFromServer: async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const serverUsers = await res.json();
+        if (Array.isArray(serverUsers) && serverUsers.length > 0) {
+          set({ usersList: serverUsers });
+          saveUsers(serverUsers);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch users from server:", e);
+    }
   },
   
   login: (role) => {
