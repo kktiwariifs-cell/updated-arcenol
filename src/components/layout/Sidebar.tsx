@@ -35,14 +35,14 @@ interface SidebarProps {
 const navigation = [
   {
     title: 'ADMINISTRATION',
-    color: 'slate',
+    accentColor: 'bg-amber-400',
     items: [
       { id: 'super-admin', label: 'SUPER ADMIN PANEL', icon: Settings, roles: [UserRole.SUPER_ADMIN] },
     ]
   },
   {
     title: 'OVERVIEW',
-    color: 'cyan',
+    accentColor: 'bg-cyan-400',
     items: [
       { id: 'dashboard', label: 'Overview Monitoring', icon: LayoutDashboard, roles: Object.values(UserRole) },
       { id: 'management-kpi', label: 'MANAGEMENT KPI', icon: BarChart3, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
@@ -53,23 +53,23 @@ const navigation = [
   },
   {
     title: 'OPERATIONS',
-    color: 'slate',
+    accentColor: 'bg-emerald-400',
     items: [
       { id: 'inventory-hub', label: 'STORES & INVENTORY HUB', icon: Layers, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
       { id: 'production-hub', label: 'MANUFACTURING FLOOR', icon: Factory, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER] },
     ]
   },
   {
-    title: 'COMMERCIAL',
-    color: 'slate',
+    title: 'COMMERCIALS',
+    accentColor: 'bg-purple-400',
     items: [
       { id: 'crm', label: 'CRM & SALES', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
       { id: 'billing', label: 'BILLING & ACCOUNTS', icon: ReceiptIndianRupee, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.BILLER] },
     ]
   },
   {
-    title: 'POST-SALES',
-    color: 'slate',
+    title: 'POST SALES',
+    accentColor: 'bg-rose-400',
     items: [
       { id: 'warranty', label: 'WARRANTY MANAGEMENT', icon: ShieldCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.WARRANTY_TEAM] },
       { id: 'engagement', label: 'CUSTOMER ENGAGEMENT', icon: Smartphone, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
@@ -166,18 +166,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
             if (visibleItems.length === 0) return null;
 
             return (
-              <div key={section.title} className={cn(
-                "space-y-1 p-1.5 rounded-2xl transition-all duration-300",
-                section.color === 'cyan' && "bg-white/10 border border-white/10 shadow-lg backdrop-blur-sm"
-              )}>
+              <div key={section.title} className="space-y-1 p-1 rounded-2xl transition-all duration-300">
                 {(isOpen || mobileOpen) && (
-                  <p className={cn(
-                    "px-2 text-[8.5px] font-black uppercase tracking-[0.2em] mb-1.5 flex items-center pt-1",
-                    section.color === 'cyan' ? "text-white" : "text-white/40"
-                  )}>
-                    <span className={cn("h-px w-3 mr-2", section.color === 'cyan' ? "bg-white/40" : "bg-white/20")}></span>
-                    {section.title}
-                  </p>
+                  <div className="px-1 pt-1.5 pb-1">
+                    <div className="flex items-center space-x-2 bg-black/40 border border-white/20 px-2.5 py-1 rounded-lg shadow-sm">
+                      <span className={cn("w-2 h-2 rounded-full shrink-0 shadow-sm", section.accentColor)} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white drop-shadow-sm truncate">
+                        {section.title}
+                      </span>
+                    </div>
+                  </div>
                 )}
                 <div className="space-y-0.5">
                   {visibleItems.map((item) => (
@@ -214,12 +212,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
           })}
 
           {/* DOCUMENTATION & HUBS SECTION IN NAV */}
-          <div className="space-y-1 p-1.5 rounded-2xl transition-all duration-300">
+          <div className="space-y-1 p-1 rounded-2xl transition-all duration-300">
             {(isOpen || mobileOpen) && (
-              <p className="px-2 text-[8.5px] font-black uppercase tracking-[0.2em] mb-1.5 flex items-center pt-1 text-white/40">
-                <span className="h-px w-3 mr-2 bg-white/20"></span>
-                DOCUMENTATION & HUB
-              </p>
+              <div className="px-1 pt-1.5 pb-1">
+                <div className="flex items-center space-x-2 bg-black/40 border border-white/20 px-2.5 py-1 rounded-lg shadow-sm">
+                  <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0 shadow-sm" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white drop-shadow-sm truncate">
+                    DOCUMENTATION & HUB
+                  </span>
+                </div>
+              </div>
             )}
             <div className="space-y-0.5">
               <button
@@ -257,15 +259,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
           </div>
         </nav>
 
-        <div className="p-3.5 border-t border-white/10 bg-black/10 backdrop-blur-md relative z-10 shrink-0">
-          <div className="flex items-center space-x-2.5 mb-2.5 p-2 rounded-2xl bg-white/10 border border-white/10 shadow-lg backdrop-blur-sm">
+        <div className="p-3.5 border-t border-white/15 bg-black/20 backdrop-blur-md relative z-10 shrink-0 space-y-2">
+          {(isOpen || mobileOpen) && (
+            <div className="flex items-center space-x-2 bg-black/40 border border-white/20 px-2.5 py-1 rounded-lg shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-red-400 shrink-0 shadow-sm animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white drop-shadow-sm truncate">
+                SYSTEM LOGOUT
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2.5 p-2 rounded-2xl bg-white/10 border border-white/10 shadow-lg backdrop-blur-sm">
             <div className="w-8 h-8 rounded-xl bg-white text-primary-900 flex items-center justify-center font-black text-sm shadow-xl shrink-0">
               {user.name[0]}
             </div>
             {(isOpen || mobileOpen) && (
               <div className="flex-1 overflow-hidden">
                 <p className="text-[11px] font-black truncate text-white leading-tight">{user.name}</p>
-                <p className="text-[8.5px] font-bold text-white/40 truncate uppercase tracking-widest leading-none mt-0.5">{user.role}</p>
+                <p className="text-[8.5px] font-bold text-white/50 truncate uppercase tracking-widest leading-none mt-0.5">{user.role}</p>
               </div>
             )}
           </div>
@@ -275,10 +286,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
               logout();
               onMobileClose?.();
             }}
-            className="w-full flex items-center py-2 px-2.5 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest group active:scale-95 border border-white/5 cursor-pointer"
+            className="w-full flex items-center py-2.5 px-3 text-white bg-red-600/30 hover:bg-red-600/50 rounded-xl transition-all font-black text-[10px] uppercase tracking-widest group active:scale-95 border border-red-400/40 cursor-pointer shadow-md"
           >
-            <LogOut size={16} className="group-hover:-translate-x-1 transition-transform shrink-0" />
-            {(isOpen || mobileOpen) && <span className="ml-3">System Logout</span>}
+            <LogOut size={16} className="group-hover:-translate-x-1 transition-transform shrink-0 text-red-300" />
+            {(isOpen || mobileOpen) && <span className="ml-3 font-black text-white">System Logout</span>}
           </button>
         </div>
       </div>
