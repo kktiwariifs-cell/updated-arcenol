@@ -101,9 +101,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
         "fixed lg:relative inset-y-0 left-0 z-50 lg:z-30",
         mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         isOpen ? "w-64" : "w-64 lg:w-20"
-      )} style={{ background: 'radial-gradient(circle at 30% 50%, #e38676 0%, #912551 100%)' }}>
-        {/* Decorative glass overlay */}
-        <div className="absolute inset-0 bg-black/5 pointer-events-none"></div>
+      )} style={{ 
+        backgroundImage: "url('/sidebar_bg_pattern.jpg')",
+        backgroundSize: '280px',
+        backgroundRepeat: 'repeat',
+        backgroundPosition: 'top left'
+      }}>
+        {/* Darkening & glass overlay for maximum text legibility over pattern */}
+        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-none"></div>
 
         <div className="p-6 flex items-center justify-between border-b border-white/10 bg-white/5 backdrop-blur-sm">
           {isOpen || mobileOpen ? (
