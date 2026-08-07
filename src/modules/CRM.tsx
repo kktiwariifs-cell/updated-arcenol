@@ -242,42 +242,52 @@ export const CRM: React.FC = () => {
     showToast(`Pasted partner configuration for ${copiedDealer.company}.`);
   };
 
-  const handleAppendRemark = (e: React.MouseEvent) => {
+  const handleAppendRemark = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!editingLead) return;
     if (!newRemarkText.trim()) {
-      showToast("Please enter remark notes before appending.", "error");
+      showToast("Please enter follow-up discussion summary before appending.", "error");
       return;
     }
-    if (!newFollowUpDate) {
-      showToast("Please select the next follow-up date.", "error");
-      return;
-    }
+
+    const followUpDateToUse = newFollowUpDate || editingLead.followUpDate || new Date().toISOString().split("T")[0];
+    const followUpTimeToUse = newFollowUpTime || editingLead.followUpTime || "10:00";
 
     const logEntry = {
       date: new Date().toISOString().split("T")[0],
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
       text: newRemarkText.trim(),
-      nextFollowUpDate: newFollowUpDate,
-      nextFollowUpTime: newFollowUpTime || "10:00",
+      nextFollowUpDate: followUpDateToUse,
+      nextFollowUpTime: followUpTimeToUse,
     };
 
-    const currentLog = editingLead.remarksLog || [];
+    const currentLog = Array.isArray(editingLead.remarksLog) ? editingLead.remarksLog : [];
     const updatedLog = [...currentLog, logEntry];
 
-    // Update the editingLead state immediately
-    setEditingLead({
+    const updatedLead = {
       ...editingLead,
       remarksLog: updatedLog,
-      followUpDate: newFollowUpDate,
-      followUpTime: newFollowUpTime || "10:00",
+      followUpDate: followUpDateToUse,
+      followUpTime: followUpTimeToUse,
       notes: editingLead.notes 
         ? `${editingLead.notes}\n[Follow-up ${logEntry.date}]: ${logEntry.text}`
         : `[Follow-up ${logEntry.date}]: ${logEntry.text}`
-    });
+    };
 
+    setEditingLead(updatedLead);
     setNewRemarkText("");
-    showToast("Remark appended to interaction log!", "info");
+
+    try {
+      await fetch(`/api/leads/${editingLead.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedLead),
+      });
+      showToast("Remark appended & follow-up date updated!", "success");
+      refetch();
+    } catch (err) {
+      showToast("Remark appended in workspace.", "info");
+    }
   };
 
   const handleStartEditLead = (lead: any) => {
@@ -987,10 +997,9 @@ export const CRM: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleAppendRemark}
-                      disabled={!newRemarkText.trim()}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md hover:shadow-lg active:scale-[0.98]"
                     >
-                      <Plus size={11} /> Append Remark & Set Follow-up Date
+                      <Plus size={13} /> Append Remark & Set Follow-up Date
                     </button>
                   </div>
                 </div>
