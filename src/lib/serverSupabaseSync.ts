@@ -79,6 +79,7 @@ export function mapLead(lead: any) {
     requirement: lead.requirement || 'General Requirement',
     status: lead.status || 'NEW',
     notes: lead.notes || '',
+    assigned_executive: lead.assignedExecutive || lead.assigned_executive || 'Suresh Raina (North CRM Executive)',
     remarks_log: lead.remarksLog || lead.remarks_log || []
   };
 }

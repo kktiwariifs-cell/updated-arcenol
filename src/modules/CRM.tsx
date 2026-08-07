@@ -36,6 +36,9 @@ import {
   History,
   PlusCircle,
   Download,
+  UserCheck,
+  UserPlus,
+  XCircle,
 } from "lucide-react";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";
 import {
@@ -50,6 +53,15 @@ import {
 import { useERPData } from "../hooks/useERPData";
 import { cn } from "../lib/utils";
 
+export const MARKETING_EXECUTIVES = [
+  { id: "exec-1", name: "Suresh Raina", role: "North CRM Executive", email: "sales@arcenol.com", phone: "+91 98112 33445" },
+  { id: "exec-2", name: "Priya Sharma", role: "West Marketing Lead", email: "priya@arcenol.com", phone: "+91 98220 11223" },
+  { id: "exec-3", name: "Amit Trivedi", role: "Plant & B2B Sales Specialist", email: "amit@arcenol.com", phone: "+91 99887 66554" },
+  { id: "exec-4", name: "Rajesh Kumar", role: "South Regional Head", email: "rajesh@arcenol.com", phone: "+91 98440 55667" },
+  { id: "exec-5", name: "Anjali Verma", role: "East Commercial Exec", email: "anjali@arcenol.com", phone: "+91 98330 44556" },
+  { id: "exec-6", name: "Vikram Malhotra", role: "Central Field Executive", email: "vikram@arcenol.com", phone: "+91 98210 99887" },
+];
+
 const LEAD_STAGES = [
   "NEW",
   "CONTACTED",
@@ -58,16 +70,32 @@ const LEAD_STAGES = [
   "NEGOTIATION",
   "ORDER_RECEIVED",
   "CONVERTED",
+  "LAPSED",
+  "DEAD",
 ];
 
 const STAGE_COLORS: Record<string, string> = {
-  NEW: "bg-slate-100 text-slate-600",
-  CONTACTED: "bg-blue-100 text-blue-600",
-  INTERESTED: "bg-amber-100 text-amber-600",
-  QUOTATION_SENT: "bg-purple-100 text-purple-600",
-  NEGOTIATION: "bg-accent-100 text-accent-600",
-  ORDER_RECEIVED: "bg-accent-100 text-accent-600",
-  CONVERTED: "bg-primary-100 text-primary-600",
+  NEW: "bg-slate-100 text-slate-700 border border-slate-200",
+  CONTACTED: "bg-blue-100 text-blue-700 border border-blue-200",
+  INTERESTED: "bg-amber-100 text-amber-700 border border-amber-200",
+  QUOTATION_SENT: "bg-purple-100 text-purple-700 border border-purple-200",
+  NEGOTIATION: "bg-indigo-100 text-indigo-700 border border-indigo-200",
+  ORDER_RECEIVED: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  CONVERTED: "bg-primary-100 text-primary-700 border border-primary-200",
+  LAPSED: "bg-amber-500/20 text-amber-900 border border-amber-400 font-extrabold",
+  DEAD: "bg-rose-500/20 text-rose-900 border border-rose-400 font-extrabold",
+};
+
+const STAGE_LABELS: Record<string, string> = {
+  NEW: "🟢 New Inquiry",
+  CONTACTED: "🔵 Begin Follow-up",
+  INTERESTED: "🟡 Spark Interest",
+  QUOTATION_SENT: "🟣 Quote Proposed",
+  NEGOTIATION: "💼 Negotiation",
+  ORDER_RECEIVED: "📦 Order Received",
+  CONVERTED: "👑 Certify Partner",
+  LAPSED: "⏳ Lapsed Deal (Unattended)",
+  DEAD: "💀 Dead Deal (Closed/Lost)",
 };
 
 export const CRM: React.FC = () => {
@@ -88,6 +116,10 @@ export const CRM: React.FC = () => {
   const [editingLead, setEditingLead] = useState<any>(null);
   const [editingDealer, setEditingDealer] = useState<any>(null);
   const [viewingDealer, setViewingDealer] = useState<any>(null);
+
+  // Marketing Executive Reassignment Modal State
+  const [reassigningLead, setReassigningLead] = useState<any>(null);
+  const [selectedExecForAssign, setSelectedExecForAssign] = useState<string>("");
 
   // Non-blocking modal & toast states
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
@@ -327,7 +359,56 @@ export const CRM: React.FC = () => {
     requirement: "",
     leadSource: "Website",
     notes: "",
+    assignedExecutive: "Suresh Raina (North CRM Executive)",
   });
+
+  const handleAssignExecutive = async (leadId: string, executiveName: string) => {
+    try {
+      await fetch(`/api/leads/${leadId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assignedExecutive: executiveName }),
+      });
+      showToast(`Reassigned lead to executive: ${executiveName}`, "success");
+      setReassigningLead(null);
+      refetch();
+    } catch (e) {
+      showToast("Failed to assign marketing executive.", "error");
+    }
+  };
+
+  const handleAutoMarkLapsedDeals = async () => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const overdueUnattended = (data?.leads || []).filter(
+      (l: any) =>
+        l.status !== "CONVERTED" &&
+        l.status !== "DEAD" &&
+        l.status !== "LAPSED" &&
+        l.followUpDate &&
+        l.followUpDate < todayStr
+    );
+
+    if (overdueUnattended.length === 0) {
+      showToast("No unattended overdue deals found to mark as lapsed.", "info");
+      return;
+    }
+
+    setIsSyncing(true);
+    let updatedCount = 0;
+    for (const lead of overdueUnattended) {
+      try {
+        await fetch(`/api/leads/${lead.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "LAPSED" }),
+        });
+        updatedCount++;
+      } catch (e) {}
+    }
+    setIsSyncing(false);
+    showToast(`Marked ${updatedCount} overdue deal(s) as 'Lapsed Deal'`, "success");
+    refetch();
+  };
 
   const handleAdd = async () => {
     if (!form.company.trim()) {
@@ -358,6 +439,7 @@ export const CRM: React.FC = () => {
           requirement: "",
           leadSource: "Website",
           notes: "",
+          assignedExecutive: "Suresh Raina (North CRM Executive)",
         });
         refetch();
       } else {
@@ -738,6 +820,50 @@ export const CRM: React.FC = () => {
                         })
                       }
                     />
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                      Assigned Marketing / Sales Executive
+                    </label>
+                    <select
+                      className="input-field rounded-xl font-bold text-[#111827] bg-slate-50/50 text-xs py-2.5"
+                      value={editingLead.assignedExecutive || "Suresh Raina (North CRM Executive)"}
+                      onChange={(e) =>
+                        setEditingLead({
+                          ...editingLead,
+                          assignedExecutive: e.target.value,
+                        })
+                      }
+                    >
+                      {MARKETING_EXECUTIVES.map((exec) => (
+                        <option key={exec.id} value={`${exec.name} (${exec.role})`}>
+                          {exec.name} — {exec.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">
+                      Pipeline Stage
+                    </label>
+                    <select
+                      className="input-field rounded-xl font-bold text-[#111827] bg-slate-50/50 text-xs py-2.5"
+                      value={editingLead.status || "NEW"}
+                      onChange={(e) =>
+                        setEditingLead({
+                          ...editingLead,
+                          status: e.target.value,
+                        })
+                      }
+                    >
+                      {LEAD_STAGES.map((s) => (
+                        <option key={s} value={s}>
+                          {STAGE_LABELS[s] || s}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -1676,19 +1802,11 @@ export const CRM: React.FC = () => {
                                 handleUpdateStatus(lead.id, e.target.value)
                               }
                             >
-                              <option value="NEW">🟢 New Inquiry</option>
-                              <option value="CONTACTED">
-                                🔵 Begin Follow-up
-                              </option>
-                              <option value="INTERESTED">
-                                🟡 Spark Interest
-                              </option>
-                              <option value="QUOTATION_SENT">
-                                🟣 Quote Proposed
-                              </option>
-                              <option value="CONVERTED">
-                                👑 Certify Partner
-                              </option>
+                              {LEAD_STAGES.map((s) => (
+                                <option key={s} value={s}>
+                                  {STAGE_LABELS[s] || s}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </td>
@@ -1800,11 +1918,11 @@ export const CRM: React.FC = () => {
       ) : activeSubTab === "leads" ? (
         <>
           {/* CRM Dashboard Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="p-5 rounded-xl border-slate-100 bg-white border shadow-xl shadow-slate-200/40 transition-all hover:scale-[1.02] cursor-default group">
               <div className="flex justify-between items-start">
                 <p className="text-[10px] font-black uppercase tracking-widest mb-1 text-slate-400 group-hover:text-primary-600 transition-colors">
-                  Verified Leads
+                  Total Leads
                 </p>
                 <Users
                   size={16}
@@ -1812,17 +1930,17 @@ export const CRM: React.FC = () => {
                 />
               </div>
               <p className="text-3xl font-black text-slate-900">
-                {data?.leads.length || 0}
+                {data?.leads?.length || 0}
               </p>
-              <div className="mt-4 h-1 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-primary-500 w-1/2"></div>
-              </div>
+              <p className="text-[10px] mt-1 font-bold text-slate-400 uppercase tracking-wider">
+                Active & Archived
+              </p>
             </div>
 
             <div className="p-5 rounded-xl border-slate-100 bg-white border shadow-xl shadow-slate-200/40 transition-all hover:border-primary-200 hover:scale-[1.02] cursor-default">
               <div className="flex justify-between items-start">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  Inquiries
+                  New Inquiries
                 </p>
                 <MessageSquare
                   size={16}
@@ -1839,49 +1957,71 @@ export const CRM: React.FC = () => {
 
             <div
               onClick={() => setShowTodaysPopup(true)}
-              className="p-5 rounded-xl border-amber-100 bg-amber-50/20 border shadow-xl shadow-slate-100 transition-all hover:border-amber-300 hover:scale-[1.02] cursor-pointer group"
+              className="p-5 rounded-xl border-emerald-100 bg-emerald-50/20 border shadow-xl shadow-slate-100 transition-all hover:border-emerald-300 hover:scale-[1.02] cursor-pointer group"
             >
               <div className="flex justify-between items-start">
-                <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1 group-hover:text-amber-700">
-                  Follow-ups
+                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest mb-1 group-hover:text-emerald-800">
+                  Follow-ups Today
                 </p>
-                <Clock size={16} className="text-amber-500 animate-pulse group-hover:scale-110 transition-transform" />
+                <Clock size={16} className="text-emerald-500 animate-pulse group-hover:scale-110 transition-transform" />
               </div>
               <p className="text-3xl font-black text-slate-900">
-                {String(data?.leads?.filter((l: any) => (l.status || "NEW") !== "CONVERTED" && l.followUpDate === todayStr).length || 0).padStart(2, '0')}{" "}
-                <span className="text-sm font-black text-amber-500">TODAY</span>
+                {String(data?.leads?.filter((l: any) => (l.status || "NEW") !== "CONVERTED" && l.status !== "DEAD" && l.followUpDate === todayStr).length || 0).padStart(2, '0')}{" "}
+                <span className="text-xs font-black text-emerald-600">TODAY</span>
               </p>
-              <p className="text-[10px] mt-1 font-bold text-amber-700">
-                Click to open schedule
+              <p className="text-[10px] mt-1 font-bold text-emerald-700">
+                Click to view schedule
               </p>
             </div>
 
-            <div className="p-5 rounded-xl border-white bg-white border shadow-xl shadow-slate-100 transition-all hover:border-primary-200 hover:scale-[1.02] cursor-default">
+            <div
+              onClick={() => setActiveStage("LAPSED")}
+              className="p-5 rounded-xl border-amber-200 bg-amber-500/10 border shadow-xl shadow-amber-500/5 transition-all hover:border-amber-400 hover:scale-[1.02] cursor-pointer group"
+            >
               <div className="flex justify-between items-start">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
-                  Win Rate
+                <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-1">
+                  Lapsed Deals
                 </p>
-                <Target size={16} className="text-primary-500 opacity-40" />
+                <AlertTriangle size={16} className="text-amber-600" />
               </div>
-              <p className="text-3xl font-black text-primary-600">32%</p>
-              <p className="text-[10px] mt-1 font-bold text-slate-400">
-                ↑ 4% vs Last Month
+              <p className="text-3xl font-black text-amber-900">
+                {String(data?.leads?.filter((l: any) => l.status === "LAPSED").length || 0).padStart(2, '0')}
+              </p>
+              <p className="text-[10px] mt-1 font-bold text-amber-800 uppercase tracking-wider">
+                Unattended overdue
               </p>
             </div>
 
-            <div className="p-5 rounded-xl border-none bg-primary-600 text-white shadow-2xl shadow-primary-500/10 transition-all hover:scale-[1.02] cursor-default hidden lg:block">
+            <div
+              onClick={() => setActiveStage("DEAD")}
+              className="p-5 rounded-xl border-rose-200 bg-rose-500/10 border shadow-xl shadow-rose-500/5 transition-all hover:border-rose-400 hover:scale-[1.02] cursor-pointer group"
+            >
               <div className="flex justify-between items-start">
-                <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-60">
-                  Dealers
+                <p className="text-[10px] font-black text-rose-900 uppercase tracking-widest mb-1">
+                  Dead Deals
                 </p>
-                <BadgeCheck size={16} className="opacity-40" />
+                <XCircle size={16} className="text-rose-600" />
+              </div>
+              <p className="text-3xl font-black text-rose-900">
+                {String(data?.leads?.filter((l: any) => l.status === "DEAD").length || 0).padStart(2, '0')}
+              </p>
+              <p className="text-[10px] mt-1 font-bold text-rose-800 uppercase tracking-wider">
+                Closed / Not in use
+              </p>
+            </div>
+
+            <div className="p-5 rounded-xl border-none bg-primary-600 text-white shadow-2xl shadow-primary-500/10 transition-all hover:scale-[1.02] cursor-default">
+              <div className="flex justify-between items-start">
+                <p className="text-[10px] font-black uppercase tracking-widest mb-1 opacity-70">
+                  Converted
+                </p>
+                <BadgeCheck size={16} className="opacity-70" />
               </div>
               <p className="text-3xl font-black">
-                {data?.leads?.filter((l: any) => l.status === "CONVERTED")
-                  .length || 0}
+                {data?.leads?.filter((l: any) => l.status === "CONVERTED").length || 0}
               </p>
               <p className="text-[10px] mt-1 font-bold opacity-80 uppercase tracking-widest">
-                Converted Partners
+                Certified Partners
               </p>
             </div>
           </div>
@@ -1921,32 +2061,41 @@ export const CRM: React.FC = () => {
 
           {/* Lead Search & Table */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-            <div className="p-4 border-b flex items-center space-x-4">
-              <div className="relative flex-1">
+            <div className="p-4 border-b flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="relative flex-1 w-full">
                 <Search
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
                   size={18}
                 />
                 <input
                   type="text"
-                  placeholder="Search by company, person or location..."
-                  className="input-field pl-10 h-10 py-0"
+                  placeholder="Search by company, person, location or assigned executive..."
+                  className="input-field pl-10 h-10 py-0 text-xs"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
+
+              <button
+                onClick={handleAutoMarkLapsedDeals}
+                title="Automatically mark all overdue unattended follow-ups as Lapsed Deals"
+                className="px-4 py-2 bg-amber-500/10 text-amber-900 border border-amber-300 rounded-xl text-[10px] font-black uppercase tracking-wider hover:bg-amber-500/20 transition-all flex items-center shrink-0 cursor-pointer"
+              >
+                <AlertTriangle size={14} className="mr-1.5 text-amber-600" /> Auto-Mark Overdue Lapsed
+              </button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
+                <thead className="bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4">Lead / Company Info</th>
+                    <th className="px-6 py-4">Assigned Executive</th>
                     <th className="px-6 py-4">Location & Source</th>
                     <th className="px-6 py-4">Requirement</th>
                     <th className="px-6 py-4">Next Follow-up</th>
                     <th className="px-6 py-4">Current Stage</th>
-                    <th className="px-6 py-4">Actions</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1970,6 +2119,27 @@ export const CRM: React.FC = () => {
                               <Phone size={10} className="mx-1" /> {lead.phone}
                             </div>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs font-bold text-slate-800 flex items-center bg-slate-100/80 px-2.5 py-1 rounded-lg border border-slate-200">
+                            <UserCheck size={12} className="mr-1.5 text-emerald-600 shrink-0" />
+                            <span className="truncate max-w-[130px]">
+                              {lead.assignedExecutive || "Unassigned"}
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setReassigningLead(lead);
+                              setSelectedExecForAssign(lead.assignedExecutive || "Suresh Raina (North CRM Executive)");
+                            }}
+                            title="Assign or Change Marketing Executive"
+                            className="p-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-md transition-all cursor-pointer border border-transparent hover:border-emerald-200"
+                          >
+                            <UserPlus size={13} />
+                          </button>
                         </div>
                       </td>
                       <td className="px-6 py-4">
@@ -2004,8 +2174,8 @@ export const CRM: React.FC = () => {
                       <td className="px-6 py-4">
                         <select
                           className={cn(
-                            "text-[10px] font-bold uppercase px-2 py-1 rounded-full border-none focus:ring-0 cursor-pointer",
-                            STAGE_COLORS[lead.status],
+                            "text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border focus:ring-0 cursor-pointer shadow-3xs",
+                            STAGE_COLORS[lead.status] || "bg-slate-100 text-slate-600 border-slate-200",
                           )}
                           value={lead.status}
                           onChange={(e) =>
@@ -2014,7 +2184,7 @@ export const CRM: React.FC = () => {
                         >
                           {LEAD_STAGES.map((s) => (
                             <option key={s} value={s}>
-                              {s.replace("_", " ")}
+                              {STAGE_LABELS[s] || s}
                             </option>
                           ))}
                         </select>
@@ -2629,6 +2799,25 @@ export const CRM: React.FC = () => {
                           }
                           placeholder="City, State"
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 leading-none">
+                          Assigned Marketing / Sales Executive
+                        </label>
+                        <select
+                          className="w-full bg-white border border-slate-250 rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-900 focus:ring-2 focus:ring-[#009cbc]/20 outline-none transition-all shadow-xs"
+                          value={form.assignedExecutive}
+                          onChange={(e) =>
+                            setForm({ ...form, assignedExecutive: e.target.value })
+                          }
+                        >
+                          {MARKETING_EXECUTIVES.map((exec) => (
+                            <option key={exec.id} value={`${exec.name} (${exec.role})`}>
+                              {exec.name} — {exec.role}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
@@ -3569,6 +3758,85 @@ export const CRM: React.FC = () => {
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer transition-all"
               >
                 Convert Lead
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REASSIGN MARKETING EXECUTIVE MODAL */}
+      {reassigningLead && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 animate-in fade-in duration-200 no-print">
+          <div className="bg-white max-w-lg w-full rounded-3xl p-6 border border-slate-200 shadow-2xl space-y-5 mx-4 text-left">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl">
+                  <UserPlus size={22} />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-base uppercase tracking-tight">
+                    Assign Marketing Executive
+                  </h4>
+                  <p className="text-xs text-slate-500 font-bold">
+                    Target Lead: <span className="text-emerald-700 font-black">{reassigningLead.company}</span> ({reassigningLead.contactPerson})
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setReassigningLead(null)}
+                className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-800 transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Select Regional Marketing / CRM Executive
+              </label>
+              <div className="grid grid-cols-1 gap-2.5 max-h-60 overflow-y-auto pr-1">
+                {MARKETING_EXECUTIVES.map((exec) => {
+                  const execFull = `${exec.name} (${exec.role})`;
+                  const isSelected = selectedExecForAssign === execFull;
+                  return (
+                    <button
+                      key={exec.id}
+                      type="button"
+                      onClick={() => setSelectedExecForAssign(execFull)}
+                      className={cn(
+                        "w-full text-left p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between",
+                        isSelected
+                          ? "bg-emerald-50 border-emerald-500 shadow-md shadow-emerald-500/10 text-emerald-950 font-bold"
+                          : "bg-slate-50/70 hover:bg-slate-100 border-slate-200 text-slate-700",
+                      )}
+                    >
+                      <div>
+                        <p className="text-xs font-black">{exec.name}</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{exec.role} • {exec.phone}</p>
+                      </div>
+                      {isSelected && (
+                        <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setReassigningLead(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAssignExecutive(reassigningLead.id, selectedExecForAssign)}
+                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer transition-all"
+              >
+                Confirm Reassignment
               </button>
             </div>
           </div>

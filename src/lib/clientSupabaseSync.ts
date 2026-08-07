@@ -271,6 +271,7 @@ export async function hydrateDbFromSupabase(db: any) {
             requirement: l.requirement || existing?.requirement || '',
             status: l.status || existing?.status || 'NEW',
             notes: l.notes || existing?.notes || '',
+            assignedExecutive: l.assigned_executive || l.assignedExecutive || existing?.assignedExecutive || 'Suresh Raina (North CRM Executive)',
             remarksLog: l.remarks_log || l.remarksLog || existing?.remarksLog || []
           };
         });
@@ -474,6 +475,7 @@ export async function syncLeadRecordToSupabase(lead: any) {
       requirement: lead.requirement || 'General Requirement',
       status: lead.status || 'NEW',
       notes: lead.notes || '',
+      assigned_executive: lead.assignedExecutive || lead.assigned_executive || 'Suresh Raina (North CRM Executive)',
       remarks_log: lead.remarksLog || lead.remarks_log || []
     };
     await supabase.from('lead_inquiries').upsert(payload, { onConflict: 'id' });
