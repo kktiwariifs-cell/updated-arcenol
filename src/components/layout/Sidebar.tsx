@@ -107,8 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
         backgroundRepeat: 'repeat',
         backgroundPosition: 'top left'
       }}>
-        {/* Pure pattern background from Image 2 with crisp text legibility */}
-        <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
+        {/* Darkening & glass overlay for maximum text legibility over pattern */}
+        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px] pointer-events-none"></div>
 
         <div className="p-6 flex items-center justify-between border-b border-white/10 bg-white/5 backdrop-blur-sm">
           {isOpen || mobileOpen ? (
