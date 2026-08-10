@@ -267,14 +267,2532 @@ async function startServer() {
       { id: "n2", type: "LOW_STOCK", title: "Low Stock Alert: Cells", message: "Current stock: 450 units. Reorder point: 1000.", date: new Date().toISOString(), status: "UNREAD", channel: "SYSTEM" }
     ],
     leads: [
-      { id: "enq-101", company: "Apex EV Mobility Surat", category: "Dealer", location: "Surat, GJ", contactPerson: "Pravin Patel", phone: "9825011223", leadSource: "Website", requirement: "60V 30Ah Lithium Battery Packs x 25", status: "NEW", followUpDate: "2026-08-08", followUpTime: "10:30", notes: "Submitted web enquiry form for regional dealership opportunity.", assignedExecutive: "Suresh Raina (North CRM Executive)" },
-      { id: "enq-102", company: "Zenith Solar Systems Pune", category: "Distributor", location: "Pune, MH", contactPerson: "Neha Deshmukh", phone: "9822044556", leadSource: "Website", requirement: "150Ah Tubular Solar Batteries x 40", status: "NEW", followUpDate: "2026-08-09", followUpTime: "14:00", notes: "Form-captured inquiry from web portal for regional distribution.", assignedExecutive: "Priya Sharma (West Marketing Lead)" },
-      { id: "enq-103", company: "Reddy Energy Hyderabad", category: "Dealer", location: "Hyderabad, TS", contactPerson: "Venkatesh Reddy", phone: "9849033441", leadSource: "Website", requirement: "E-Rickshaw Battery Pack x 30", status: "NEW", followUpDate: "2026-08-10", followUpTime: "11:30", notes: "Inquired through online quotation form.", assignedExecutive: "Rajesh Kumar (South Regional Head)" },
-      { id: "l1", company: "Green Motors Ahmedabad", category: "Dealer", location: "Ahmedabad, GJ", contactPerson: "Rajesh Shah", phone: "9876543210", leadSource: "Website", requirement: "72V Battery Packs x 50", status: "QUOTATION_SENT", followUpDate: "2024-05-20", followUpTime: "11:00", notes: "Negotiating on bulk discount.", assignedExecutive: "Suresh Raina (North CRM Executive)" },
-      { id: "l2", company: "EV Solutions Delhi", category: "Distributor", location: "New Delhi, DL", contactPerson: "Aman Varma", phone: "9123456789", leadSource: "Exhibition", requirement: "Li-ion Cells Bulk Purchase", status: "INTERESTED", followUpDate: "2024-05-18", followUpTime: "15:30", notes: "Interested in the new smart BMS feature.", assignedExecutive: "Priya Sharma (West Marketing Lead)" },
-      { id: "l3", company: "Spark Auto Tech Jaipur", category: "Sub Dealer", location: "Jaipur, RJ", contactPerson: "Manish Sharma", phone: "9829012345", leadSource: "Indiamart / B2B", requirement: "Scooter Batteries x 100", status: "LAPSED", followUpDate: "2026-08-01", followUpTime: "10:00", notes: "Lapsed: Missed follow-up on quote expiry date.", assignedExecutive: "Amit Trivedi (Plant & B2B Sales Specialist)" },
-      { id: "l4", company: "Titan Solar Chennai", category: "Dealer", location: "Chennai, TN", contactPerson: "K. Raman", phone: "9840198765", leadSource: "Cold Call", requirement: "100Ah Tubular Inverter Batteries", status: "DEAD", followUpDate: "2026-07-15", followUpTime: "14:00", notes: "Dead Deal: Client opted for local regional supplier.", assignedExecutive: "Rajesh Kumar (South Regional Head)" }
-    ],
+        {
+                "id": "l-1784531732680",
+                "company": "PATEL PATEL",
+                "category": "Retail",
+                "location": "vadodara",
+                "contactPerson": "PATEL PATEL",
+                "phone": "9173023179",
+                "leadSource": "Indiamart / B2B",
+                "requirement": "lead alocate to shaineel call tomorrow",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 04:57:54.002475+00"
+        },
+        {
+                "id": "l-1784542396069",
+                "company": "Pareshbhai",
+                "category": "Retail",
+                "location": "Bhavnagar",
+                "contactPerson": "Pareshbhai",
+                "phone": "09033332005",
+                "leadSource": "Indiamart / B2B",
+                "requirement": "bataege inform price",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 04:58:27.823613+00"
+        },
+        {
+                "id": "l-1784715041508",
+                "company": "ATS electric vehicles",
+                "category": "Dealer",
+                "location": "ahmedabad",
+                "contactPerson": "ATS electric vehicles",
+                "phone": "7600010551",
+                "leadSource": "Cold Call",
+                "requirement": "already sent proposal call back",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-11",
+                "followUpTime": "11:01",
+                "notes": "[Follow-up 2026-07-23]: dekh k bataege\n[Follow-up 2026-07-25]: dekh k cal karege\n[Follow-up 2026-07-30]: call karege already sent proposal",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "dekh k bataege",
+                                "time": "09:31",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:01"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "dekh k cal karege",
+                                "time": "16:40",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "11:01"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "call karege already sent proposal",
+                                "time": "17:36",
+                                "nextFollowUpDate": "2026-08-11",
+                                "nextFollowUpTime": "11:01"
+                        }
+                ],
+                "createdAt": "2026-07-23 03:58:28.744924+00"
+        },
+        {
+                "id": "l-1784715189255",
+                "company": "J D E bike zone",
+                "category": "Dealer",
+                "location": "ahmedabad",
+                "contactPerson": "J D E bike zone",
+                "phone": "7046573095",
+                "leadSource": "Cold Call",
+                "requirement": "sent proposal requirement hogi to bolege",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-13",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-30]: sent reminder jarurat hogi to bolege",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-30",
+                                "text": "sent reminder jarurat hogi to bolege",
+                                "time": "16:06",
+                                "nextFollowUpDate": "2026-08-13",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:58:45.238183+00"
+        },
+        {
+                "id": "l-1784715748778",
+                "company": "pranvi motors",
+                "category": "Dealer",
+                "location": "ahmedabad",
+                "contactPerson": "pranvi motors",
+                "phone": "8155011817",
+                "leadSource": "Cold Call",
+                "requirement": "always disco the call",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-28",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-23]: not attend\n[Follow-up 2026-07-24]: switched off",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not attend",
+                                "time": "09:30",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "switched off",
+                                "time": "15:30",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:00:39.08537+00"
+        },
+        {
+                "id": "l-1784716437277",
+                "company": "omkaar e-vehicles",
+                "category": "Dealer",
+                "location": "naroda ,ahmedabad",
+                "contactPerson": "omkaar e-vehicles",
+                "phone": "8866843636",
+                "leadSource": "Cold Call",
+                "requirement": "sent proposal not attend",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-11",
+                "followUpTime": "00:00",
+                "notes": "[Follow-up 2026-07-23]: yet not seen dekh k bataege\n[Follow-up 2026-07-25]: sent proposal call back\n[Follow-up 2026-07-30]: sent reminder",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "yet not seen dekh k bataege",
+                                "time": "09:35",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "00:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal call back",
+                                "time": "16:39",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "00:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "sent reminder",
+                                "time": "17:36",
+                                "nextFollowUpDate": "2026-08-11",
+                                "nextFollowUpTime": "00:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:05:29.662592+00"
+        },
+        {
+                "id": "l-1784718734397",
+                "company": "AB enterprises",
+                "category": "Dealer",
+                "location": "ahmedabad",
+                "contactPerson": "AB enterprises",
+                "phone": "9824255770",
+                "leadSource": "Cold Call",
+                "requirement": "always disco the call",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: call forwarded\n[Follow-up 2026-07-24]: not want",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "call forwarded",
+                                "time": "09:36",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "not want",
+                                "time": "15:31",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:06:45.458777+00"
+        },
+        {
+                "id": "l-1784719374197",
+                "company": "kyte energy",
+                "category": "Dealer",
+                "location": "ahmedabad",
+                "contactPerson": "kyte energy",
+                "phone": "9825038383",
+                "leadSource": "Cold Call",
+                "requirement": "sent proposal call back tomorrow",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-20",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-23]: call tomorrow sent proposal reminder\n[Follow-up 2026-07-24]: call back\n[Follow-up 2026-07-29]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "call tomorrow sent proposal reminder",
+                                "time": "15:46",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "call back",
+                                "time": "15:50",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "call back",
+                                "time": "12:31",
+                                "nextFollowUpDate": "2026-08-20",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:58:51.574428+00"
+        },
+        {
+                "id": "l-1784720408942",
+                "company": "joy e-bikes",
+                "category": "Dealer",
+                "location": "ghatlodiya ,ahmedabad",
+                "contactPerson": "joy e-bikes",
+                "phone": "8200140684",
+                "leadSource": "Cold Call",
+                "requirement": "sent proposal ,call back",
+                "status": "NEGOTIATION",
+                "followUpDate": "2026-08-02",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: price issue",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "price issue",
+                                "time": "09:47",
+                                "nextFollowUpDate": "2026-08-02",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:17:42.239453+00"
+        },
+        {
+                "id": "l-1784722912098",
+                "company": "okinawa and joy e-bikes",
+                "category": "Dealer",
+                "location": "surat",
+                "contactPerson": "okinawa and joy e-bikes",
+                "phone": "9104448668",
+                "leadSource": "Cold Call",
+                "requirement": "sent proposal remidner cal not attend call back",
+                "status": "NEGOTIATION",
+                "followUpDate": "2026-08-08",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: not attend\n[Follow-up 2026-07-25]: sent proposal call back\n[Follow-up 2026-07-30]: sent proposal call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not attend",
+                                "time": "09:51",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal call back",
+                                "time": "16:40",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "sent proposal call back",
+                                "time": "13:19",
+                                "nextFollowUpDate": "2026-08-08",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 04:21:24.974274+00"
+        },
+        {
+                "id": "l1",
+                "company": "Green Motors Ahmedabad",
+                "category": "Dealer",
+                "location": "Ahmedabad, GJ",
+                "contactPerson": "Rajesh Shah",
+                "phone": "9876543210",
+                "leadSource": "Website",
+                "requirement": "72V Battery Packs x 50",
+                "status": "INTERESTED",
+                "followUpDate": "2024-05-20",
+                "followUpTime": "11:00",
+                "notes": "Negotiating on bulk discount.",
+                "remarksLog": [],
+                "createdAt": "2026-07-22 11:46:26.43661+00"
+        },
+        {
+                "id": "l2",
+                "company": "EV Solutions Delhi",
+                "category": "Distributor",
+                "location": "New Delhi, DL",
+                "contactPerson": "Aman Varma",
+                "phone": "9123456789",
+                "leadSource": "Exhibition",
+                "requirement": "Li-ion Cells Bulk Purchase",
+                "status": "NEW",
+                "followUpDate": "2024-05-18",
+                "followUpTime": "15:30",
+                "notes": "Interested in the new smart BMS feature.",
+                "remarksLog": [],
+                "createdAt": "2026-07-22 11:46:26.43661+00"
+        },
+        {
+                "id": "lead-001",
+                "company": "Modern EV Solutions",
+                "category": "DEALER",
+                "location": "Chennai, Tamil Nadu",
+                "contactPerson": "Aravind Swamy",
+                "phone": "+91 9876543210",
+                "leadSource": "WEBSITE",
+                "requirement": "Needs 100Ah battery pack solutions for 2-wheelers fleet rollouts.",
+                "status": "INTERESTED",
+                "followUpDate": "2026-07-01",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-01 07:44:26.950739+00"
+        },
+        {
+                "id": "lead-1784721780688",
+                "company": "testdc",
+                "category": "Dealer",
+                "location": "Noida",
+                "contactPerson": "dcdcdc",
+                "phone": "7894561230",
+                "leadSource": "Website",
+                "requirement": "need 15000ah battery",
+                "status": "INTERESTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-22 12:03:01.084406+00"
+        },
+        {
+                "id": "lead-1784778912419",
+                "company": "Kiran",
+                "category": "Retail",
+                "location": "Anand",
+                "contactPerson": "Kiran",
+                "phone": "08849305429",
+                "leadSource": "Indiamart / B2B",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-31",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-24]: switched off\n[Follow-up 2026-07-25]: call back\n[Follow-up 2026-07-28]: call disco\n[Follow-up 2026-07-31]: retail already purchased",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "switched off",
+                                "time": "15:19",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "15:38",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-28",
+                                "text": "call disco",
+                                "time": "12:09",
+                                "nextFollowUpDate": "2026-07-31",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-31",
+                                "text": "retail already purchased",
+                                "time": "16:15",
+                                "nextFollowUpDate": "2027-07-31",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 03:55:14.8941+00"
+        },
+        {
+                "id": "lead-1784783650789",
+                "company": "adinath electric vehicles",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "adinath electric vehicles",
+                "phone": "9998064671",
+                "leadSource": "Website",
+                "requirement": "busy",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-27",
+                "followUpTime": "10:43",
+                "notes": "[Follow-up 2026-07-23]: cal disco\n[Follow-up 2026-07-24]: call disco.",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "cal disco",
+                                "time": "15:49",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:43"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "call disco.",
+                                "time": "15:50",
+                                "nextFollowUpDate": "2026-07-27",
+                                "nextFollowUpTime": "10:43"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:14:10.879881+00"
+        },
+        {
+                "id": "lead-1784783988701",
+                "company": "okinawa and joy e-bikes",
+                "category": "Dealer",
+                "location": "surat",
+                "contactPerson": "okinawa and joy e-bikes",
+                "phone": "9104448668",
+                "leadSource": "Website",
+                "requirement": "General Requirement",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-27",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: sent proposal reminder",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "sent proposal reminder",
+                                "time": "15:55",
+                                "nextFollowUpDate": "2026-07-27",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:22:13.763768+00"
+        },
+        {
+                "id": "lead-1784784095049",
+                "company": "okinawa  and joy e-bikes",
+                "category": "Dealer",
+                "location": "surat",
+                "contactPerson": "okinawa and joy e-bikes",
+                "phone": "9104448668",
+                "leadSource": "Website",
+                "requirement": "sent proposal not attend",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-11",
+                "followUpTime": "10:51",
+                "notes": "[Follow-up 2026-07-23]: sent reminder 2 se 3 din me update dege\n[Follow-up 2026-07-25]: sent reminder update karege\n[Follow-up 2026-07-30]: sent reminder alreay",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "sent reminder 2 se 3 din me update dege",
+                                "time": "15:37",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:51"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent reminder update karege",
+                                "time": "17:25",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:51"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "sent reminder alreay",
+                                "time": "16:32",
+                                "nextFollowUpDate": "2026-08-11",
+                                "nextFollowUpTime": "10:51"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:21:35.118278+00"
+        },
+        {
+                "id": "lead-1784784198606",
+                "company": "surat  ev mall",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "surat ev mall",
+                "phone": "8160054809",
+                "leadSource": "Website",
+                "requirement": "General Requirement",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-28",
+                "followUpTime": "10:53",
+                "notes": "[Follow-up 2026-07-23]: call disco.\n[Follow-up 2026-07-24]: not attend",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "call disco.",
+                                "time": "15:59",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:53"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "not attend",
+                                "time": "15:40",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "10:53"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:23:18.66353+00"
+        },
+        {
+                "id": "lead-1784784357551",
+                "company": "auto point okaya electric vehicles",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "auto point okaya electric vehicles",
+                "phone": "9106996545",
+                "leadSource": "Website",
+                "requirement": "sent proposal not interested",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-28",
+                "followUpTime": "10:55",
+                "notes": "[Follow-up 2026-07-23]: switched off\n[Follow-up 2026-07-24]: always swithed off",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "switched off",
+                                "time": "15:59",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:55"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "always swithed off",
+                                "time": "15:40",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "10:55"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:25:57.610518+00"
+        },
+        {
+                "id": "lead-1784784481153",
+                "company": "futurist karayanam",
+                "category": "Dealer",
+                "location": "surat, gujarat",
+                "contactPerson": "futurist karayanam",
+                "phone": "8460276508",
+                "leadSource": "Website",
+                "requirement": "not interested call disco",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "10:57",
+                "notes": "[Follow-up 2026-07-23]: call disco\n[Follow-up 2026-07-24]: call back\n[Follow-up 2026-07-25]: cal back\n[Follow-up 2026-07-25]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "call disco",
+                                "time": "15:23",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:57"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "call back",
+                                "time": "15:27",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:57"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "cal back",
+                                "time": "16:33",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:57"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:48",
+                                "nextFollowUpDate": "2026-07-26",
+                                "nextFollowUpTime": "10:57"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:28:01.21351+00"
+        },
+        {
+                "id": "lead-1784784600529",
+                "company": "sarkar auto point",
+                "category": "Dealer",
+                "location": "surat ,gujarat",
+                "contactPerson": "sarkar auto point",
+                "phone": "9879257309",
+                "leadSource": "Website",
+                "requirement": "e-rickshaws",
+                "status": "CONTACTED",
+                "followUpDate": "2026-08-03",
+                "followUpTime": "10:59",
+                "notes": "[Follow-up 2026-07-23]: busy hai bad me bat karege\n[Follow-up 2026-07-24]: BUSY HAI call karege\n[Follow-up 2026-07-25]: sent proposal dekh k batege\n[Follow-up 2026-07-29]: deal only 3 wheeler sent price\n[Follow-up 2026-07-30]: deal only 3 wheeler\n[Follow-up 2026-07-31]: sent proposal reminder call back 3 wheeler",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "busy hai bad me bat karege",
+                                "time": "15:24",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:59"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "BUSY HAI call karege",
+                                "time": "15:18",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:59"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal dekh k batege",
+                                "time": "15:38",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "10:59"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "deal only 3 wheeler sent price",
+                                "time": "12:44",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:59"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "deal only 3 wheeler",
+                                "time": "17:53",
+                                "nextFollowUpDate": "2026-07-31",
+                                "nextFollowUpTime": "10:59"
+                        },
+                        {
+                                "date": "2026-07-31",
+                                "text": "sent proposal reminder call back 3 wheeler",
+                                "time": "16:13",
+                                "nextFollowUpDate": "2026-08-03",
+                                "nextFollowUpTime": "10:59"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:30:00.590297+00"
+        },
+        {
+                "id": "lead-1784784727987",
+                "company": "electron auto motors",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "electron auto motors",
+                "phone": "7622006668",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "11:01",
+                "notes": "[Follow-up 2026-07-23]: not want\n[Follow-up 2026-07-23]: not want",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not want",
+                                "time": "15:26",
+                                "nextFollowUpDate": "2026-07-23",
+                                "nextFollowUpTime": "11:01"
+                        },
+                        {
+                                "date": "2026-07-23",
+                                "text": "not want",
+                                "time": "15:27",
+                                "nextFollowUpDate": "2026-07-26",
+                                "nextFollowUpTime": "11:01"
+                        }
+                ],
+                "createdAt": "2026-07-23 05:32:08.048083+00"
+        },
+        {
+                "id": "lead-1784784817492",
+                "company": "royal ev tech",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "royal ev tech",
+                "phone": "9081768004",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:30",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 05:33:37.562907+00"
+        },
+        {
+                "id": "lead-1784784924127",
+                "company": "shree jalaram electric vehicles",
+                "category": "Dealer",
+                "location": "surat , gujarat",
+                "contactPerson": "shree jalaram electric vehicles",
+                "phone": "9924093397",
+                "leadSource": "Website",
+                "requirement": "not interested price issue",
+                "status": "NEGOTIATION",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 05:35:24.190195+00"
+        },
+        {
+                "id": "lead-1784785089758",
+                "company": "nitya e-mobility",
+                "category": "Dealer",
+                "location": "rajkot , gujara",
+                "contactPerson": "nitya e-mobility",
+                "phone": "8866221148",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 05:38:09.822228+00"
+        },
+        {
+                "id": "lead-1784785318659",
+                "company": "gajanan ev and solar",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "gajanan ev and solar",
+                "phone": "7621886555",
+                "leadSource": "Website",
+                "requirement": "not interested price issue",
+                "status": "NEGOTIATION",
+                "followUpDate": "2626-07-21",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 05:41:58.738957+00"
+        },
+        {
+                "id": "lead-1784786484036",
+                "company": "ampere electric scooter",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "ampere electric scooter",
+                "phone": "7942875177",
+                "leadSource": "Website",
+                "requirement": "incoming not available",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:01:24.111722+00"
+        },
+        {
+                "id": "lead-1784786576736",
+                "company": "shiv shakti auto agency",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "shiv shakti auto agency",
+                "phone": "9925725734",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-13",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: requirement hogi to bolege yet not require\n[Follow-up 2026-07-30]: reuirement hoga to bolege sent reminder",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "requirement hogi to bolege yet not require",
+                                "time": "15:29",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "reuirement hoga to bolege sent reminder",
+                                "time": "16:04",
+                                "nextFollowUpDate": "2026-08-13",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:02:56.822062+00"
+        },
+        {
+                "id": "lead-1784786679528",
+                "company": "akshar & shree ji e-bikes",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "akshar & shree ji e-bikes",
+                "phone": "7984423892",
+                "leadSource": "Website",
+                "requirement": "busy call disco",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:04:39.612285+00"
+        },
+        {
+                "id": "lead-1784786816957",
+                "company": "shiv e vehicles",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "shiv e vehicles",
+                "phone": "9925612346",
+                "leadSource": "Website",
+                "requirement": "incoming call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:06:57.041344+00"
+        },
+        {
+                "id": "lead-1784787004921",
+                "company": "siddhivinayak zelio",
+                "category": "Dealer",
+                "location": "rajkot, gujarat",
+                "contactPerson": "siddhivinayak zelio",
+                "phone": "8200382005",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "00:39",
+                "notes": "[Follow-up 2026-07-23]: not attend\n[Follow-up 2026-07-24]: call back\n[Follow-up 2026-07-25]: no requiremt",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not attend",
+                                "time": "15:33",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "00:39"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "call back",
+                                "time": "15:47",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "00:39"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "no requiremt",
+                                "time": "16:33",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "00:39"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:10:04.997593+00"
+        },
+        {
+                "id": "lead-1784787375861",
+                "company": "jalaram auto point",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "jalaram auto point",
+                "phone": "8530500009",
+                "leadSource": "Website",
+                "requirement": "no requirement",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:16:15.94369+00"
+        },
+        {
+                "id": "lead-1784787491181",
+                "company": "adhya e-mobility llp",
+                "category": "Dealer",
+                "location": "rajkot , gujarat",
+                "contactPerson": "adhya e-mobility llp",
+                "phone": "7575075126",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "12:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:18:11.258424+00"
+        },
+        {
+                "id": "lead-1784787652068",
+                "company": "bgauss electric scooters",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "bgauss electric scooters",
+                "phone": "7574000123",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-23]: not attend\n[Follow-up 2026-07-24]: no require",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not attend",
+                                "time": "15:43",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "no require",
+                                "time": "15:49",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:20:52.201593+00"
+        },
+        {
+                "id": "lead-1784787767115",
+                "company": "pure ev electric scooters",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "pure ev electric scooters",
+                "phone": "9879900198",
+                "leadSource": "Website",
+                "requirement": "no requirement",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "09:30",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:22:47.207655+00"
+        },
+        {
+                "id": "lead-1784787870562",
+                "company": "bhagwati battery",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "bhagwati battery",
+                "phone": "9978494073",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "10:30",
+                "notes": "[Follow-up 2026-07-23]: not intrested\n[Follow-up 2026-07-23]: not intrested\n[Follow-up 2026-07-24]: not intrested",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not intrested",
+                                "time": "15:19",
+                                "nextFollowUpDate": "2026-07-23",
+                                "nextFollowUpTime": "10:30"
+                        },
+                        {
+                                "date": "2026-07-23",
+                                "text": "not intrested",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:30"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "not intrested",
+                                "time": "15:27",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "10:30"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:24:30.659936+00"
+        },
+        {
+                "id": "lead-1784787968440",
+                "company": "satish battery center",
+                "category": "Dealer",
+                "location": "mehsana , guujarat",
+                "contactPerson": "satish battery center",
+                "phone": "9408221149",
+                "leadSource": "Website",
+                "requirement": "dealers of battery",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:26:08.522149+00"
+        },
+        {
+                "id": "lead-1784788107674",
+                "company": "umiya power solutions",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "umiya power solutions",
+                "phone": "9998499444",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "11:58",
+                "notes": "[Follow-up 2026-07-23]: not intrested\n[Follow-up 2026-07-23]: nnot intrested\n[Follow-up 2026-07-25]: not intrested",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not intrested",
+                                "time": "15:19",
+                                "nextFollowUpDate": "2026-07-23",
+                                "nextFollowUpTime": "11:58"
+                        },
+                        {
+                                "date": "2026-07-23",
+                                "text": "nnot intrested",
+                                "time": "15:21",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:58"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "not intrested",
+                                "time": "17:24",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "11:58"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:28:27.758592+00"
+        },
+        {
+                "id": "lead-1784788228833",
+                "company": "ujas auto agency",
+                "category": "Dealer",
+                "location": "mehsana, gujarat",
+                "contactPerson": "ujas auto agency",
+                "phone": "6352405062",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:30:28.939649+00"
+        },
+        {
+                "id": "lead-1784788331123",
+                "company": "green e-bikes",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "green e-bikes",
+                "phone": "9104340095",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:32:11.203802+00"
+        },
+        {
+                "id": "lead-1784788419410",
+                "company": "tirusai autolink",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "tirusai autolink",
+                "phone": "7026600377",
+                "leadSource": "Website",
+                "requirement": "not reachable",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "12:03",
+                "notes": "[Follow-up 2026-07-23]: not in service\n[Follow-up 2026-07-23]: not in service\n[Follow-up 2026-07-24]: not in service\n[Follow-up 2026-07-25]: not in service",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not in service",
+                                "time": "15:19",
+                                "nextFollowUpDate": "2026-07-23",
+                                "nextFollowUpTime": "12:03"
+                        },
+                        {
+                                "date": "2026-07-23",
+                                "text": "not in service",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "12:03"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "not in service",
+                                "time": "15:26",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "12:03"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "not in service",
+                                "time": "16:38",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "12:03"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:33:39.489014+00"
+        },
+        {
+                "id": "lead-1784788680877",
+                "company": "matter",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "matter",
+                "phone": "8238082320",
+                "leadSource": "Website",
+                "requirement": "company number",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:38:00.971024+00"
+        },
+        {
+                "id": "lead-1784788769485",
+                "company": "green go international electrics",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "green go international electrics",
+                "phone": "6367658202",
+                "leadSource": "Website",
+                "requirement": "switched off",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:39:29.578429+00"
+        },
+        {
+                "id": "lead-1784788846441",
+                "company": "shayona tvs",
+                "category": "Dealer",
+                "location": "mehsana , gujarat",
+                "contactPerson": "shayona tvs",
+                "phone": "9081085550",
+                "leadSource": "Website",
+                "requirement": "not reachable",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-31",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: switched off\n[Follow-up 2026-07-24]: switched off\n[Follow-up 2026-07-29]: switched off always\n[Follow-up 2026-07-30]: call back\n[Follow-up 2026-07-31]: tvs we not provide",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "switched off",
+                                "time": "15:34",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "switched off",
+                                "time": "15:48",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "switched off always",
+                                "time": "12:30",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "call back",
+                                "time": "17:52",
+                                "nextFollowUpDate": "2026-07-31",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-31",
+                                "text": "tvs we not provide",
+                                "time": "16:07",
+                                "nextFollowUpDate": "2027-07-31",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:40:46.539341+00"
+        },
+        {
+                "id": "lead-1784789007908",
+                "company": "chetak electric scooters",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "chetak electric scooters",
+                "phone": "9168627000",
+                "leadSource": "Website",
+                "requirement": "not require",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-23",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: no require",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "no require",
+                                "time": "15:49",
+                                "nextFollowUpDate": "2027-07-23",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:43:27.998326+00"
+        },
+        {
+                "id": "lead-1784789130117",
+                "company": "mihir e bikes",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "mihir e bikes",
+                "phone": "9974107071",
+                "leadSource": "Website",
+                "requirement": "sent proposal will inform",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:45:30.20873+00"
+        },
+        {
+                "id": "lead-1784789257898",
+                "company": "agwan motors pvt ltd",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "agwan motors pvt ltd",
+                "phone": "8929711991",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-19",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:47:37.984047+00"
+        },
+        {
+                "id": "lead-1784789332031",
+                "company": "varun e bikes",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "varun e bikes",
+                "phone": "9824206223",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-19",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:48:52.112792+00"
+        },
+        {
+                "id": "lead-1784789402676",
+                "company": "amaron pitstop",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "amaron pitshop",
+                "phone": "9227715302",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-23]: not intrested\n[Follow-up 2026-07-24]: not intrested",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not intrested",
+                                "time": "15:40",
+                                "nextFollowUpDate": "2026-07-24",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-24",
+                                "text": "not intrested",
+                                "time": "15:48",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:50:02.751357+00"
+        },
+        {
+                "id": "lead-1784789549180",
+                "company": "gajjar auto battery",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "gajjar auto battery",
+                "phone": "9712974352",
+                "leadSource": "Website",
+                "requirement": "not want",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: not want\n[Follow-up 2026-07-25]: ni",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not want",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "ni",
+                                "time": "16:28",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:52:29.270704+00"
+        },
+        {
+                "id": "lead-1784789647419",
+                "company": "thomas battery",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "thomas battery",
+                "phone": "7698570353",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:54:07.499722+00"
+        },
+        {
+                "id": "lead-1784789754875",
+                "company": "forext battery",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "forext battery",
+                "phone": "9594439345",
+                "leadSource": "Website",
+                "requirement": "not interested call disco",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: not deal in lithoum battery\n[Follow-up 2026-07-25]: not deal in lithium",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "not deal in lithoum battery",
+                                "time": "16:00",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "not deal in lithium",
+                                "time": "17:19",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 06:55:54.956228+00"
+        },
+        {
+                "id": "lead-1784789867467",
+                "company": "oreva e-bikes",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "oreva e-bikes",
+                "phone": "9429621309",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:57:47.544975+00"
+        },
+        {
+                "id": "lead-1784789971543",
+                "company": "bansari automobiles",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "bansari automobiles",
+                "phone": "9904991009",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-19",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 06:59:31.626319+00"
+        },
+        {
+                "id": "lead-1784790044037",
+                "company": "royal honda",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "royal honda",
+                "phone": "9825039767",
+                "leadSource": "Website",
+                "requirement": "company number",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:00:44.120463+00"
+        },
+        {
+                "id": "lead-1784790143427",
+                "company": "hero electric bikes",
+                "category": "Dealer",
+                "location": "gandhinagar",
+                "contactPerson": "hero electric bikes",
+                "phone": "9426282922",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "12:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:02:23.514068+00"
+        },
+        {
+                "id": "lead-1784790267753",
+                "company": "go green e-bikes",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "go green e-bikes",
+                "phone": "8849208239",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:04:27.840083+00"
+        },
+        {
+                "id": "lead-1784790374199",
+                "company": "bajaj chetak electric",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "bajaj chetak electric",
+                "phone": "9173067676",
+                "leadSource": "Website",
+                "requirement": "busy",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:06:14.279431+00"
+        },
+        {
+                "id": "lead-1784790501159",
+                "company": "hero electric",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "hero electric",
+                "phone": "9898487022",
+                "leadSource": "Website",
+                "requirement": "incoming call not available",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "01:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:08:21.245929+00"
+        },
+        {
+                "id": "lead-1784790608060",
+                "company": "aarvi power solutions",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "aarvi power solutions",
+                "phone": "9624178411",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "11:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:10:08.142869+00"
+        },
+        {
+                "id": "lead-1784790715122",
+                "company": "tvs mangaldeep motors llp",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "tvs mangaldeep motors llp",
+                "phone": "9355068664",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-19",
+                "followUpTime": "12:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 07:11:55.206107+00"
+        },
+        {
+                "id": "lead-1784790817933",
+                "company": "all ev services",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "all ev services",
+                "phone": "9924472668",
+                "leadSource": "Website",
+                "requirement": "price issue",
+                "status": "NEGOTIATION",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "12:43",
+                "notes": "[Follow-up 2026-07-23]: sent reminder price issue",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "sent reminder price issue",
+                                "time": "16:03",
+                                "nextFollowUpDate": "2026-07-26",
+                                "nextFollowUpTime": "12:43"
+                        }
+                ],
+                "createdAt": "2026-07-23 07:13:38.034754+00"
+        },
+        {
+                "id": "lead-1784790994026",
+                "company": "metro motors",
+                "category": "Dealer",
+                "location": "navsari , gujarat",
+                "contactPerson": "metro motors",
+                "phone": "9289922250",
+                "leadSource": "Website",
+                "requirement": "company number",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-23",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: company number",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "company number",
+                                "time": "16:04",
+                                "nextFollowUpDate": "2027-07-23",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 07:16:34.109452+00"
+        },
+        {
+                "id": "lead-1784799205695",
+                "company": "riddhi e-vehicles",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "riddhi e-vehicles",
+                "phone": "9016300975",
+                "leadSource": "Website",
+                "requirement": "no requirement",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-23",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-23]: no requirement",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-23",
+                                "text": "no requirement",
+                                "time": "16:06",
+                                "nextFollowUpDate": "2027-07-23",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-23 09:33:25.830615+00"
+        },
+        {
+                "id": "lead-1784799286204",
+                "company": "om auto battery",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "om auto battery",
+                "phone": "9687319777",
+                "leadSource": "Website",
+                "requirement": "busy",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-19",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 09:34:46.28793+00"
+        },
+        {
+                "id": "lead-1784799384349",
+                "company": "bhavya auto",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "bhavya auto",
+                "phone": "9104006108",
+                "leadSource": "Website",
+                "requirement": "busy another call not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:14",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 09:36:24.431582+00"
+        },
+        {
+                "id": "lead-1784799886669",
+                "company": "e-future generation next",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "e-future generation next",
+                "phone": "8200660586",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-20",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 09:44:46.759089+00"
+        },
+        {
+                "id": "lead-1784799978560",
+                "company": "kiran electric scooter",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "kiran electric scooter",
+                "phone": "9870020451",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-21",
+                "followUpTime": "12:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 09:46:18.643958+00"
+        },
+        {
+                "id": "lead-1784800087325",
+                "company": "aaditya ev hub",
+                "category": "Dealer",
+                "location": "anand , gujarat",
+                "contactPerson": "aaditya ev hub",
+                "phone": "9909908843",
+                "leadSource": "Website",
+                "requirement": "not yet want",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-22",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-23 09:48:07.410349+00"
+        },
+        {
+                "id": "lead-1784871734581",
+                "company": "ami batteries",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "ami batteries",
+                "phone": "9913169292",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-08-29",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: call back\n[Follow-up 2026-07-29]: wrong number",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "15:10",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "wrong number",
+                                "time": "11:50",
+                                "nextFollowUpDate": "2026-08-29",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:42:14.762686+00"
+        },
+        {
+                "id": "lead-1784871814774",
+                "company": "raza auto e-bikes & battery",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "raza auto e-bikes & battery",
+                "phone": "9428172300",
+                "leadSource": "Website",
+                "requirement": "busy another call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-08-12",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: call after 10 august",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "call after 10 august",
+                                "time": "16:10",
+                                "nextFollowUpDate": "2026-08-12",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:43:34.918041+00"
+        },
+        {
+                "id": "lead-1784871880869",
+                "company": "icon battery care",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "icon battery care",
+                "phone": "9978347191",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-09",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: sent proposal requirement hogi to bolege",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal requirement hogi to bolege",
+                                "time": "15:12",
+                                "nextFollowUpDate": "2026-08-09",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:44:41.045316+00"
+        },
+        {
+                "id": "lead-1784871960606",
+                "company": "kamdhenu autoworld g lite",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "kamdhenu autoworld g lite",
+                "phone": "7874783800",
+                "leadSource": "Website",
+                "requirement": "call disco",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-24 05:46:00.751405+00"
+        },
+        {
+                "id": "lead-1784872043778",
+                "company": "bapasitaram e-vehicles",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "bapasitaram e-vehicles",
+                "phone": "9265400465",
+                "leadSource": "Website",
+                "requirement": "ev me kam nahi karte hai",
+                "status": "NEGOTIATION",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-24 05:47:23.916587+00"
+        },
+        {
+                "id": "lead-1784872125017",
+                "company": "mehta automobiles",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "mehta automobiles",
+                "phone": "7624938775",
+                "leadSource": "Website",
+                "requirement": "switched off",
+                "status": "CONTACTED",
+                "followUpDate": "2026-09-30",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: call disco.\n[Follow-up 2026-07-28]: not attend\n[Follow-up 2026-07-30]: not deal in lithium battery",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "call disco.",
+                                "time": "15:16",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-28",
+                                "text": "not attend",
+                                "time": "12:02",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "not deal in lithium battery",
+                                "time": "10:33",
+                                "nextFollowUpDate": "2026-09-30",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:48:45.152717+00"
+        },
+        {
+                "id": "lead-1784872219631",
+                "company": "gujarat enterprises",
+                "category": "Dealer",
+                "location": "bhavnagar, gujarat",
+                "contactPerson": "gujarat enterprises",
+                "phone": "9499722972",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-30",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: call disco",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "call disco",
+                                "time": "16:15",
+                                "nextFollowUpDate": "2027-07-30",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:50:19.75882+00"
+        },
+        {
+                "id": "lead-1784872353836",
+                "company": "satnam battery & e-bike",
+                "category": "Dealer",
+                "location": "porbandar , gujarat",
+                "contactPerson": "satnam battery & e-bikes",
+                "phone": "9904568508",
+                "leadSource": "Website",
+                "requirement": "work only lead acid",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-25",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: work only lead",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "work only lead",
+                                "time": "16:38",
+                                "nextFollowUpDate": "2027-07-25",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:52:33.983983+00"
+        },
+        {
+                "id": "lead-1784872424221",
+                "company": "life battery",
+                "category": "Dealer",
+                "location": "porbandar , gujarat",
+                "contactPerson": "life battery",
+                "phone": "9825408990",
+                "leadSource": "Website",
+                "requirement": "auto battery k nahi h",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-24 05:53:44.348066+00"
+        },
+        {
+                "id": "lead-1784872555366",
+                "company": "regal moto corp",
+                "category": "Dealer",
+                "location": "porbandar , gujarat",
+                "contactPerson": "regal moto corp",
+                "phone": "8347917591",
+                "leadSource": "Website",
+                "requirement": "busy another call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "10:00",
+                "notes": "",
+                "remarksLog": [],
+                "createdAt": "2026-07-24 05:55:55.50244+00"
+        },
+        {
+                "id": "lead-1784872634619",
+                "company": "chamunda e-bikes",
+                "category": "Dealer",
+                "location": "porbandar , gujarat",
+                "contactPerson": "chamunda e-bikes",
+                "phone": "9327059455",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2027-07-31",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: sent proposal call back\n[Follow-up 2026-07-29]: sent proposal already not attend\n[Follow-up 2026-07-30]: sent reminder\n[Follow-up 2026-07-31]: lead acid me hi kam karte hai",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal call back",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "sent proposal already not attend",
+                                "time": "12:38",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "sent reminder",
+                                "time": "17:52",
+                                "nextFollowUpDate": "2026-07-31",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-31",
+                                "text": "lead acid me hi kam karte hai",
+                                "time": "16:22",
+                                "nextFollowUpDate": "2027-07-31",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:57:14.763842+00"
+        },
+        {
+                "id": "lead-1784872749844",
+                "company": "halar battery",
+                "category": "Dealer",
+                "location": "jamnagar",
+                "contactPerson": "halar battery",
+                "phone": "8849948004",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:28",
+                "notes": "[Follow-up 2026-07-24]: sent proposal not yet require",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "sent proposal not yet require",
+                                "time": "15:33",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:28"
+                        }
+                ],
+                "createdAt": "2026-07-24 05:59:09.973606+00"
+        },
+        {
+                "id": "lead-1784872827221",
+                "company": "exide care",
+                "category": "Dealer",
+                "location": "jamnagar",
+                "contactPerson": "exide care",
+                "phone": "80675110335",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-26",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: not reachable\n[Follow-up 2026-07-25]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not reachable",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:48",
+                                "nextFollowUpDate": "2026-07-26",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:00:27.349269+00"
+        },
+        {
+                "id": "lead-1784872957014",
+                "company": "galaxy ev",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "galaxy ev",
+                "phone": "8200983.317",
+                "leadSource": "Website",
+                "requirement": "not interested",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: not intrested",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not intrested",
+                                "time": "15:22",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:02:37.140531+00"
+        },
+        {
+                "id": "lead-1784873028121",
+                "company": "uma battery",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "uma battery",
+                "phone": "9978589569",
+                "leadSource": "Website",
+                "requirement": "not want",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: not want",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not want",
+                                "time": "15:20",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:03:48.254022+00"
+        },
+        {
+                "id": "lead-1784873099810",
+                "company": "green earth e-bike",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "green earth e-bike",
+                "phone": "9723416000",
+                "leadSource": "Website",
+                "requirement": "sent proposal already price issue",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-09-29",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: not attend\n[Follow-up 2026-07-25]: call bacj\n[Follow-up 2026-07-29]: call disco",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not attend",
+                                "time": "15:21",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call bacj",
+                                "time": "16:08",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "call disco",
+                                "time": "12:02",
+                                "nextFollowUpDate": "2026-09-29",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:04:59.949608+00"
+        },
+        {
+                "id": "lead-1784873167601",
+                "company": "jay somnath battery",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "jay somnath battery",
+                "phone": "9033040029",
+                "leadSource": "Website",
+                "requirement": "price issue",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-02",
+                "followUpTime": "11:30",
+                "notes": "[Follow-up 2026-07-24]: price issue",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "price issue",
+                                "time": "15:33",
+                                "nextFollowUpDate": "2026-08-02",
+                                "nextFollowUpTime": "11:30"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:06:07.723168+00"
+        },
+        {
+                "id": "lead-1784873236484",
+                "company": "urja battery",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "urja battery",
+                "phone": "9428887171",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-07-28",
+                "followUpTime": "11:30",
+                "notes": "[Follow-up 2026-07-24]: sent proposal",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "sent proposal",
+                                "time": "15:35",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "11:30"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:07:16.621747+00"
+        },
+        {
+                "id": "lead-1784873299188",
+                "company": "electric one",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "electric one",
+                "phone": "9998783333",
+                "leadSource": "Website",
+                "requirement": "not want",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:30",
+                "notes": "[Follow-up 2026-07-24]: not want",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not want",
+                                "time": "15:23",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:30"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:08:19.323324+00"
+        },
+        {
+                "id": "lead-1784873360630",
+                "company": "acute electronics",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "acute electronics",
+                "phone": "9825350994",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-11-05",
+                "followUpTime": "11:25",
+                "notes": "[Follow-up 2026-07-24]: sent proposal already not attend\n[Follow-up 2026-07-25]: sent proposal not attend\n[Follow-up 2026-08-05]: sent reminder call krege",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "sent proposal already not attend",
+                                "time": "15:22",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:25"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "sent proposal not attend",
+                                "time": "15:10",
+                                "nextFollowUpDate": "2026-08-05",
+                                "nextFollowUpTime": "11:25"
+                        },
+                        {
+                                "date": "2026-08-05",
+                                "text": "sent reminder call krege",
+                                "time": "13:05",
+                                "nextFollowUpDate": "2026-11-05",
+                                "nextFollowUpTime": "11:25"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:09:20.761109+00"
+        },
+        {
+                "id": "lead-1784873459860",
+                "company": "jay maa e-bike",
+                "category": "Dealer",
+                "location": "bharuch , gujara",
+                "contactPerson": "jay maa e-bikes",
+                "phone": "9737617010",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-08",
+                "followUpTime": "11:25",
+                "notes": "[Follow-up 2026-07-24]: sent proposal call back\n[Follow-up 2026-07-29]: sent proposal reminder call back\n[Follow-up 2026-07-31]: sent proposal reminder call back not attend",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "sent proposal call back",
+                                "time": "15:41",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "11:25"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "sent proposal reminder call back",
+                                "time": "12:30",
+                                "nextFollowUpDate": "2026-07-31",
+                                "nextFollowUpTime": "11:25"
+                        },
+                        {
+                                "date": "2026-07-31",
+                                "text": "sent proposal reminder call back not attend",
+                                "time": "16:19",
+                                "nextFollowUpDate": "2026-08-08",
+                                "nextFollowUpTime": "11:25"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:10:59.990594+00"
+        },
+        {
+                "id": "lead-1784873545506",
+                "company": "yogi auto battery",
+                "category": "Dealer",
+                "location": "bharuch , gujara",
+                "contactPerson": "yogi auto battery",
+                "phone": "9426858241",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-09-01",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: sent proposal abhi nahi dekha dekh k bolege\n[Follow-up 2026-07-29]: dekh k bolege already sent proposal\n[Follow-up 2026-07-29]: sent proposal already not attend bharuch dealer\n[Follow-up 2026-08-01]: inhe same day solution chahiye samjaya lekin nahi samaj rae k koi nahi rukta hai",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "sent proposal abhi nahi dekha dekh k bolege",
+                                "time": "15:42",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "dekh k bolege already sent proposal",
+                                "time": "12:34",
+                                "nextFollowUpDate": "2026-07-29",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-29",
+                                "text": "sent proposal already not attend bharuch dealer",
+                                "time": "13:11",
+                                "nextFollowUpDate": "2026-08-01",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-08-01",
+                                "text": "inhe same day solution chahiye samjaya lekin nahi samaj rae k koi nahi rukta hai",
+                                "time": "13:03",
+                                "nextFollowUpDate": "2026-09-01",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:12:25.629923+00"
+        },
+        {
+                "id": "lead-1784873632586",
+                "company": "patel battery",
+                "category": "Dealer",
+                "location": "bharuch , gujarat",
+                "contactPerson": "patel battery",
+                "phone": "9913270382",
+                "leadSource": "Website",
+                "requirement": "not interested call disco",
+                "status": "CONTACTED",
+                "followUpDate": "2027-07-24",
+                "followUpTime": "11:30",
+                "notes": "[Follow-up 2026-07-24]: not intrested",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not intrested",
+                                "time": "15:42",
+                                "nextFollowUpDate": "2027-07-24",
+                                "nextFollowUpTime": "11:30"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:13:52.711056+00"
+        },
+        {
+                "id": "lead-1784873759711",
+                "company": "krishna green energy",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "krishna green battery",
+                "phone": "9825019796",
+                "leadSource": "Website",
+                "requirement": "busy another call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-08-26",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: 9825019792 sun vision venture pvt proposal\n[Follow-up 2026-07-25]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "9825019792 sun vision venture pvt proposal",
+                                "time": "15:53",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:27",
+                                "nextFollowUpDate": "2026-08-26",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:15:59.832301+00"
+        },
+        {
+                "id": "lead-1784873848878",
+                "company": "kachchh battery center",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "kachchh battery center",
+                "phone": "8200571171",
+                "leadSource": "Website",
+                "requirement": "not attend",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-28",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-25]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:19",
+                                "nextFollowUpDate": "2026-07-28",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:17:28.998834+00"
+        },
+        {
+                "id": "lead-1784873920782",
+                "company": "shyam e-bike",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "shyam e-bike",
+                "phone": "9909036489",
+                "leadSource": "Website",
+                "requirement": "busy another call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-08-11",
+                "followUpTime": "10:00",
+                "notes": "[Follow-up 2026-07-24]: call back\n[Follow-up 2026-07-25]: call back\n[Follow-up 2026-07-30]: call forwarded",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "call back",
+                                "time": "15:53",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:25",
+                                "nextFollowUpDate": "2026-07-30",
+                                "nextFollowUpTime": "10:00"
+                        },
+                        {
+                                "date": "2026-07-30",
+                                "text": "call forwarded",
+                                "time": "17:36",
+                                "nextFollowUpDate": "2026-08-11",
+                                "nextFollowUpTime": "10:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:18:40.899605+00"
+        },
+        {
+                "id": "lead-1784874073927",
+                "company": "shree hari e-bike",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "shree hari e-bike",
+                "phone": "9726681019",
+                "leadSource": "Website",
+                "requirement": "not reachable",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-27",
+                "followUpTime": "11:00",
+                "notes": "[Follow-up 2026-07-24]: not reachable",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "not reachable",
+                                "time": "15:42",
+                                "nextFollowUpDate": "2026-07-27",
+                                "nextFollowUpTime": "11:00"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:21:14.058102+00"
+        },
+        {
+                "id": "lead-1784874212576",
+                "company": "jay mata ji battery sales & services",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "jay mata ji battery sales & services",
+                "phone": "9099646382",
+                "leadSource": "Website",
+                "requirement": "sent proposal",
+                "status": "QUOTATION_SENT",
+                "followUpDate": "2026-08-24",
+                "followUpTime": "11:20",
+                "notes": "[Follow-up 2026-07-24]: yet no requirement bolege",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "yet no requirement bolege",
+                                "time": "15:44",
+                                "nextFollowUpDate": "2026-08-24",
+                                "nextFollowUpTime": "11:20"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:23:32.691624+00"
+        },
+        {
+                "id": "lead-1784874305819",
+                "company": "rajarshi ev",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "rajarshi ev",
+                "phone": "8071936936",
+                "leadSource": "Website",
+                "requirement": "not reachable",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-27",
+                "followUpTime": "11:26",
+                "notes": "[Follow-up 2026-07-24]: call back\n[Follow-up 2026-07-25]: wrong number\n[Follow-up 2026-07-25]: wrong number",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "call back",
+                                "time": "15:53",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:26"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "wrong number",
+                                "time": "17:26",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "11:26"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "wrong number",
+                                "time": "17:26",
+                                "nextFollowUpDate": "2026-07-27",
+                                "nextFollowUpTime": "11:26"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:25:05.955643+00"
+        },
+        {
+                "id": "lead-1784874376010",
+                "company": "pure ev",
+                "category": "Dealer",
+                "location": "bhuj , gujarat",
+                "contactPerson": "pure ev",
+                "phone": "9274148833",
+                "leadSource": "Website",
+                "requirement": "busy another call",
+                "status": "CONTACTED",
+                "followUpDate": "2026-07-27",
+                "followUpTime": "10:30",
+                "notes": "[Follow-up 2026-07-24]: call disco.\n[Follow-up 2026-07-25]: call back",
+                "remarksLog": [
+                        {
+                                "date": "2026-07-24",
+                                "text": "call disco.",
+                                "time": "15:55",
+                                "nextFollowUpDate": "2026-07-25",
+                                "nextFollowUpTime": "10:30"
+                        },
+                        {
+                                "date": "2026-07-25",
+                                "text": "call back",
+                                "time": "17:44",
+                                "nextFollowUpDate": "2026-07-27",
+                                "nextFollowUpTime": "10:30"
+                        }
+                ],
+                "createdAt": "2026-07-24 06:26:16.117718+00"
+        }
+],
     dealers: [
        { id: "D-101", company: "Elite Power Ahmedabad", category: "Tier 1 Dealer", gstin: "24AAAAA0000A1Z5", phone: "9988776655", email: "contact@elitepower.com", location: "Navrangpura", city: "Ahmedabad", state: "Gujarat", region: "West", contactPerson: "Amit Mehta", status: "ACTIVE", bankDetails: "HDFC A/C: 50100234...", rankingScore: 92, joinDate: "2023-01-15" },
        { id: "D-102", company: "Spark EV Rajkot", category: "Certified Service Center", gstin: "24BBBBB1111B1Z2", phone: "9900112233", email: "info@sparkev.in", location: "Metoda GIDC", city: "Rajkot", state: "Gujarat", region: "West", contactPerson: "Suresh Bhai", status: "ACTIVE", bankDetails: "ICICI A/C: 0023101...", rankingScore: 85, joinDate: "2023-03-20" },
@@ -1917,6 +4435,53 @@ async function startServer() {
     }
 
     res.json({ status: "success", serials });
+  });
+
+  app.post("/api/leads/batch", (req, res) => {
+    const leadsToImport = Array.isArray(req.body) ? req.body : req.body.leads || [];
+    if (!Array.isArray(leadsToImport) || leadsToImport.length === 0) {
+      return res.status(400).json({ error: "No leads provided" });
+    }
+
+    const processedLeads = [];
+    for (const item of leadsToImport) {
+      const leadId = item.id || `lead-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+      const leadObj = {
+        id: String(leadId),
+        company: item.company || 'Unnamed Lead',
+        category: item.category || 'Dealer',
+        location: item.location || 'Gujarat, India',
+        contactPerson: item.contactPerson || item.contact_person || item.company,
+        phone: item.phone || item.mobile || 'N/A',
+        leadSource: item.leadSource || item.source || 'Website',
+        requirement: item.requirement || 'General Requirement',
+        status: item.status || 'NEW',
+        followUpDate: item.followUpDate || item.followup_date || new Date().toISOString().split('T')[0],
+        followUpTime: item.followUpTime || item.followup_time || '10:00',
+        notes: item.notes || '',
+        remarksLog: (() => {
+          if (Array.isArray(item.remarksLog)) return item.remarksLog;
+          if (Array.isArray(item.remarks_log)) return item.remarks_log;
+          if (typeof item.remarks_log === 'string') {
+            try { return JSON.parse(item.remarks_log); } catch (e) { return []; }
+          }
+          return [];
+        })(),
+        createdAt: item.createdAt || item.created_at || new Date().toISOString()
+      };
+
+      const existingIdx = db.leads.findIndex((l: any) => l.id === leadObj.id);
+      if (existingIdx !== -1) {
+        db.leads[existingIdx] = { ...db.leads[existingIdx], ...leadObj };
+      } else {
+        db.leads.push(leadObj);
+      }
+      processedLeads.push(leadObj);
+    }
+
+    batchUpsert('lead_inquiries', processedLeads.map(mapLead)).catch(err => console.warn("Supabase batch lead sync warning:", err));
+
+    res.json({ success: true, count: processedLeads.length, leads: processedLeads });
   });
 
   app.post("/api/leads", (req, res) => {

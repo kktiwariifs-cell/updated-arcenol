@@ -39,6 +39,8 @@ import {
   UserCheck,
   UserPlus,
   XCircle,
+  Upload,
+  FileSpreadsheet,
 } from "lucide-react";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";
 import {
@@ -120,6 +122,11 @@ export const CRM: React.FC = () => {
   // Marketing Executive Reassignment Modal State
   const [reassigningLead, setReassigningLead] = useState<any>(null);
   const [selectedExecForAssign, setSelectedExecForAssign] = useState<string>("");
+
+  // Bulk CSV Upload state
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [csvRawText, setCsvRawText] = useState("");
+  const [isUploadingCsv, setIsUploadingCsv] = useState(false);
 
   // Non-blocking modal & toast states
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
@@ -1510,14 +1517,22 @@ export const CRM: React.FC = () => {
         </div>
         <div>
           {activeSubTab === "enquiries" || activeSubTab === "leads" ? (
-            <button
-              onClick={() =>
-                handleAction("Add Inquiry", () => setShowAdd(true))
-              }
-              className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95"
-            >
-              <Plus size={16} className="mr-2 text-emerald-200" /> New Inquiry
-            </button>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => handleAction("Bulk Upload", () => setShowBulkUpload(true))}
+                className="px-6 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl flex items-center transition-all border border-transparent active:scale-95 cursor-pointer"
+              >
+                <Upload size={16} className="mr-2 text-emerald-400" /> Bulk Import CSV
+              </button>
+              <button
+                onClick={() =>
+                  handleAction("Add Inquiry", () => setShowAdd(true))
+                }
+                className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95 cursor-pointer"
+              >
+                <Plus size={16} className="mr-2 text-emerald-200" /> New Inquiry
+              </button>
+            </div>
           ) : activeSubTab === "dealers" ? (
             <button
               onClick={() =>
@@ -3768,6 +3783,180 @@ export const CRM: React.FC = () => {
               >
                 Convert Lead
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BULK CSV UPLOAD MODAL */}
+      {showBulkUpload && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 shadow-2xl space-y-6 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic">
+                    Bulk Lead Enquiries Import (CSV)
+                  </h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Paste CSV Content or Drop File
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBulkUpload(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-5 bg-slate-50/50 hover:bg-slate-50 text-center transition-all">
+                <input
+                  type="file"
+                  accept=".csv,.txt"
+                  id="csv-file-input"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (evt) => {
+                        if (evt.target?.result) {
+                          setCsvRawText(evt.target.result as string);
+                        }
+                      };
+                      reader.readAsText(file);
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="csv-file-input"
+                  className="cursor-pointer flex flex-col items-center justify-center space-y-2"
+                >
+                  <Upload size={28} className="text-emerald-600" />
+                  <span className="text-xs font-bold text-slate-700">
+                    Click to select CSV file or Drag & Drop
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-semibold">
+                    Expected fields: company, category, source, contact_person, mobile, location, followup_date, requirement, status
+                  </span>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                  Or Paste CSV Data Directly
+                </label>
+                <textarea
+                  value={csvRawText}
+                  onChange={(e) => setCsvRawText(e.target.value)}
+                  placeholder="id,company,category,source,contact_person,mobile,location,followup_date,followup_time,requirement,status&#10;lead-001,Green Motors,Dealer,Website,Rajesh Shah,9876543210,Ahmedabad,2026-08-15,10:00,50 Packs,NEW"
+                  rows={8}
+                  className="w-full text-xs font-mono p-3 bg-slate-900 text-emerald-400 rounded-2xl border border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                {csvRawText.trim() ? `${csvRawText.trim().split('\n').length - 1} rows detected` : 'No file or data loaded'}
+              </p>
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBulkUpload(false)}
+                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!csvRawText.trim() || isUploadingCsv}
+                  onClick={async () => {
+                    setIsUploadingCsv(true);
+                    try {
+                      // Parse CSV lines
+                      const lines = csvRawText.trim().split(/\r?\n/).filter(Boolean);
+                      if (lines.length < 2) {
+                        showToast("Invalid CSV: Must contain headers and at least 1 data row", "error");
+                        setIsUploadingCsv(false);
+                        return;
+                      }
+
+                      function parseLine(line: string) {
+                        const cols = [];
+                        let col = '';
+                        let inQ = false;
+                        for (let i = 0; i < line.length; i++) {
+                          const c = line[i];
+                          if (c === '"') {
+                            if (inQ && line[i + 1] === '"') { col += '"'; i++; }
+                            else { inQ = !inQ; }
+                          } else if (c === ',' && !inQ) {
+                            cols.push(col.trim()); col = '';
+                          } else { col += c; }
+                        }
+                        cols.push(col.trim());
+                        return cols;
+                      }
+
+                      const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, ''));
+                      const parsedItems = [];
+
+                      for (let i = 1; i < lines.length; i++) {
+                        const cols = parseLine(lines[i]);
+                        if (cols.length === 0) continue;
+                        const row: Record<string, string> = {};
+                        headers.forEach((h, idx) => { row[h] = cols[idx] || ''; });
+                        
+                        parsedItems.push({
+                          id: row.id || `lead-${Date.now()}-${i}`,
+                          company: row.company || 'Unnamed Lead',
+                          category: row.category || 'Dealer',
+                          leadSource: row.source || row.lead_source || 'Website',
+                          contactPerson: row.contact_person || row.contactperson || row.company || '',
+                          phone: row.mobile || row.phone || '',
+                          location: row.location || '',
+                          followUpDate: row.followup_date || row.followUpDate || new Date().toISOString().split('T')[0],
+                          followUpTime: row.followup_time || row.followUpTime || '10:00',
+                          requirement: row.requirement || 'General Requirement',
+                          status: String(row.status || 'NEW').toUpperCase(),
+                          notes: row.notes || '',
+                          remarksLog: row.remarks_log ? (() => { try { return JSON.parse(row.remarks_log); } catch(e) { return []; } })() : []
+                        });
+                      }
+
+                      const res = await fetch("/api/leads/batch", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(parsedItems)
+                      });
+
+                      if (res.ok) {
+                        showToast(`Successfully uploaded ${parsedItems.length} leads!`, "success");
+                        setShowBulkUpload(false);
+                        setCsvRawText("");
+                        refetch();
+                      } else {
+                        showToast("Failed to upload batch leads", "error");
+                      }
+                    } catch (err: any) {
+                      showToast(`Import Error: ${err?.message || 'Failed to parse CSV'}`, "error");
+                    } finally {
+                      setIsUploadingCsv(false);
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer transition-all disabled:opacity-50"
+                >
+                  {isUploadingCsv ? "Uploading..." : "Import & Sync Leads"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

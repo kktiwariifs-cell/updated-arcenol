@@ -981,10 +981,1672 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- 8. Seed New Lead Inquiries & Reminders
-INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement)
-VALUES 
-  ('lead-001', 'Modern EV Solutions', 'DEALER', 'WEBSITE', 'Aravind Swamy', '+91 9876543210', 'Chennai, Tamil Nadu', '2026-07-01', '10:00', 'Needs 100Ah battery pack solutions for 2-wheelers fleet rollouts.')
-ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784531732680', 'PATEL PATEL', 'Retail', 'Indiamart / B2B', 'PATEL PATEL', '9173023179', 'vadodara', '2026-07-20', '10:00', 'lead alocate to shaineel call tomorrow', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784542396069', 'Pareshbhai', 'Retail', 'Indiamart / B2B', 'Pareshbhai', '09033332005', 'Bhavnagar', '2026-07-22', '10:00', 'bataege inform price', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784715041508', 'ATS electric vehicles', 'Dealer', 'Cold Call', 'ATS electric vehicles', '7600010551', 'ahmedabad', '2026-08-11', '11:01', 'already sent proposal call back', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: dekh k bataege
+[Follow-up 2026-07-25]: dekh k cal karege
+[Follow-up 2026-07-30]: call karege already sent proposal', '[{"date":"2026-07-23","text":"dekh k bataege","time":"09:31","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:01"},{"date":"2026-07-25","text":"dekh k cal karege","time":"16:40","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"11:01"},{"date":"2026-07-30","text":"call karege already sent proposal","time":"17:36","nextFollowUpDate":"2026-08-11","nextFollowUpTime":"11:01"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784715189255', 'J D E bike zone', 'Dealer', 'Cold Call', 'J D E bike zone', '7046573095', 'ahmedabad', '2026-08-13', '10:00', 'sent proposal requirement hogi to bolege', 'QUOTATION_SENT', '[Follow-up 2026-07-30]: sent reminder jarurat hogi to bolege', '[{"date":"2026-07-30","text":"sent reminder jarurat hogi to bolege","time":"16:06","nextFollowUpDate":"2026-08-13","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784715748778', 'pranvi motors', 'Dealer', 'Cold Call', 'pranvi motors', '8155011817', 'ahmedabad', '2026-07-28', '11:00', 'always disco the call', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: not attend
+[Follow-up 2026-07-24]: switched off', '[{"date":"2026-07-23","text":"not attend","time":"09:30","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"11:00"},{"date":"2026-07-24","text":"switched off","time":"15:30","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784716437277', 'omkaar e-vehicles', 'Dealer', 'Cold Call', 'omkaar e-vehicles', '8866843636', 'naroda ,ahmedabad', '2026-08-11', '00:00', 'sent proposal not attend', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: yet not seen dekh k bataege
+[Follow-up 2026-07-25]: sent proposal call back
+[Follow-up 2026-07-30]: sent reminder', '[{"date":"2026-07-23","text":"yet not seen dekh k bataege","time":"09:35","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"00:00"},{"date":"2026-07-25","text":"sent proposal call back","time":"16:39","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"00:00"},{"date":"2026-07-30","text":"sent reminder","time":"17:36","nextFollowUpDate":"2026-08-11","nextFollowUpTime":"00:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784718734397', 'AB enterprises', 'Dealer', 'Cold Call', 'AB enterprises', '9824255770', 'ahmedabad', '2027-07-24', '10:00', 'always disco the call', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: call forwarded
+[Follow-up 2026-07-24]: not want', '[{"date":"2026-07-23","text":"call forwarded","time":"09:36","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:00"},{"date":"2026-07-24","text":"not want","time":"15:31","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784719374197', 'kyte energy', 'Dealer', 'Cold Call', 'kyte energy', '9825038383', 'ahmedabad', '2026-08-20', '11:00', 'sent proposal call back tomorrow', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: call tomorrow sent proposal reminder
+[Follow-up 2026-07-24]: call back
+[Follow-up 2026-07-29]: call back', '[{"date":"2026-07-23","text":"call tomorrow sent proposal reminder","time":"15:46","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"11:00"},{"date":"2026-07-24","text":"call back","time":"15:50","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"11:00"},{"date":"2026-07-29","text":"call back","time":"12:31","nextFollowUpDate":"2026-08-20","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784720408942', 'joy e-bikes', 'Dealer', 'Cold Call', 'joy e-bikes', '8200140684', 'ghatlodiya ,ahmedabad', '2026-08-02', '10:00', 'sent proposal ,call back', 'NEGOTIATION', '[Follow-up 2026-07-23]: price issue', '[{"date":"2026-07-23","text":"price issue","time":"09:47","nextFollowUpDate":"2026-08-02","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l-1784722912098', 'okinawa and joy e-bikes', 'Dealer', 'Cold Call', 'okinawa and joy e-bikes', '9104448668', 'surat', '2026-08-08', '10:00', 'sent proposal remidner cal not attend call back', 'NEGOTIATION', '[Follow-up 2026-07-23]: not attend
+[Follow-up 2026-07-25]: sent proposal call back
+[Follow-up 2026-07-30]: sent proposal call back', '[{"date":"2026-07-23","text":"not attend","time":"09:51","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:00"},{"date":"2026-07-25","text":"sent proposal call back","time":"16:40","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"sent proposal call back","time":"13:19","nextFollowUpDate":"2026-08-08","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l1', 'Green Motors Ahmedabad', 'Dealer', 'Website', 'Rajesh Shah', '9876543210', 'Ahmedabad, GJ', '2024-05-20', '11:00', '72V Battery Packs x 50', 'INTERESTED', 'Negotiating on bulk discount.', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('l2', 'EV Solutions Delhi', 'Distributor', 'Exhibition', 'Aman Varma', '9123456789', 'New Delhi, DL', '2024-05-18', '15:30', 'Li-ion Cells Bulk Purchase', 'NEW', 'Interested in the new smart BMS feature.', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-001', 'Modern EV Solutions', 'DEALER', 'WEBSITE', 'Aravind Swamy', '+91 9876543210', 'Chennai, Tamil Nadu', '2026-07-01', '10:00', 'Needs 100Ah battery pack solutions for 2-wheelers fleet rollouts.', 'INTERESTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784721780688', 'testdc', 'Dealer', 'Website', 'dcdcdc', '7894561230', 'Noida', '2026-07-22', '10:00', 'need 15000ah battery', 'INTERESTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784778912419', 'Kiran', 'Retail', 'Indiamart / B2B', 'Kiran', '08849305429', 'Anand', '2027-07-31', '10:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-24]: switched off
+[Follow-up 2026-07-25]: call back
+[Follow-up 2026-07-28]: call disco
+[Follow-up 2026-07-31]: retail already purchased', '[{"date":"2026-07-24","text":"switched off","time":"15:19","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:00"},{"date":"2026-07-25","text":"call back","time":"15:38","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"10:00"},{"date":"2026-07-28","text":"call disco","time":"12:09","nextFollowUpDate":"2026-07-31","nextFollowUpTime":"10:00"},{"date":"2026-07-31","text":"retail already purchased","time":"16:15","nextFollowUpDate":"2027-07-31","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784783650789', 'adinath electric vehicles', 'Dealer', 'Website', 'adinath electric vehicles', '9998064671', 'surat , gujarat', '2026-07-27', '10:43', 'busy', 'CONTACTED', '[Follow-up 2026-07-23]: cal disco
+[Follow-up 2026-07-24]: call disco.', '[{"date":"2026-07-23","text":"cal disco","time":"15:49","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:43"},{"date":"2026-07-24","text":"call disco.","time":"15:50","nextFollowUpDate":"2026-07-27","nextFollowUpTime":"10:43"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784783988701', 'okinawa and joy e-bikes', 'Dealer', 'Website', 'okinawa and joy e-bikes', '9104448668', 'surat', '2026-07-27', '10:00', 'General Requirement', 'CONTACTED', '[Follow-up 2026-07-23]: sent proposal reminder', '[{"date":"2026-07-23","text":"sent proposal reminder","time":"15:55","nextFollowUpDate":"2026-07-27","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784095049', 'okinawa  and joy e-bikes', 'Dealer', 'Website', 'okinawa and joy e-bikes', '9104448668', 'surat', '2026-08-11', '10:51', 'sent proposal not attend', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: sent reminder 2 se 3 din me update dege
+[Follow-up 2026-07-25]: sent reminder update karege
+[Follow-up 2026-07-30]: sent reminder alreay', '[{"date":"2026-07-23","text":"sent reminder 2 se 3 din me update dege","time":"15:37","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:51"},{"date":"2026-07-25","text":"sent reminder update karege","time":"17:25","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:51"},{"date":"2026-07-30","text":"sent reminder alreay","time":"16:32","nextFollowUpDate":"2026-08-11","nextFollowUpTime":"10:51"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784198606', 'surat  ev mall', 'Dealer', 'Website', 'surat ev mall', '8160054809', 'surat , gujarat', '2026-07-28', '10:53', 'General Requirement', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: call disco.
+[Follow-up 2026-07-24]: not attend', '[{"date":"2026-07-23","text":"call disco.","time":"15:59","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:53"},{"date":"2026-07-24","text":"not attend","time":"15:40","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"10:53"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784357551', 'auto point okaya electric vehicles', 'Dealer', 'Website', 'auto point okaya electric vehicles', '9106996545', 'surat , gujarat', '2026-07-28', '10:55', 'sent proposal not interested', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: switched off
+[Follow-up 2026-07-24]: always swithed off', '[{"date":"2026-07-23","text":"switched off","time":"15:59","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:55"},{"date":"2026-07-24","text":"always swithed off","time":"15:40","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"10:55"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784481153', 'futurist karayanam', 'Dealer', 'Website', 'futurist karayanam', '8460276508', 'surat, gujarat', '2026-07-26', '10:57', 'not interested call disco', 'CONTACTED', '[Follow-up 2026-07-23]: call disco
+[Follow-up 2026-07-24]: call back
+[Follow-up 2026-07-25]: cal back
+[Follow-up 2026-07-25]: call back', '[{"date":"2026-07-23","text":"call disco","time":"15:23","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:57"},{"date":"2026-07-24","text":"call back","time":"15:27","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:57"},{"date":"2026-07-25","text":"cal back","time":"16:33","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:57"},{"date":"2026-07-25","text":"call back","time":"17:48","nextFollowUpDate":"2026-07-26","nextFollowUpTime":"10:57"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784600529', 'sarkar auto point', 'Dealer', 'Website', 'sarkar auto point', '9879257309', 'surat ,gujarat', '2026-08-03', '10:59', 'e-rickshaws', 'CONTACTED', '[Follow-up 2026-07-23]: busy hai bad me bat karege
+[Follow-up 2026-07-24]: BUSY HAI call karege
+[Follow-up 2026-07-25]: sent proposal dekh k batege
+[Follow-up 2026-07-29]: deal only 3 wheeler sent price
+[Follow-up 2026-07-30]: deal only 3 wheeler
+[Follow-up 2026-07-31]: sent proposal reminder call back 3 wheeler', '[{"date":"2026-07-23","text":"busy hai bad me bat karege","time":"15:24","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:59"},{"date":"2026-07-24","text":"BUSY HAI call karege","time":"15:18","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:59"},{"date":"2026-07-25","text":"sent proposal dekh k batege","time":"15:38","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"10:59"},{"date":"2026-07-29","text":"deal only 3 wheeler sent price","time":"12:44","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:59"},{"date":"2026-07-30","text":"deal only 3 wheeler","time":"17:53","nextFollowUpDate":"2026-07-31","nextFollowUpTime":"10:59"},{"date":"2026-07-31","text":"sent proposal reminder call back 3 wheeler","time":"16:13","nextFollowUpDate":"2026-08-03","nextFollowUpTime":"10:59"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784727987', 'electron auto motors', 'Dealer', 'Website', 'electron auto motors', '7622006668', 'surat , gujarat', '2026-07-26', '11:01', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: not want
+[Follow-up 2026-07-23]: not want', '[{"date":"2026-07-23","text":"not want","time":"15:26","nextFollowUpDate":"2026-07-23","nextFollowUpTime":"11:01"},{"date":"2026-07-23","text":"not want","time":"15:27","nextFollowUpDate":"2026-07-26","nextFollowUpTime":"11:01"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784817492', 'royal ev tech', 'Dealer', 'Website', 'royal ev tech', '9081768004', 'surat , gujarat', '2026-07-22', '10:30', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784784924127', 'shree jalaram electric vehicles', 'Dealer', 'Website', 'shree jalaram electric vehicles', '9924093397', 'surat , gujarat', '2026-07-21', '10:00', 'not interested price issue', 'NEGOTIATION', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784785089758', 'nitya e-mobility', 'Dealer', 'Website', 'nitya e-mobility', '8866221148', 'rajkot , gujara', '2026-07-22', '10:14', 'not interested', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784785318659', 'gajanan ev and solar', 'Dealer', 'Website', 'gajanan ev and solar', '7621886555', 'rajkot , gujarat', '2626-07-21', '11:00', 'not interested price issue', 'NEGOTIATION', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784786484036', 'ampere electric scooter', 'Dealer', 'Website', 'ampere electric scooter', '7942875177', 'rajkot , gujarat', '2026-07-22', '10:14', 'incoming not available', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784786576736', 'shiv shakti auto agency', 'Dealer', 'Website', 'shiv shakti auto agency', '9925725734', 'rajkot , gujarat', '2026-08-13', '10:00', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: requirement hogi to bolege yet not require
+[Follow-up 2026-07-30]: reuirement hoga to bolege sent reminder', '[{"date":"2026-07-23","text":"requirement hogi to bolege yet not require","time":"15:29","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"reuirement hoga to bolege sent reminder","time":"16:04","nextFollowUpDate":"2026-08-13","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784786679528', 'akshar & shree ji e-bikes', 'Dealer', 'Website', 'akshar & shree ji e-bikes', '7984423892', 'rajkot , gujarat', '2026-07-21', '10:00', 'busy call disco', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784786816957', 'shiv e vehicles', 'Dealer', 'Website', 'shiv e vehicles', '9925612346', 'rajkot , gujarat', '2026-07-22', '11:00', 'incoming call', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787004921', 'siddhivinayak zelio', 'Dealer', 'Website', 'siddhivinayak zelio', '8200382005', 'rajkot, gujarat', '2027-07-25', '00:39', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-23]: not attend
+[Follow-up 2026-07-24]: call back
+[Follow-up 2026-07-25]: no requiremt', '[{"date":"2026-07-23","text":"not attend","time":"15:33","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"00:39"},{"date":"2026-07-24","text":"call back","time":"15:47","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"00:39"},{"date":"2026-07-25","text":"no requiremt","time":"16:33","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"00:39"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787375861', 'jalaram auto point', 'Dealer', 'Website', 'jalaram auto point', '8530500009', 'rajkot , gujarat', '2026-07-22', '10:14', 'no requirement', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787491181', 'adhya e-mobility llp', 'Dealer', 'Website', 'adhya e-mobility llp', '7575075126', 'rajkot , gujarat', '2026-07-21', '12:00', 'sent proposal', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787652068', 'bgauss electric scooters', 'Dealer', 'Website', 'bgauss electric scooters', '7574000123', 'mehsana , gujarat', '2027-07-24', '11:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-23]: not attend
+[Follow-up 2026-07-24]: no require', '[{"date":"2026-07-23","text":"not attend","time":"15:43","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"11:00"},{"date":"2026-07-24","text":"no require","time":"15:49","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787767115', 'pure ev electric scooters', 'Dealer', 'Website', 'pure ev electric scooters', '9879900198', 'mehsana , gujarat', '2026-07-21', '09:30', 'no requirement', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787870562', 'bhagwati battery', 'Dealer', 'Website', 'bhagwati battery', '9978494073', 'mehsana , gujarat', '2027-07-24', '10:30', 'not interested', 'CONTACTED', '[Follow-up 2026-07-23]: not intrested
+[Follow-up 2026-07-23]: not intrested
+[Follow-up 2026-07-24]: not intrested', '[{"date":"2026-07-23","text":"not intrested","time":"15:19","nextFollowUpDate":"2026-07-23","nextFollowUpTime":"10:30"},{"date":"2026-07-23","text":"not intrested","time":"15:20","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:30"},{"date":"2026-07-24","text":"not intrested","time":"15:27","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"10:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784787968440', 'satish battery center', 'Dealer', 'Website', 'satish battery center', '9408221149', 'mehsana , guujarat', '2026-07-22', '11:00', 'dealers of battery', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788107674', 'umiya power solutions', 'Dealer', 'Website', 'umiya power solutions', '9998499444', 'mehsana , gujarat', '2027-07-25', '11:58', 'not interested', 'CONTACTED', '[Follow-up 2026-07-23]: not intrested
+[Follow-up 2026-07-23]: nnot intrested
+[Follow-up 2026-07-25]: not intrested', '[{"date":"2026-07-23","text":"not intrested","time":"15:19","nextFollowUpDate":"2026-07-23","nextFollowUpTime":"11:58"},{"date":"2026-07-23","text":"nnot intrested","time":"15:21","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:58"},{"date":"2026-07-25","text":"not intrested","time":"17:24","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"11:58"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788228833', 'ujas auto agency', 'Dealer', 'Website', 'ujas auto agency', '6352405062', 'mehsana, gujarat', '2026-07-21', '10:00', 'sent proposal', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788331123', 'green e-bikes', 'Dealer', 'Website', 'green e-bikes', '9104340095', 'mehsana , gujarat', '2026-07-22', '10:14', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788419410', 'tirusai autolink', 'Dealer', 'Website', 'tirusai autolink', '7026600377', 'mehsana , gujarat', '2027-07-25', '12:03', 'not reachable', 'CONTACTED', '[Follow-up 2026-07-23]: not in service
+[Follow-up 2026-07-23]: not in service
+[Follow-up 2026-07-24]: not in service
+[Follow-up 2026-07-25]: not in service', '[{"date":"2026-07-23","text":"not in service","time":"15:19","nextFollowUpDate":"2026-07-23","nextFollowUpTime":"12:03"},{"date":"2026-07-23","text":"not in service","time":"15:20","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"12:03"},{"date":"2026-07-24","text":"not in service","time":"15:26","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"12:03"},{"date":"2026-07-25","text":"not in service","time":"16:38","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"12:03"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788680877', 'matter', 'Dealer', 'Website', 'matter', '8238082320', 'mehsana , gujarat', '2026-07-22', '10:14', 'company number', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788769485', 'green go international electrics', 'Dealer', 'Website', 'green go international electrics', '6367658202', 'mehsana , gujarat', '2026-07-20', '10:00', 'switched off', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784788846441', 'shayona tvs', 'Dealer', 'Website', 'shayona tvs', '9081085550', 'mehsana , gujarat', '2027-07-31', '10:00', 'not reachable', 'CONTACTED', '[Follow-up 2026-07-23]: switched off
+[Follow-up 2026-07-24]: switched off
+[Follow-up 2026-07-29]: switched off always
+[Follow-up 2026-07-30]: call back
+[Follow-up 2026-07-31]: tvs we not provide', '[{"date":"2026-07-23","text":"switched off","time":"15:34","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"10:00"},{"date":"2026-07-24","text":"switched off","time":"15:48","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"10:00"},{"date":"2026-07-29","text":"switched off always","time":"12:30","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"call back","time":"17:52","nextFollowUpDate":"2026-07-31","nextFollowUpTime":"10:00"},{"date":"2026-07-31","text":"tvs we not provide","time":"16:07","nextFollowUpDate":"2027-07-31","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789007908', 'chetak electric scooters', 'Dealer', 'Website', 'chetak electric scooters', '9168627000', 'gandhinagar', '2027-07-23', '10:00', 'not require', 'CONTACTED', '[Follow-up 2026-07-23]: no require', '[{"date":"2026-07-23","text":"no require","time":"15:49","nextFollowUpDate":"2027-07-23","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789130117', 'mihir e bikes', 'Dealer', 'Website', 'mihir e bikes', '9974107071', 'gandhinagar', '2026-07-20', '10:00', 'sent proposal will inform', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789257898', 'agwan motors pvt ltd', 'Dealer', 'Website', 'agwan motors pvt ltd', '8929711991', 'gandhinagar', '2026-07-19', '10:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789332031', 'varun e bikes', 'Dealer', 'Website', 'varun e bikes', '9824206223', 'gandhinagar', '2026-07-19', '11:00', 'sent proposal', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789402676', 'amaron pitstop', 'Dealer', 'Website', 'amaron pitshop', '9227715302', 'gandhinagar', '2027-07-24', '11:00', 'not interested', 'CONTACTED', '[Follow-up 2026-07-23]: not intrested
+[Follow-up 2026-07-24]: not intrested', '[{"date":"2026-07-23","text":"not intrested","time":"15:40","nextFollowUpDate":"2026-07-24","nextFollowUpTime":"11:00"},{"date":"2026-07-24","text":"not intrested","time":"15:48","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789549180', 'gajjar auto battery', 'Dealer', 'Website', 'gajjar auto battery', '9712974352', 'gandhinagar', '2027-07-25', '10:00', 'not want', 'CONTACTED', '[Follow-up 2026-07-23]: not want
+[Follow-up 2026-07-25]: ni', '[{"date":"2026-07-23","text":"not want","time":"15:20","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:00"},{"date":"2026-07-25","text":"ni","time":"16:28","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789647419', 'thomas battery', 'Dealer', 'Website', 'thomas battery', '7698570353', 'gandhinagar', '2026-07-20', '10:00', 'not interested', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789754875', 'forext battery', 'Dealer', 'Website', 'forext battery', '9594439345', 'gandhinagar', '2027-07-25', '10:00', 'not interested call disco', 'CONTACTED', '[Follow-up 2026-07-23]: not deal in lithoum battery
+[Follow-up 2026-07-25]: not deal in lithium', '[{"date":"2026-07-23","text":"not deal in lithoum battery","time":"16:00","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:00"},{"date":"2026-07-25","text":"not deal in lithium","time":"17:19","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789867467', 'oreva e-bikes', 'Dealer', 'Website', 'oreva e-bikes', '9429621309', 'gandhinagar', '2026-07-20', '10:00', 'sent proposal', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784789971543', 'bansari automobiles', 'Dealer', 'Website', 'bansari automobiles', '9904991009', 'gandhinagar', '2026-07-19', '11:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790044037', 'royal honda', 'Dealer', 'Website', 'royal honda', '9825039767', 'gandhinagar', '2026-07-20', '10:00', 'company number', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790143427', 'hero electric bikes', 'Dealer', 'Website', 'hero electric bikes', '9426282922', 'gandhinagar', '2026-07-20', '12:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790267753', 'go green e-bikes', 'Dealer', 'Website', 'go green e-bikes', '8849208239', 'navsari , gujarat', '2026-07-20', '10:00', 'sent proposal', 'QUOTATION_SENT', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790374199', 'bajaj chetak electric', 'Dealer', 'Website', 'bajaj chetak electric', '9173067676', 'navsari , gujarat', '2026-07-22', '10:00', 'busy', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790501159', 'hero electric', 'Dealer', 'Website', 'hero electric', '9898487022', 'navsari , gujarat', '2026-07-21', '01:00', 'incoming call not available', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790608060', 'aarvi power solutions', 'Dealer', 'Website', 'aarvi power solutions', '9624178411', 'navsari , gujarat', '2026-07-21', '11:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790715122', 'tvs mangaldeep motors llp', 'Dealer', 'Website', 'tvs mangaldeep motors llp', '9355068664', 'navsari , gujarat', '2026-07-19', '12:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790817933', 'all ev services', 'Dealer', 'Website', 'all ev services', '9924472668', 'navsari , gujarat', '2026-07-26', '12:43', 'price issue', 'NEGOTIATION', '[Follow-up 2026-07-23]: sent reminder price issue', '[{"date":"2026-07-23","text":"sent reminder price issue","time":"16:03","nextFollowUpDate":"2026-07-26","nextFollowUpTime":"12:43"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784790994026', 'metro motors', 'Dealer', 'Website', 'metro motors', '9289922250', 'navsari , gujarat', '2027-07-23', '10:00', 'company number', 'CONTACTED', '[Follow-up 2026-07-23]: company number', '[{"date":"2026-07-23","text":"company number","time":"16:04","nextFollowUpDate":"2027-07-23","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784799205695', 'riddhi e-vehicles', 'Dealer', 'Website', 'riddhi e-vehicles', '9016300975', 'anand , gujarat', '2027-07-23', '10:00', 'no requirement', 'CONTACTED', '[Follow-up 2026-07-23]: no requirement', '[{"date":"2026-07-23","text":"no requirement","time":"16:06","nextFollowUpDate":"2027-07-23","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784799286204', 'om auto battery', 'Dealer', 'Website', 'om auto battery', '9687319777', 'anand , gujarat', '2026-07-19', '10:00', 'busy', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784799384349', 'bhavya auto', 'Dealer', 'Website', 'bhavya auto', '9104006108', 'anand , gujarat', '2026-07-20', '10:14', 'busy another call not interested', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784799886669', 'e-future generation next', 'Dealer', 'Website', 'e-future generation next', '8200660586', 'anand , gujarat', '2026-07-20', '10:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784799978560', 'kiran electric scooter', 'Dealer', 'Website', 'kiran electric scooter', '9870020451', 'anand , gujarat', '2026-07-21', '12:00', 'not attend', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784800087325', 'aaditya ev hub', 'Dealer', 'Website', 'aaditya ev hub', '9909908843', 'anand , gujarat', '2026-07-22', '10:00', 'not yet want', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784871734581', 'ami batteries', 'Dealer', 'Website', 'ami batteries', '9913169292', 'bhavnagar, gujarat', '2026-08-29', '10:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-25]: call back
+[Follow-up 2026-07-29]: wrong number', '[{"date":"2026-07-25","text":"call back","time":"15:10","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"10:00"},{"date":"2026-07-29","text":"wrong number","time":"11:50","nextFollowUpDate":"2026-08-29","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784871814774', 'raza auto e-bikes & battery', 'Dealer', 'Website', 'raza auto e-bikes & battery', '9428172300', 'bhavnagar, gujarat', '2026-08-12', '10:00', 'busy another call', 'CONTACTED', '[Follow-up 2026-07-25]: call after 10 august', '[{"date":"2026-07-25","text":"call after 10 august","time":"16:10","nextFollowUpDate":"2026-08-12","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784871880869', 'icon battery care', 'Dealer', 'Website', 'icon battery care', '9978347191', 'bhavnagar, gujarat', '2026-08-09', '10:00', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-25]: sent proposal requirement hogi to bolege', '[{"date":"2026-07-25","text":"sent proposal requirement hogi to bolege","time":"15:12","nextFollowUpDate":"2026-08-09","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784871960606', 'kamdhenu autoworld g lite', 'Dealer', 'Website', 'kamdhenu autoworld g lite', '7874783800', 'bhavnagar, gujarat', '2026-07-26', '10:00', 'call disco', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872043778', 'bapasitaram e-vehicles', 'Dealer', 'Website', 'bapasitaram e-vehicles', '9265400465', 'bhavnagar, gujarat', '2026-07-26', '10:00', 'ev me kam nahi karte hai', 'NEGOTIATION', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872125017', 'mehta automobiles', 'Dealer', 'Website', 'mehta automobiles', '7624938775', 'bhavnagar, gujarat', '2026-09-30', '10:00', 'switched off', 'CONTACTED', '[Follow-up 2026-07-25]: call disco.
+[Follow-up 2026-07-28]: not attend
+[Follow-up 2026-07-30]: not deal in lithium battery', '[{"date":"2026-07-25","text":"call disco.","time":"15:16","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"10:00"},{"date":"2026-07-28","text":"not attend","time":"12:02","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"not deal in lithium battery","time":"10:33","nextFollowUpDate":"2026-09-30","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872219631', 'gujarat enterprises', 'Dealer', 'Website', 'gujarat enterprises', '9499722972', 'bhavnagar, gujarat', '2027-07-30', '10:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-25]: call disco', '[{"date":"2026-07-25","text":"call disco","time":"16:15","nextFollowUpDate":"2027-07-30","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872353836', 'satnam battery & e-bike', 'Dealer', 'Website', 'satnam battery & e-bikes', '9904568508', 'porbandar , gujarat', '2027-07-25', '10:00', 'work only lead acid', 'CONTACTED', '[Follow-up 2026-07-25]: work only lead', '[{"date":"2026-07-25","text":"work only lead","time":"16:38","nextFollowUpDate":"2027-07-25","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872424221', 'life battery', 'Dealer', 'Website', 'life battery', '9825408990', 'porbandar , gujarat', '2026-07-26', '10:00', 'auto battery k nahi h', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872555366', 'regal moto corp', 'Dealer', 'Website', 'regal moto corp', '8347917591', 'porbandar , gujarat', '2026-07-26', '10:00', 'busy another call', 'CONTACTED', '', '[]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872634619', 'chamunda e-bikes', 'Dealer', 'Website', 'chamunda e-bikes', '9327059455', 'porbandar , gujarat', '2027-07-31', '10:00', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-25]: sent proposal call back
+[Follow-up 2026-07-29]: sent proposal already not attend
+[Follow-up 2026-07-30]: sent reminder
+[Follow-up 2026-07-31]: lead acid me hi kam karte hai', '[{"date":"2026-07-25","text":"sent proposal call back","time":"15:20","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"10:00"},{"date":"2026-07-29","text":"sent proposal already not attend","time":"12:38","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"sent reminder","time":"17:52","nextFollowUpDate":"2026-07-31","nextFollowUpTime":"10:00"},{"date":"2026-07-31","text":"lead acid me hi kam karte hai","time":"16:22","nextFollowUpDate":"2027-07-31","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872749844', 'halar battery', 'Dealer', 'Website', 'halar battery', '8849948004', 'jamnagar', '2027-07-24', '11:28', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: sent proposal not yet require', '[{"date":"2026-07-24","text":"sent proposal not yet require","time":"15:33","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:28"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872827221', 'exide care', 'Dealer', 'Website', 'exide care', '80675110335', 'jamnagar', '2026-07-26', '11:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-24]: not reachable
+[Follow-up 2026-07-25]: call back', '[{"date":"2026-07-24","text":"not reachable","time":"15:20","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:00"},{"date":"2026-07-25","text":"call back","time":"17:48","nextFollowUpDate":"2026-07-26","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784872957014', 'galaxy ev', 'Dealer', 'Website', 'galaxy ev', '8200983.317', 'bharuch , gujarat', '2027-07-24', '11:00', 'not interested', 'CONTACTED', '[Follow-up 2026-07-24]: not intrested', '[{"date":"2026-07-24","text":"not intrested","time":"15:22","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873028121', 'uma battery', 'Dealer', 'Website', 'uma battery', '9978589569', 'bharuch , gujarat', '2027-07-24', '11:00', 'not want', 'CONTACTED', '[Follow-up 2026-07-24]: not want', '[{"date":"2026-07-24","text":"not want","time":"15:20","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873099810', 'green earth e-bike', 'Dealer', 'Website', 'green earth e-bike', '9723416000', 'bharuch , gujarat', '2026-09-29', '11:00', 'sent proposal already price issue', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: not attend
+[Follow-up 2026-07-25]: call bacj
+[Follow-up 2026-07-29]: call disco', '[{"date":"2026-07-24","text":"not attend","time":"15:21","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:00"},{"date":"2026-07-25","text":"call bacj","time":"16:08","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"11:00"},{"date":"2026-07-29","text":"call disco","time":"12:02","nextFollowUpDate":"2026-09-29","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873167601', 'jay somnath battery', 'Dealer', 'Website', 'jay somnath battery', '9033040029', 'bharuch , gujarat', '2026-08-02', '11:30', 'price issue', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: price issue', '[{"date":"2026-07-24","text":"price issue","time":"15:33","nextFollowUpDate":"2026-08-02","nextFollowUpTime":"11:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873236484', 'urja battery', 'Dealer', 'Website', 'urja battery', '9428887171', 'bharuch , gujarat', '2026-07-28', '11:30', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: sent proposal', '[{"date":"2026-07-24","text":"sent proposal","time":"15:35","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"11:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873299188', 'electric one', 'Dealer', 'Website', 'electric one', '9998783333', 'bharuch , gujarat', '2027-07-24', '11:30', 'not want', 'CONTACTED', '[Follow-up 2026-07-24]: not want', '[{"date":"2026-07-24","text":"not want","time":"15:23","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873360630', 'acute electronics', 'Dealer', 'Website', 'acute electronics', '9825350994', 'bharuch , gujarat', '2026-11-05', '11:25', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: sent proposal already not attend
+[Follow-up 2026-07-25]: sent proposal not attend
+[Follow-up 2026-08-05]: sent reminder call krege', '[{"date":"2026-07-24","text":"sent proposal already not attend","time":"15:22","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:25"},{"date":"2026-07-25","text":"sent proposal not attend","time":"15:10","nextFollowUpDate":"2026-08-05","nextFollowUpTime":"11:25"},{"date":"2026-08-05","text":"sent reminder call krege","time":"13:05","nextFollowUpDate":"2026-11-05","nextFollowUpTime":"11:25"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873459860', 'jay maa e-bike', 'Dealer', 'Website', 'jay maa e-bikes', '9737617010', 'bharuch , gujara', '2026-08-08', '11:25', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: sent proposal call back
+[Follow-up 2026-07-29]: sent proposal reminder call back
+[Follow-up 2026-07-31]: sent proposal reminder call back not attend', '[{"date":"2026-07-24","text":"sent proposal call back","time":"15:41","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"11:25"},{"date":"2026-07-29","text":"sent proposal reminder call back","time":"12:30","nextFollowUpDate":"2026-07-31","nextFollowUpTime":"11:25"},{"date":"2026-07-31","text":"sent proposal reminder call back not attend","time":"16:19","nextFollowUpDate":"2026-08-08","nextFollowUpTime":"11:25"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873545506', 'yogi auto battery', 'Dealer', 'Website', 'yogi auto battery', '9426858241', 'bharuch , gujara', '2026-09-01', '11:00', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: sent proposal abhi nahi dekha dekh k bolege
+[Follow-up 2026-07-29]: dekh k bolege already sent proposal
+[Follow-up 2026-07-29]: sent proposal already not attend bharuch dealer
+[Follow-up 2026-08-01]: inhe same day solution chahiye samjaya lekin nahi samaj rae k koi nahi rukta hai', '[{"date":"2026-07-24","text":"sent proposal abhi nahi dekha dekh k bolege","time":"15:42","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"11:00"},{"date":"2026-07-29","text":"dekh k bolege already sent proposal","time":"12:34","nextFollowUpDate":"2026-07-29","nextFollowUpTime":"11:00"},{"date":"2026-07-29","text":"sent proposal already not attend bharuch dealer","time":"13:11","nextFollowUpDate":"2026-08-01","nextFollowUpTime":"11:00"},{"date":"2026-08-01","text":"inhe same day solution chahiye samjaya lekin nahi samaj rae k koi nahi rukta hai","time":"13:03","nextFollowUpDate":"2026-09-01","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873632586', 'patel battery', 'Dealer', 'Website', 'patel battery', '9913270382', 'bharuch , gujarat', '2027-07-24', '11:30', 'not interested call disco', 'CONTACTED', '[Follow-up 2026-07-24]: not intrested', '[{"date":"2026-07-24","text":"not intrested","time":"15:42","nextFollowUpDate":"2027-07-24","nextFollowUpTime":"11:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873759711', 'krishna green energy', 'Dealer', 'Website', 'krishna green battery', '9825019796', 'bhuj , gujarat', '2026-08-26', '11:00', 'busy another call', 'CONTACTED', '[Follow-up 2026-07-24]: 9825019792 sun vision venture pvt proposal
+[Follow-up 2026-07-25]: call back', '[{"date":"2026-07-24","text":"9825019792 sun vision venture pvt proposal","time":"15:53","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:00"},{"date":"2026-07-25","text":"call back","time":"17:27","nextFollowUpDate":"2026-08-26","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873848878', 'kachchh battery center', 'Dealer', 'Website', 'kachchh battery center', '8200571171', 'bhuj , gujarat', '2026-07-28', '10:00', 'not attend', 'CONTACTED', '[Follow-up 2026-07-25]: call back', '[{"date":"2026-07-25","text":"call back","time":"17:19","nextFollowUpDate":"2026-07-28","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784873920782', 'shyam e-bike', 'Dealer', 'Website', 'shyam e-bike', '9909036489', 'bhuj , gujarat', '2026-08-11', '10:00', 'busy another call', 'CONTACTED', '[Follow-up 2026-07-24]: call back
+[Follow-up 2026-07-25]: call back
+[Follow-up 2026-07-30]: call forwarded', '[{"date":"2026-07-24","text":"call back","time":"15:53","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:00"},{"date":"2026-07-25","text":"call back","time":"17:25","nextFollowUpDate":"2026-07-30","nextFollowUpTime":"10:00"},{"date":"2026-07-30","text":"call forwarded","time":"17:36","nextFollowUpDate":"2026-08-11","nextFollowUpTime":"10:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784874073927', 'shree hari e-bike', 'Dealer', 'Website', 'shree hari e-bike', '9726681019', 'bhuj , gujarat', '2026-07-27', '11:00', 'not reachable', 'CONTACTED', '[Follow-up 2026-07-24]: not reachable', '[{"date":"2026-07-24","text":"not reachable","time":"15:42","nextFollowUpDate":"2026-07-27","nextFollowUpTime":"11:00"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784874212576', 'jay mata ji battery sales & services', 'Dealer', 'Website', 'jay mata ji battery sales & services', '9099646382', 'bhuj , gujarat', '2026-08-24', '11:20', 'sent proposal', 'QUOTATION_SENT', '[Follow-up 2026-07-24]: yet no requirement bolege', '[{"date":"2026-07-24","text":"yet no requirement bolege","time":"15:44","nextFollowUpDate":"2026-08-24","nextFollowUpTime":"11:20"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784874305819', 'rajarshi ev', 'Dealer', 'Website', 'rajarshi ev', '8071936936', 'bhuj , gujarat', '2026-07-27', '11:26', 'not reachable', 'CONTACTED', '[Follow-up 2026-07-24]: call back
+[Follow-up 2026-07-25]: wrong number
+[Follow-up 2026-07-25]: wrong number', '[{"date":"2026-07-24","text":"call back","time":"15:53","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:26"},{"date":"2026-07-25","text":"wrong number","time":"17:26","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"11:26"},{"date":"2026-07-25","text":"wrong number","time":"17:26","nextFollowUpDate":"2026-07-27","nextFollowUpTime":"11:26"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
+
+INSERT INTO public.lead_inquiries (id, company, category, source, contact_person, mobile, location, followup_date, followup_time, requirement, status, notes, remarks_log)
+VALUES ('lead-1784874376010', 'pure ev', 'Dealer', 'Website', 'pure ev', '9274148833', 'bhuj , gujarat', '2026-07-27', '10:30', 'busy another call', 'CONTACTED', '[Follow-up 2026-07-24]: call disco.
+[Follow-up 2026-07-25]: call back', '[{"date":"2026-07-24","text":"call disco.","time":"15:55","nextFollowUpDate":"2026-07-25","nextFollowUpTime":"10:30"},{"date":"2026-07-25","text":"call back","time":"17:44","nextFollowUpDate":"2026-07-27","nextFollowUpTime":"10:30"}]'::jsonb)
+ON CONFLICT (id) DO UPDATE SET
+  company = EXCLUDED.company,
+  category = EXCLUDED.category,
+  source = EXCLUDED.source,
+  contact_person = EXCLUDED.contact_person,
+  mobile = EXCLUDED.mobile,
+  location = EXCLUDED.location,
+  followup_date = EXCLUDED.followup_date,
+  followup_time = EXCLUDED.followup_time,
+  requirement = EXCLUDED.requirement,
+  status = EXCLUDED.status,
+  notes = EXCLUDED.notes,
+  remarks_log = EXCLUDED.remarks_log;
 
 -- 9. Seed Customers
 INSERT INTO public.customers (id, name, company, branch, gstin, contact_person, phone, address, city, state, location_hub, ledger_status)
