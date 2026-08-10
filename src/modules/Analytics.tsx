@@ -22,19 +22,25 @@ export const Analytics: React.FC = () => {
     value: complaints.filter((c: any) => c.rootCause === cat).length
   })).filter((f: any) => f.value > 0);
 
-  const failureTimeline = complaints.reduce((acc: any[], c: any) => {
-    const month = new Date(c.date).toLocaleString('default', { month: 'short' });
-    const existing = acc.find(a => a.month === month);
-    if (existing) {
-      existing.cases += 1;
-    } else {
-      acc.push({ month, cases: 1 });
+  const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthCasesMap: { [key: string]: number } = {};
+  allMonths.forEach(m => { monthCasesMap[m] = 0; });
+
+  complaints.forEach((c: any) => {
+    const rawDate = c.date || c.created_at || c.loggedDate;
+    if (!rawDate) return;
+    const cDate = new Date(rawDate);
+    if (isNaN(cDate.getTime())) return;
+    const m = cDate.toLocaleString('default', { month: 'short' });
+    if (m in monthCasesMap) {
+      monthCasesMap[m] += 1;
     }
-    return acc;
-  }, []).sort((a, b) => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.indexOf(a.month) - months.indexOf(b.month);
   });
+
+  const failureTimeline = allMonths.slice(0, 7).map(m => ({
+    month: m,
+    cases: monthCasesMap[m] || 0
+  }));
 
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -260,11 +266,11 @@ export const Analytics: React.FC = () => {
                     <BarChart data={failureTimeline}>
                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} />
-                       <YAxis axisLine={false} tickLine={false} hide />
+                       <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}} allowDecimals={false} />
                        <Tooltip 
                           contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontWeight: 800, fontSize: '12px' }}
                        />
-                       <Bar dataKey="cases" name="RMA Cases" fill="#f59e0b" radius={[10, 10, 0, 0]} />
+                       <Bar dataKey="cases" name="RMA Cases" fill="#f59e0b" radius={[8, 8, 0, 0]} maxBarSize={40} />
                     </BarChart>
                   ) : (
                      <BarChart data={salesData}>
@@ -277,7 +283,8 @@ export const Analytics: React.FC = () => {
                         <Bar 
                            dataKey="sales" 
                            fill={activeTab === 'production' ? '#0f172a' : '#ef4444'} 
-                           radius={[10, 10, 0, 0]} 
+                           radius={[8, 8, 0, 0]} 
+                           maxBarSize={40} 
                         />
                      </BarChart>
                   )}

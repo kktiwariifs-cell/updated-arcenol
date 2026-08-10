@@ -9,8 +9,8 @@
 -- 4. Copy and paste the entire script below into the editor.
 -- 5. Click the "Run" button at the bottom right.
 -- 6. Connect your application by updating your environment variable keys with:
---    URL: https://vuastgyyrscopjmnhaew.supabase.co
---    Key: sb_publishable_4bkEqRrvnIrfc-szu_CDpw_tCs9ouIP
+--    URL: https://zrycwwcnzaoqhhqkrhig.supabase.co
+--    Key: sb_publishable_t8cKhGdESXfoBRnc0awuOA_XcyOk7tl
 -- =========================================================================
 
 -- -------------------------------------------------------------------------

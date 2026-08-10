@@ -1428,7 +1428,7 @@ export const SuperAdmin: React.FC = () => {
                     <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-500 font-semibold mt-1">
                       <span className="flex items-center gap-1">
                         <Globe size={12} className="text-slate-400" />
-                        URL: <span className="font-mono text-slate-700">https://vuastgyyrscopjmnhaew.supabase.co</span>
+                        URL: <span className="font-mono text-slate-700">https://zrycwwcnzaoqhhqkrhig.supabase.co</span>
                       </span>
                       <span className="text-slate-350">|</span>
                       <span className="flex items-center gap-1">

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  LayoutDashboard,
   ShoppingCart, 
   Database, 
   Cpu, 
@@ -7,21 +8,20 @@ import {
   ShieldCheck, 
   Package, 
   Users, 
+  Map,
   ReceiptIndianRupee, 
   Bookmark, 
+  Smartphone,
   Wrench, 
+  Bell,
+  BarChart3,
+  Lock,
   ArrowRight, 
   CheckCircle2, 
-  HelpCircle, 
   ChevronRight, 
-  Activity, 
-  Terminal, 
   UserCheck, 
   FileText,
   Truck,
-  ShieldAlert,
-  Search,
-  Check,
   BookOpen,
   Download,
   Zap,
@@ -33,48 +33,85 @@ import { downloadElementAsPDF } from '../lib/pdfGenerator';
 
 interface UserManualProps {
   setActiveTab?: (tab: string) => void;
+  previousTab?: string;
 }
 
+const TAB_TO_STEP_MAP: Record<string, string> = {
+  'dashboard': 'dashboard',
+  'inventory-hub': 'store',
+  'inventory': 'store',
+  'production-hub': 'manufacturing',
+  'production': 'manufacturing',
+  'mrp': 'mrp',
+  'finished-goods': 'finished-goods',
+  'storekeeper': 'store',
+  'crm': 'crm',
+  'regional-sales': 'regional-sales',
+  'dealer-performance': 'regional-sales',
+  'billing': 'billing',
+  'warranty': 'warranty',
+  'engagement': 'engagement',
+  'service': 'service',
+  'alerts': 'alerts',
+  'analytics': 'analytics',
+  'management-kpi': 'analytics',
+  'super-admin': 'super-admin'
+};
+
 const STEP_TAB_MAP: Record<string, { tab: string; label: string }> = {
+  dashboard: { tab: 'dashboard', label: 'Executive Control Center' },
   procurement: { tab: 'inventory-hub', label: 'Stores & Procurement Hub' },
   store: { tab: 'inventory-hub', label: 'Warehousing & Raw Material Inventory' },
   mrp: { tab: 'mrp', label: 'MRP & Material Demand Planning' },
   manufacturing: { tab: 'production-hub', label: 'Production & Assembly Line' },
   quality: { tab: 'production-hub', label: 'Quality Control & Testing' },
   'finished-goods': { tab: 'finished-goods', label: 'Finished Goods Logistics' },
-  crm: { tab: 'crm', label: 'CRM & Dealer Network' },
+  crm: { tab: 'crm', label: 'CRM & Form-Captured Enquiry Ledger' },
+  'regional-sales': { tab: 'regional-sales', label: 'Regional Sales & Territory' },
   billing: { tab: 'billing', label: 'GST Invoicing & Accounts' },
   warranty: { tab: 'warranty', label: 'Warranty & Claims Registry' },
-  service: { tab: 'service', label: 'RMA Service & Repair Center' }
+  engagement: { tab: 'engagement', label: 'Customer Engagement & Loyalty' },
+  service: { tab: 'service', label: 'RMA Service & Repair Center' },
+  alerts: { tab: 'alerts', label: 'Operational System Alerts' },
+  analytics: { tab: 'analytics', label: 'Analytics & Financial Intelligence' },
+  'super-admin': { tab: 'super-admin', label: 'Super Admin Control Center' }
 };
 
-export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
+export const UserManual: React.FC<UserManualProps> = ({ setActiveTab, previousTab }) => {
   const { user } = useAuthStore();
 
-  // Define permitted steps per role
+  // Define permitted steps per role across all 16 operational panels
   const ROLE_STEPS_MAP: Record<UserRole, string[]> = {
-    [UserRole.SUPER_ADMIN]: ['procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'billing', 'warranty', 'service'],
-    [UserRole.ADMIN]: ['procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'billing', 'warranty', 'service'],
-    [UserRole.STORE_KEEPER]: ['procurement', 'store', 'finished-goods'],
-    [UserRole.PRODUCTION_TEAM]: ['mrp', 'manufacturing'],
-    [UserRole.QUALITY_TEAM]: ['quality'],
-    [UserRole.SALES_PERSON]: ['crm'],
-    [UserRole.BILLER]: ['billing'],
-    [UserRole.WARRANTY_TEAM]: ['warranty'],
-    [UserRole.SERVICE_TEAM]: ['service'],
-    [UserRole.PLANT_SERVICE_ENGINEER]: ['service'],
+    [UserRole.SUPER_ADMIN]: ['dashboard', 'procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'regional-sales', 'billing', 'warranty', 'engagement', 'service', 'alerts', 'analytics', 'super-admin'],
+    [UserRole.ADMIN]: ['dashboard', 'procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'regional-sales', 'billing', 'warranty', 'engagement', 'service', 'alerts', 'analytics', 'super-admin'],
+    [UserRole.STORE_KEEPER]: ['dashboard', 'procurement', 'store', 'finished-goods', 'alerts'],
+    [UserRole.PRODUCTION_TEAM]: ['dashboard', 'mrp', 'manufacturing', 'quality', 'alerts'],
+    [UserRole.QUALITY_TEAM]: ['dashboard', 'quality', 'alerts'],
+    [UserRole.SALES_PERSON]: ['dashboard', 'crm', 'regional-sales', 'engagement', 'alerts'],
+    [UserRole.BILLER]: ['dashboard', 'billing', 'alerts'],
+    [UserRole.WARRANTY_TEAM]: ['dashboard', 'warranty', 'alerts'],
+    [UserRole.SERVICE_TEAM]: ['dashboard', 'service', 'alerts'],
+    [UserRole.PLANT_SERVICE_ENGINEER]: ['dashboard', 'service', 'alerts'],
   };
 
   const allowedStepIds = React.useMemo(() => {
-    return user ? (ROLE_STEPS_MAP[user.role] || []) : ['procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'billing', 'warranty', 'service'];
+    return user ? (ROLE_STEPS_MAP[user.role] || []) : ['dashboard', 'procurement', 'store', 'mrp', 'manufacturing', 'quality', 'finished-goods', 'crm', 'regional-sales', 'billing', 'warranty', 'engagement', 'service', 'alerts', 'analytics', 'super-admin'];
   }, [user?.role]);
 
-  const [activeStep, setActiveStep] = useState<string>(() => {
-    return allowedStepIds[0] || 'procurement';
-  });
+  const initialStep = React.useMemo(() => {
+    if (previousTab && TAB_TO_STEP_MAP[previousTab]) {
+      const targetStep = TAB_TO_STEP_MAP[previousTab];
+      if (allowedStepIds.includes(targetStep)) {
+        return targetStep;
+      }
+    }
+    return allowedStepIds[0] || 'dashboard';
+  }, [previousTab, allowedStepIds]);
+
+  const [activeStep, setActiveStep] = useState<string>(initialStep);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  // Keep activeStep in sync if the logged-in user changes role dynamically in the same session
+  // Keep activeStep in sync if the logged-in user changes role dynamically or switches tab
   useEffect(() => {
     if (allowedStepIds.length > 0 && !allowedStepIds.includes(activeStep)) {
       setActiveStep(allowedStepIds[0]);
@@ -84,8 +121,17 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
   // Flow Chart Operational Steps Metadata
   const stepsMetadata = [
     {
+      id: 'dashboard',
+      title: '1. EXECUTIVE DASHBOARD',
+      icon: LayoutDashboard,
+      color: 'border-slate-200 hover:border-sky-400 text-sky-800 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-sky-600 border-sky-600 bg-sky-50/70 text-sky-950 shadow-md',
+      description: 'Executive KPIs, real-time conveyor metrics, quick action triggers, and plant status overview.',
+      role: 'ALL ROLES'
+    },
+    {
       id: 'procurement',
-      title: '1. PROCUREMENT & GRN',
+      title: '2. PROCUREMENT & GRN',
       icon: ShoppingCart,
       color: 'border-slate-200 hover:border-blue-400 text-blue-650 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-blue-600 border-blue-600 bg-blue-50/70 text-blue-900 shadow-md',
@@ -94,16 +140,16 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     },
     {
       id: 'store',
-      title: '2. WAREHOUSING LEDGER',
+      title: '3. WAREHOUSING LEDGER',
       icon: Database,
       color: 'border-slate-200 hover:border-cyan-500 text-cyan-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-cyan-600 border-cyan-600 bg-cyan-50/70 text-cyan-950 shadow-md',
-      description: 'Bin allocation, storage of raw battery cells, casing boards, lead plates, and electrolyte drums.',
+      description: 'Bin allocation, storage of raw battery cells, dynamic grid calibration, and search reports.',
       role: 'STORE_KEEPER'
     },
     {
       id: 'mrp',
-      title: '3. MRP SCHEDULING',
+      title: '4. MRP SCHEDULING',
       icon: Cpu,
       color: 'border-slate-200 hover:border-sky-500 text-sky-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-sky-600 border-sky-600 bg-sky-50/70 text-sky-950 shadow-md',
@@ -112,7 +158,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     },
     {
       id: 'manufacturing',
-      title: '4. BATTERY ASSEMBLY',
+      title: '5. BATTERY ASSEMBLY',
       icon: Factory,
       color: 'border-slate-200 hover:border-emerald-500 text-emerald-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-emerald-600 border-emerald-600 bg-emerald-50/70 text-emerald-950 shadow-md',
@@ -121,7 +167,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     },
     {
       id: 'quality',
-      title: '5. QUALITY CONTROL',
+      title: '6. QUALITY CONTROL',
       icon: ShieldCheck,
       color: 'border-slate-200 hover:border-indigo-550 text-indigo-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-indigo-600 border-indigo-600 bg-indigo-50/70 text-indigo-950 shadow-md',
@@ -130,7 +176,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     },
     {
       id: 'finished-goods',
-      title: '6. FINISHED GOODS LOGISTICS',
+      title: '7. FINISHED GOODS LOGISTICS',
       icon: Package,
       color: 'border-slate-200 hover:border-teal-550 text-teal-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-teal-600 border-teal-600 bg-teal-50/75 text-teal-950 shadow-md',
@@ -139,39 +185,84 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     },
     {
       id: 'crm',
-      title: '7. CRM & DEALER PORTAL',
+      title: '8. CRM & ENQUIRY LEDGER',
       icon: Users,
       color: 'border-slate-200 hover:border-amber-550 text-amber-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-amber-600 border-amber-600 bg-amber-50/70 text-amber-950 shadow-md',
-      description: 'Lead tracking, distributor allocations, regional delivery pipelines, and order bookings.',
+      description: 'Form-captured enquiries, dealer registrations, GSTIN validation, and price quotations.',
+      role: 'SALES_PERSON / ADMIN'
+    },
+    {
+      id: 'regional-sales',
+      title: '9. REGIONAL SALES FLOW',
+      icon: Map,
+      color: 'border-slate-200 hover:border-orange-500 text-orange-700 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-orange-600 border-orange-600 bg-orange-50/70 text-orange-950 shadow-md',
+      description: 'Territory performance mapping, regional dealer quota allocations, and sales target tracking.',
       role: 'SALES_PERSON / ADMIN'
     },
     {
       id: 'billing',
-      title: '8. GST INVOICING',
+      title: '10. GST INVOICING',
       icon: ReceiptIndianRupee,
       color: 'border-slate-200 hover:border-purple-550 text-purple-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-purple-600 border-purple-600 bg-purple-50/70 text-purple-950 shadow-md',
-      description: 'Commercial invoice generation, state ledger CGST/SGST compilation, and payment receipts.',
+      description: 'Commercial GST tax invoices, CGST/SGST/IGST splits, rate overrides, and payment receipts.',
       role: 'BILLER / SUPER_ADMIN'
     },
     {
       id: 'warranty',
-      title: '9. WARRANTY REGISTRY',
+      title: '11. WARRANTY REGISTRY',
       icon: Bookmark,
       color: 'border-slate-200 hover:border-rose-550 text-rose-700 bg-white/85 shadow-2xs hover:shadow-xs',
       activeColor: 'ring-2 ring-rose-600 border-rose-600 bg-rose-50/70 text-rose-950 shadow-md',
-      description: 'Digital claims logging, serial number activations, stamp records, and automated expiry alerts.',
+      description: 'Digital claims logging, serial activations, QR lookups, and automated expiry tracking.',
       role: 'WARRANTY_TEAM'
     },
     {
+      id: 'engagement',
+      title: '12. CUSTOMER ENGAGEMENT',
+      icon: Smartphone,
+      color: 'border-slate-200 hover:border-violet-500 text-violet-700 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-violet-600 border-violet-600 bg-violet-50/70 text-violet-950 shadow-md',
+      description: 'Mobile app adoption stats, QR scan logs, mechanics loyalty rewards, and coupon redemptions.',
+      role: 'SALES_PERSON / ADMIN'
+    },
+    {
       id: 'service',
-      title: '10. RMA SERVICE PROCESS',
+      title: '13. RMA SERVICE PROCESS',
       icon: Wrench,
-      color: 'border-slate-200 hover:border-orange-550 text-orange-700 bg-white/85 shadow-2xs hover:shadow-xs',
-      activeColor: 'ring-2 ring-orange-600 border-orange-600 bg-orange-50/70 text-orange-950 shadow-md',
-      description: 'Central repairs tracking, diagnostic checklist, battery recycling logs, and support engineers dispatch.',
+      color: 'border-slate-200 hover:border-red-500 text-red-700 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-red-600 border-red-600 bg-red-50/70 text-red-950 shadow-md',
+      description: 'Central repairs tracking, diagnostic checklist, battery recycling logs, and scrap recovery.',
       role: 'SERVICE_TEAM / PLANT'
+    },
+    {
+      id: 'alerts',
+      title: '14. OPERATIONAL ALERTS',
+      icon: Bell,
+      color: 'border-slate-200 hover:border-yellow-500 text-yellow-800 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-yellow-600 border-yellow-600 bg-yellow-50/70 text-yellow-950 shadow-md',
+      description: 'Real-time warning notifications, cross-module handshake logs, and supervisor overrides.',
+      role: 'ALL ROLES'
+    },
+    {
+      id: 'analytics',
+      title: '15. ANALYTICS & INTELLIGENCE',
+      icon: BarChart3,
+      color: 'border-slate-200 hover:border-emerald-600 text-emerald-800 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-emerald-700 border-emerald-700 bg-emerald-50/70 text-emerald-950 shadow-md',
+      description: 'Financial P&L performance, failure timeline trends, Pareto root causes, and export summaries.',
+      role: 'SUPER_ADMIN / ADMIN'
+    },
+    {
+      id: 'super-admin',
+      title: '16. SUPER ADMIN CONTROL',
+      icon: Lock,
+      color: 'border-slate-200 hover:border-slate-600 text-slate-800 bg-white/85 shadow-2xs hover:shadow-xs',
+      activeColor: 'ring-2 ring-slate-800 border-slate-800 bg-slate-100 text-slate-950 shadow-md',
+      description: 'Supabase cloud database sync, global ERP constants, security credentials, and SQL runner.',
+      role: 'SUPER_ADMIN'
     }
   ];
 
@@ -198,8 +289,43 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
     checklist: string[];
     qaTips: string;
   }> = {
+    dashboard: {
+      title: "1. Executive Control Center & Plant Status Operations",
+      flowCode: "EXEC-DASH-1.0",
+      roleInvolved: "All Authorized Personnel / Management Executives",
+      objectives: [
+        "Monitor top-level plant KPIs (Active Warranties, Open RMA Tickets, Stock Valuation, Dealer Orders).",
+        "Track live conveyor assembly line status and power utilization across factory units.",
+        "Execute quick operational triggers for GRN creation, Tax Invoicing, Claim Logging, and CRM Lead additions.",
+        "Switch active user roles dynamically for cross-departmental auditing."
+      ],
+      operations: [
+        {
+          name: "Executive KPI Card Audit",
+          desc: "Analyze aggregated plant health metrics updated in real-time from inventory, billing, and warranty databases.",
+          inputs: ["Time Horizon Filter", "Plant Division Unit"]
+        },
+        {
+          name: "Quick Action Launchpad",
+          desc: "Trigger high-priority workflows directly from the dashboard header without navigating sub-menus.",
+          inputs: ["Target Workflow Action (GRN / Bill / Claim / Lead)"]
+        },
+        {
+          name: "Conveyor Line Live Feed Inspection",
+          desc: "Verify active assembly line conveyor speed, temperature, and WIP unit throughput across Plant 1 and Plant 2.",
+          inputs: ["Assembly Line Selector (Line A / Line B)"]
+        }
+      ],
+      checklist: [
+        "Check that total active warranties reflect real-time retail activations.",
+        "Audit open RMA tickets count to ensure warranty turnaround times stay under 48 hours.",
+        "Confirm system operational status is marked green OPERATIONAL.",
+        "Verify role-based view restrictions before sharing dashboard views."
+      ],
+      qaTips: "Use the Quick Action Launchpad for fast multi-module transactions during busy plant shifts. If conveyor speed drops below 0.8 m/s, alert the maintenance supervisor."
+    },
     procurement: {
-      title: "1. Raw Material Procurement & GRN Handshake Block",
+      title: "2. Raw Material Procurement & GRN Handshake Block",
       flowCode: "PROC-GRN-V1.0",
       roleInvolved: "Store Keeper / Operations Manager",
       objectives: [
@@ -234,7 +360,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Always match the physical supplier challan invoice index precisely against the ERP record. If discrepancies in raw casing weight exceed 1.5%, label the batch as 'HEAVY DEVIATION' and transfer it to local quarantine storage first."
     },
     store: {
-      title: "2. Warehouse Management, Storage & Bin Ledger",
+      title: "3. Warehouse Management, Storage & Bin Ledger",
       flowCode: "WHSE-BIN-2.0",
       roleInvolved: "Store Keeper",
       objectives: [
@@ -276,7 +402,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Always calibrate the dynamic calibration grid layout to match physical warehouse blueprints. When preparing reports, filter by zone or material beforehand to keep printed documents short, fast, and highly directed."
     },
     mrp: {
-      title: "3. Material Requirement Planning (MRP) Run Cycles",
+      title: "4. Material Requirement Planning (MRP) Run Cycles",
       flowCode: "MRP-PLAN-V1.0",
       roleInvolved: "Production Team / Operations Analyst",
       objectives: [
@@ -306,7 +432,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "If cells allocations are tight, run local forecasts against 'Just In Time' logistics records. Always append a 3% scrap buffer to structural casings during MRP computations to account for routing and hot-molding losses."
     },
     manufacturing: {
-      title: "4. Battery Manufacturing Cycle & Conveyor Assembly",
+      title: "5. Battery Manufacturing Cycle & Conveyor Assembly",
       flowCode: "MFG-ASSY-3.2",
       roleInvolved: "Production Supervisor / Plant Engineers",
       objectives: [
@@ -336,7 +462,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Keep standard machine temperatures strictly within 120°C - 160°C bounds. If a heat spike occurs on conveyor assembly module terminals, pause work and trigger an 'Internal Maintenance Workorder' immediately."
     },
     quality: {
-      title: "5. Quality Assurance (QA) Parameters & Laboratory Checklist",
+      title: "6. Quality Assurance (QA) Parameters & Laboratory Checklist",
       flowCode: "QA-CERT-007",
       roleInvolved: "Quality Team",
       objectives: [
@@ -366,7 +492,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Always calibrate quality probes against an official standard battery cell every 100 tests. Never approve batteries displaying OCV drops below 12.65V, as they can cause rapid self-discharge in warehousing."
     },
     'finished-goods': {
-      title: "6. Finished Goods (FG) Serialization and Logistics",
+      title: "7. Finished Goods (FG) Serialization and Logistics",
       flowCode: "FG-LOGIS-4.0",
       roleInvolved: "Store Keeper / FG Manager",
       objectives: [
@@ -396,37 +522,71 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Include high-contrast 'FRAGILE' and 'CORROSIVE CHEMICALS' stickers on all outer boxes. Double-check that the assigned serial number matches the invoice ledger precisely prior to sealing transport panels."
     },
     crm: {
-      title: "7. CRM pipelines, Leads Allocation, and Dealer Registration",
-      flowCode: "CRM-SALES-V2",
-      roleInvolved: "Sales Executive / Regional Director",
+      title: "8. CRM, Form-Captured Enquiry Ledger & Dealer Management",
+      flowCode: "CRM-ENQ-3.0",
+      roleInvolved: "Sales Executives / Marketing Leads / Regional Directors",
       objectives: [
-        "Acquire and qualify raw regional buyer leads.",
-        "Register dealer/distributor accounts and manage pricing groups.",
-        "Configure regional allocation schedules of new premium battery models.",
-        "Track pipeline progress from discovery to dispatch request."
+        "Access the Form-Captured Enquiry Ledger capturing live customer requirement inputs from web forms, B2B portals, and exhibitions.",
+        "Convert raw inquiries into qualified dealer leads or direct corporate accounts.",
+        "Onboard new battery dealers with GSTIN verification, credit limits, and regional territory tags.",
+        "Generate formal price quotations and track pipeline status from Discovery to Won/Closed."
       ],
       operations: [
         {
-          name: "Dealer Credentials Onboarding",
-          desc: "Register verified battery dealerships. Match physical showroom coordinates, state-authorized GSTIN registries, and credits parameters.",
-          inputs: ["Dealer Corporate Title", "GSTIN Verification Number", "Credit limit Amount (INR)", "Primary Delivery Address"]
+          name: "Form-Captured Enquiry Ledger Audit",
+          desc: "Review inbound web and portal inquiries in the Enquiry Ledger. Filter entries live by company, location, or contact person.",
+          inputs: ["Enquiry Search Filter", "Requirement Specification", "Assigned Representative"]
         },
         {
-          name: "Sales Opportunity Cycle Update",
-          desc: "Track client leads parameters. Mark records from Initial Inquiry -> Price Quote -> Allocation Booked.",
-          inputs: ["Lead ID Code", "Elected Models", "Estimated Value (INR)", "Expected Closing Date"]
+          name: "Dealer Onboarding & GSTIN Verification",
+          desc: "Register new dealership accounts. Input GSTIN numbers, bank details, credit limits, and geographic region tags.",
+          inputs: ["Dealer Corporate Title", "GSTIN Registration No", "Credit Limit (INR)", "State / Territory Zone"]
+        },
+        {
+          name: "Sales Quotation Builder",
+          desc: "Compile custom price quotations for dealer orders including tax breakdowns, warranty terms, and estimated delivery dates.",
+          inputs: ["Dealer ID", "Product SKUs & Quantities", "Discount Percentage", "Payment Terms"]
         }
       ],
       checklist: [
-        "Review official credit check certificates before raising a dealer's credit limit above 10 Lakhs.",
-        "Verify state-level GSTIN tax credentials on the GST Portal before profile confirmation.",
-        "Coordinate with warehousing lists to confirm local ready stock volumes before signing price proposals.",
-        "Provide immediate feedback on product availability to regional sales counters."
+        "Verify GSTIN status on the official portal before approving dealer credit limits above ₹5,000,000.",
+        "Ensure all Form-Captured Enquiry Ledger items receive initial contact within 2 hours of receipt.",
+        "Cross-check finished goods inventory before committing quote delivery dates.",
+        "Update lead follow-up timestamps after every phone or in-person meeting."
       ],
-      qaTips: "Always review regional stock dashboards before booking batch sales. Never commit delivery estimates under 7 working days if the production team is actively running 'Heavy Load WIP' periods."
+      qaTips: "Always check stock availability in Finished Goods before sending binding price quotations. If a lead remains stagnant in QUOTATION_SENT for over 7 days, trigger an automated follow-up notification."
+    },
+    'regional-sales': {
+      title: "9. Regional Sales Analytics & Territory Flow Management",
+      flowCode: "REG-SALES-2.1",
+      roleInvolved: "Regional Sales Managers / Territory Directors",
+      objectives: [
+        "Visualize state-wise and region-wise battery distribution performance across North, South, East, and West zones.",
+        "Allocate product quotas for newly launched battery models to high-performing regional dealers.",
+        "Track sales targets against actual achievements for individual regional executives.",
+        "Identify underserved geographic territories to expand dealer network density."
+      ],
+      operations: [
+        {
+          name: "Territory Performance Mapping",
+          desc: "Analyze interactive sales maps highlighting revenue density, unit volume, and dealer coverage across state borders.",
+          inputs: ["Region Selector (North/South/East/West)", "Product Family Filter"]
+        },
+        {
+          name: "Regional Quota & Stock Allocation",
+          desc: "Set monthly stock quotas for regional depots to ensure equitable distribution of high-demand battery models.",
+          inputs: ["Target State / Depot", "Model SKU Allocation Qty", "Release Schedule"]
+        }
+      ],
+      checklist: [
+        "Review monthly regional sales variance reports before adjusting territory quotas.",
+        "Ensure dealer ranking scores are updated based on payment history and order frequency.",
+        "Align regional marketing drives with inventory availability in nearby warehouses."
+      ],
+      qaTips: "Focus regional sales efforts on states showing high EV battery adoption growth. Maintain at least 15% safety stock in regional depots to prevent stockouts during festival surges."
     },
     billing: {
-      title: "8. Commercial Billing, GST Ledger Reconciliation & Invoicing",
+      title: "10. Commercial Billing, GST Ledger Reconciliation & Invoicing",
       flowCode: "FIN-GST-1.1",
       roleInvolved: "Finance Biller / Accounts Specialist",
       objectives: [
@@ -463,7 +623,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       qaTips: "Check the state billing source: If delivery goes from Gujarat Depot to Maharashtra Dealer, enforce IGST parameters. Enforce split CGST & SGST models strictly for local intra-state consignments. After editing subtotal limits or tax parameters, verify that the A4 generator automatically refactors the item's custom unit rates to ensure absolute ledger harmony."
     },
     warranty: {
-      title: "9. Warranty Registration and Claims Verification Node",
+      title: "11. Warranty Registration and Claims Verification Node",
       flowCode: "WRNTY-CLAIM",
       roleInvolved: "Warranty Officer",
       objectives: [
@@ -492,8 +652,37 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       ],
       qaTips: "Verify the battery registration date against dealer bulk dispatch sheets. If a battery is registered more than 365 days after the dealer delivery timestamp, query the distributor for stocking notes."
     },
+    engagement: {
+      title: "12. Customer Engagement, Loyalty Program & QR Rewards",
+      flowCode: "CUST-ENG-1.5",
+      roleInvolved: "Marketing Operations / Customer Experience Leads",
+      objectives: [
+        "Monitor retail end-user app adoption, daily active users, and QR code scan metrics.",
+        "Manage the Mechanic & Dealer Loyalty Program where users earn points by scanning battery QR codes.",
+        "Review and approve reward redemption requests (extended warranties, health audits, cashbacks).",
+        "Publish promotional campaigns and analyze user satisfaction ratings."
+      ],
+      operations: [
+        {
+          name: "QR Code Scan & Registration Tracking",
+          desc: "Track real-time QR code scans performed by customers and mechanics at the point of installation.",
+          inputs: ["Serial / QR Code ID", "Scanner Geo-Location", "App User Profile"]
+        },
+        {
+          name: "Loyalty Reward Claim Approval",
+          desc: "Audit pending reward redemption claims submitted by mechanics and approve voucher issuance.",
+          inputs: ["Claim ID", "User Account", "Points Deduction Value", "Approval Status"]
+        }
+      ],
+      checklist: [
+        "Verify that scanned serial numbers exist in the Finished Goods dispatch database before awarding loyalty points.",
+        "Audit duplicate scan attempts to prevent fraudulent point accumulation.",
+        "Process pending reward claims within 24 hours of submission."
+      ],
+      qaTips: "Flag any user account recording more than 15 QR scans per hour for security review to catch automated scanner scripts."
+    },
     service: {
-      title: "10. RMA Service Center Diagnostics & Maintenance Checklist",
+      title: "13. RMA Service Center Diagnostics & Maintenance Checklist",
       flowCode: "RMA-SERV-V2.5",
       roleInvolved: "Service Team / Plant Service Engineer",
       objectives: [
@@ -521,6 +710,93 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
         "Clear repair tickets once technician test logs show stable parameter cycles."
       ],
       qaTips: "Ensure environmental safety gear is fully worn during acid handling. Clean and salvage terminals blocks from cells blocks that are otherwise directed to the recycling plant to optimize resource recovery."
+    },
+    alerts: {
+      title: "14. Operational System Alerts & Cross-Module Audit Logs",
+      flowCode: "SYS-ALERT-4.0",
+      roleInvolved: "All System Users / Operations Supervisors",
+      objectives: [
+        "Monitor real-time system alerts triggered by critical operational thresholds (low stock, high RMA rate, payment delays).",
+        "Review the audit log of cross-module handshakes and manual supervisor overrides.",
+        "Acknowledge, resolve, or escalate high-priority operational warnings.",
+        "Filter system notifications by domain channel (System, Quality, Finance, Sales, Logistics)."
+      ],
+      operations: [
+        {
+          name: "System Alert Processing & Resolution",
+          desc: "Inspect incoming warning notifications, review root causes, and mark alerts as ACKNOWLEDGED or RESOLVED.",
+          inputs: ["Alert ID", "Resolution Action Note", "Status Update"]
+        },
+        {
+          name: "Audit Trail Handshake Verification",
+          desc: "Examine chronological system event logs capturing automated state changes and manual override actions.",
+          inputs: ["Module Scope Filter", "Date Range Window", "User ID Query"]
+        }
+      ],
+      checklist: [
+        "Investigate all HIGH severity alerts immediately upon appearance.",
+        "Ensure manual parameter overrides are documented with clear operational justification.",
+        "Clear resolved alerts to maintain a clean operational dashboard."
+      ],
+      qaTips: "Set up auto-escalation rules for critical alerts remaining unacknowledged for over 30 minutes during active plant shifts."
+    },
+    analytics: {
+      title: "15. Business Analytics & Financial Intelligence",
+      flowCode: "BI-ANALYTICS-3.0",
+      roleInvolved: "Super Admin / Finance Director / Plant Manager",
+      objectives: [
+        "Analyze financial performance metrics including Gross Revenue, Operating Expense, Gross Margin, and Net Profit.",
+        "Evaluate failure timeline trends and RMA cases across monthly production runs.",
+        "Perform Pareto analysis on warranty failure root causes (BMS fault, Cell degradation, Acid leak, Terminal corrosion).",
+        "Review dealer performance matrices and export structured analytical summaries."
+      ],
+      operations: [
+        {
+          name: "Financial Intelligence Dashboard Review",
+          desc: "Inspect top-level P&L summaries, monthly cash flow charts, and expense category distributions.",
+          inputs: ["Fiscal Year Quarter", "Comparison Basis"]
+        },
+        {
+          name: "Quality & RMA Failure Analytics",
+          desc: "Examine failure rate trends by battery SKU family to identify manufacturing batch defects.",
+          inputs: ["Product Model SKU", "Failure Type Classification"]
+        }
+      ],
+      checklist: [
+        "Verify that financial revenue figures reconcile with posted GST Tax Invoices.",
+        "Cross-reference failure timeline spikes with supplier raw material batch logs.",
+        "Export monthly executive summary reports for board review."
+      ],
+      qaTips: "If a specific battery model shows an RMA rate exceeding 2.5%, initiate an immediate design review with the R&D engineering team."
+    },
+    'super-admin': {
+      title: "16. Super Admin Control & Supabase Database Infrastructure",
+      flowCode: "SYS-ADMIN-5.0",
+      roleInvolved: "Super Admin / Lead Database Administrator",
+      objectives: [
+        "Manage real-time cloud synchronization between local state and Supabase PostgreSQL database.",
+        "Configure global ERP environment settings (GST percentages, default warranty terms, currency formats).",
+        "Manage user security accounts, role assignments, and credential reset policies.",
+        "Execute administrative database backups, SQL schema migrations, and system security audits."
+      ],
+      operations: [
+        {
+          name: "Supabase Cloud Sync Management",
+          desc: "Monitor live cloud synchronization status, execute manual database sync triggers, and review sync payloads.",
+          inputs: ["Manual Sync Trigger", "Sync Target Table", "Conflict Resolution Policy"]
+        },
+        {
+          name: "Global System Parameters Configuration",
+          desc: "Update core ERP constants including tax rates, company profile metadata, and security passphrases.",
+          inputs: ["GST Standard Rate (%)", "Default Warranty (Months)", "Admin Passphrase"]
+        }
+      ],
+      checklist: [
+        "Verify Supabase connection health before initiating major batch operations.",
+        "Backup database schemas before executing manual SQL script updates.",
+        "Audit user role permissions quarterly to enforce least-privilege security access."
+      ],
+      qaTips: "Always run SQL schema updates in a staging transaction first. Ensure administrative passphrases are rotated every 90 days."
     }
   };
 
@@ -534,7 +810,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
         s.role.toLowerCase().includes(searchQuery.toLowerCase())
       );
 
-  const selectedStepData = manualStepsDetails[activeStep];
+  const selectedStepData = manualStepsDetails[activeStep] || manualStepsDetails['dashboard'];
 
   return (
     <div id="user-manual-content-container" className="space-y-6 max-w-7xl mx-auto p-4 md:p-6 bg-slate-50 text-slate-800">
@@ -555,7 +831,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                 <div className={cn(
                   "inline-flex items-center gap-1.5 text-[10px] font-mono font-black py-1 px-3 rounded-full uppercase tracking-wider border",
                   (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.ADMIN)
-                    ? "bg-emerald-50 border-emerald-305 text-emerald-800"
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-800"
                     : "bg-amber-50 border-amber-300 text-amber-800"
                 )}>
                   <span>🔒 Access Level:</span>
@@ -564,10 +840,10 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
               )}
             </div>
             <h2 className="text-3xl md:text-4.5xl font-extrabold tracking-tight text-slate-900 uppercase">
-              Arcenol ERP <span className="text-sky-655 font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-700">OPERATIONS MANUAL</span>
+              Arcenol ERP <span className="text-sky-650 font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-600 to-blue-700">OPERATIONS MANUAL</span>
             </h2>
             <p className="text-[13px] text-slate-600 font-medium max-w-2xl leading-relaxed">
-              Step-by-step user manual with dynamic flowchart mapping. Click any step block to view precise screen walkthroughs, checklists, inputs, regulatory parameters, and supervisor guidelines.
+              Complete step-by-step operations manual covering all 16 plant modules and user panels. Click any step block below to view precise screen walkthroughs, checklists, inputs, regulatory parameters, and supervisor guidelines.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -590,7 +866,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                <BookOpen size={18} className="text-sky-600 shrink-0" />
                <div className="font-mono text-left">
                  <div className="text-[9px] text-slate-500 uppercase tracking-widest font-black">DOCUMENT REVISION</div>
-                 <div className="text-sm font-black text-slate-900 leading-none">V4.2 Light Stable</div>
+                 <div className="text-sm font-black text-slate-900 leading-none">V5.0 All-Panel Edition</div>
                </div>
              </div>
           </div>
@@ -603,14 +879,14 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold">🔍</span>
           <input 
             type="text"
-            placeholder="Search steps, operations, roles, or checkpoints..."
+            placeholder="Search steps, operations, roles, or checkpoints across all panels..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-slate-50 hover:bg-slate-100/50 border border-slate-300 pl-9 pr-4 py-2 rounded-lg text-xs font-bold leading-tight outline-none focus:ring-1 focus:ring-sky-500/40 focus:border-sky-500 focus:bg-white transition-all font-sans text-slate-800"
           />
         </div>
-        <div className="text-[11px] text-slate-655 font-extrabold uppercase tracking-widest flex items-center gap-2">
-          <span className="text-slate-600">Select any circular card below to fetch details</span>
+        <div className="text-[11px] text-slate-650 font-extrabold uppercase tracking-widest flex items-center gap-2">
+          <span className="text-slate-600">Select any module card below to view handbook details</span>
           <span className="w-1.5 h-1.5 bg-sky-500 rounded-full animate-ping"></span>
         </div>
       </div>
@@ -618,23 +894,23 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       {/* SECTION A: GRAPHICAL INTERACTIVE FLOW CHART (HIGHLY READABLE LIGHT SETUP) */}
       <div className="bg-white border border-slate-300 rounded-2xl p-6 md:p-8 shadow-xs relative overflow-hidden">
         <div className="absolute top-0 right-0 p-3 text-[9px] font-mono text-slate-400 font-black tracking-normal uppercase">
-          Dynamic Flow Engine-v1.3
+          Dynamic Flow Engine-v5.0
         </div>
         
         <div className="flex items-center gap-2.5 mb-6 border-b border-slate-150 pb-4 select-none">
           <div className="w-2 h-5 bg-gradient-to-b from-sky-500 to-blue-600 rounded"></div>
           <div>
             <h3 className="text-xs font-black text-slate-900 uppercase tracking-widest font-mono">
-              Ecosystem Operation Flow Chart
+              Complete Ecosystem Operations Flowchart (All 16 Panel Modules)
             </h3>
             <p className="text-[11px] text-slate-500 font-semibold leading-normal">
-              Linear material and inventory process map. Click on any block to load official control values and checklist parameters below.
+              Linear material, sales, billing, and operational process map. Click on any block to load official control values and checklist parameters below.
             </p>
           </div>
         </div>
 
         {/* The Live Interactive Grid connecting cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 relative z-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4 relative z-10">
           {filteredSteps.map((step, idx) => {
             const Icon = step.icon;
             const isSelected = activeStep === step.id;
@@ -644,7 +920,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                   type="button"
                   onClick={() => setActiveStep(step.id)}
                   className={cn(
-                    "w-full text-left p-4 rounded-xl border text-xs transition-all duration-300 flex flex-col h-full justify-between relative",
+                    "w-full text-left p-4 rounded-xl border text-xs transition-all duration-300 flex flex-col h-full justify-between relative cursor-pointer",
                     isSelected ? step.activeColor : step.color
                   )}
                   id={`manual-node-${step.id}`}
@@ -657,7 +933,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                       <Icon size={16} />
                     </div>
                     <span className="text-[9px] font-mono font-black text-slate-500 tracking-tighter bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                      STEP {idx + 1}
+                      PANEL {idx + 1}
                     </span>
                   </div>
 
@@ -674,10 +950,10 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                   </div>
                 </button>
 
-                {/* Draw graphical connector arrow between steps (for desktop layout) */}
+                {/* Draw graphical connector arrow between steps */}
                 {idx < filteredSteps.length - 1 && (
-                  <div className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-4 items-center justify-center pointer-events-none">
-                    <ArrowRight size={13} className="text-slate-400 animate-pulse" />
+                  <div className="hidden xl:flex absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-4 items-center justify-center pointer-events-none">
+                    <ArrowRight size={13} className="text-slate-400 opacity-60" />
                   </div>
                 )}
               </div>
@@ -689,7 +965,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
       {/* SECTION B: PLAYGROUND WALKTHROUGHS & STEPS DETAIL CORE */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        {/* Left Side: Selected Step Handbook Content (Crisp High-Contrast White Background) */}
+        {/* Left Side: Selected Step Handbook Content */}
         <div className="lg:col-span-8 bg-white border border-slate-300 rounded-2xl p-6 md:p-8 shadow-2xs space-y-6">
           {selectedStepData ? (
             <div className="space-y-6 text-left">
@@ -781,7 +1057,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
               {/* Light High-Contrast Operations Checklist Box */}
               <div className="space-y-3 bg-slate-50 text-slate-900 p-5 rounded-xl border border-slate-350">
                 <div className="flex items-center gap-2 text-slate-900 border-b border-slate-250 pb-2.5 mb-2.5 select-none">
-                  <FileText size={16} className="text-sky-655" />
+                  <FileText size={16} className="text-sky-650" />
                   <span className="text-xs font-black uppercase tracking-widest font-mono">Operations Checklist Rules</span>
                 </div>
                 <div className="space-y-2.5 select-text">
@@ -796,7 +1072,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
 
               {/* Industrial advice box */}
               <div className="border border-amber-300 bg-amber-50/50 p-4 rounded-xl flex gap-3 text-left">
-                <span className="text-xl text-amber-655 select-none">⚠️</span>
+                <span className="text-xl text-amber-600 select-none">⚠️</span>
                 <div className="space-y-1">
                   <h5 className="text-[11px] font-black uppercase tracking-wider text-amber-800 font-mono">Warehouse & QC Field Advice</h5>
                   <p className="text-xs text-amber-950 font-bold leading-relaxed">
@@ -814,7 +1090,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
           )}
         </div>
 
-        {/* Right Side: Role Clearance Reference Matrix (Completely Bright Style) */}
+        {/* Right Side: Role Clearance Reference Matrix */}
         <div className="lg:col-span-4 space-y-6">
           
           <div className="bg-white text-slate-900 rounded-2xl p-5 md:p-6 shadow-sm border border-slate-300 relative overflow-hidden text-left">
@@ -822,7 +1098,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
               <Truck size={80} className="text-slate-300" />
             </div>
             
-            <div className="flex items-center gap-25 mb-4 border-b border-slate-200 pb-4 select-none">
+            <div className="flex items-center gap-2.5 mb-4 border-b border-slate-200 pb-4 select-none">
               <UserCheck size={18} className="text-sky-600 shrink-0" />
               <div>
                 <h4 className="text-xs font-black uppercase tracking-widest font-mono text-slate-900">
@@ -856,7 +1132,7 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab }) => {
                     <div className="text-[10px] text-slate-600 font-bold truncate">{cred.email}</div>
                   </div>
 
-                  <p className="text-[10px] text-slate-655 leading-relaxed font-bold italic">
+                  <p className="text-[10px] text-slate-650 leading-relaxed font-bold italic">
                     {cred.scope}
                   </p>
                 </div>

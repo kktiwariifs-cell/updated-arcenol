@@ -25,15 +25,25 @@ import { InventoryHub } from './modules/InventoryHub';
 import { ManufacturingHub } from './modules/ManufacturingHub';
 import { CommandMenu } from './components/CommandMenu';
 const factoryAssemblyImg = '/src/assets/images/factory_assembly_1781177240715.png';
-import { Battery, Zap, ChevronRight, LayoutDashboard, Database, PieChart, Users, ReceiptIndianRupee, ShieldCheck, Wrench, BarChart3, Smartphone, Mail, Lock, Eye, EyeOff, AlertCircle, Globe, Moon, Sun, Check, Cloud, Star, Activity, ShieldAlert, Shield, ToggleLeft, ToggleRight, Laptop, Terminal, Layers, Menu } from 'lucide-react';
+import { Battery, Zap, ChevronRight, LayoutDashboard, Database, PieChart, Users, ReceiptIndianRupee, ShieldCheck, Wrench, BarChart3, Smartphone, Mail, Lock, Eye, EyeOff, AlertCircle, Globe, Moon, Sun, Check, Cloud, Star, Activity, ShieldAlert, Shield, ToggleLeft, ToggleRight, Laptop, Terminal, Layers, Menu, BookOpen } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useERPData } from './hooks/useERPData';
 
 export default function App() {
   const { user, loginWithCredentials, usersList, setUsersList } = useAuthStore();
-  const [activeTab, setActiveTab ] = useState(() => {
+  const [activeTab, setActiveTabRaw] = useState(() => {
     return localStorage.getItem('arcenol_active_tab') || 'dashboard';
   });
+  const [previousTab, setPreviousTab] = useState<string>('dashboard');
+
+  const setActiveTab = (newTab: string) => {
+    if (newTab !== 'user-manual' && activeTab !== 'user-manual') {
+      setPreviousTab(activeTab);
+    } else if (newTab === 'user-manual' && activeTab !== 'user-manual') {
+      setPreviousTab(activeTab);
+    }
+    setActiveTabRaw(newTab);
+  };
 
   useEffect(() => {
     if (activeTab) {
@@ -733,6 +743,16 @@ export default function App() {
             </div>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4 shrink-0">
+             {/* User Manual & SOP Quick Access Button */}
+             <button 
+                onClick={() => setActiveTab('user-manual')}
+                className="flex items-center space-x-1.5 px-3 py-2 bg-sky-50 hover:bg-sky-100 border border-sky-200 text-sky-800 rounded-xl transition duration-150 cursor-pointer text-[10px] font-black uppercase tracking-wider shadow-3xs hover:shadow-xs active:scale-95 shrink-0"
+                title="Open Operations & SOP User Manual"
+             >
+                <BookOpen size={14} className="text-sky-600 shrink-0" />
+                <span className="hidden sm:inline">User Manual & SOP</span>
+             </button>
+
              {/* Command Menu Pill Selector */}
              <button 
                 onClick={() => setIsCommandMenuOpen(true)}
@@ -760,7 +780,7 @@ export default function App() {
 
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {activeTab === 'dashboard' && <Dashboard setActiveTab={setActiveTab} activeTab={activeTab} />}
-          {activeTab === 'user-manual' && <UserManual setActiveTab={setActiveTab} />}
+          {activeTab === 'user-manual' && <UserManual setActiveTab={setActiveTab} previousTab={previousTab} />}
           {activeTab === 'landing-page' && <LandingPage isLoggedIn={true} />}
           {activeTab === 'management-kpi' && <ManagementKPI />}
           {activeTab === 'dealer-performance' && <DealerPerformance />}

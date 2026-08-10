@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const DEFAULT_SUPABASE_URL = "https://vuastgyyrscopjmnhaew.supabase.co";
-const DEFAULT_SUPABASE_KEY = "sb_publishable_4bkEqRrvnIrfc-szu_CDpw_tCs9ouIP";
+const DEFAULT_SUPABASE_URL = "https://zrycwwcnzaoqhhqkrhig.supabase.co";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_t8cKhGdESXfoBRnc0awuOA_XcyOk7tl";
 
 function getSanitizedSupabaseUrl(rawUrl?: any): string {
   if (typeof rawUrl !== 'string') return DEFAULT_SUPABASE_URL;
