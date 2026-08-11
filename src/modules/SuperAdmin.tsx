@@ -2182,144 +2182,7 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                       </thead>
                       <tbody className="divide-y divide-slate-100/60 bg-white">
                         {usersList.map((usr) => {
-                          const isEditingThisRow = isEditingUser === usr.id;
-                          const portalUrl = `${window.location.origin}/?portal=${encodeURIComponent(isEditingThisRow ? userForm.email : usr.email)}`;
-
-                          if (isEditingThisRow) {
-                            return (
-                              <tr key={usr.id} className="bg-sky-50/80 border-2 border-sky-400/60 shadow-md transition-all">
-                                <td className="p-3 pl-6">
-                                  <div className="space-y-1.5">
-                                    <span className="text-[9px] font-black uppercase text-sky-700 tracking-wider flex items-center gap-1">
-                                      <Edit size={10} /> Editing Operator Profile
-                                    </span>
-                                    <input
-                                      type="text"
-                                      value={userForm.name}
-                                      onChange={(e) => setUserForm(prev => ({ ...prev, name: e.target.value }))}
-                                      placeholder="Operator Name"
-                                      className="w-full bg-white border border-sky-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-900 outline-none focus:ring-2 focus:ring-sky-500"
-                                      id={`edit-usr-name-input-${usr.id}`}
-                                    />
-                                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                                      <div>
-                                        <span className="text-[8px] font-bold text-slate-500 uppercase block">Role</span>
-                                        <select
-                                          value={userForm.role}
-                                          onChange={(e) => setUserForm(prev => ({ ...prev, role: e.target.value as UserRole }))}
-                                          className="w-full bg-white border border-sky-300 rounded-lg px-1.5 py-1 text-[10px] font-bold text-slate-800"
-                                          id={`edit-usr-role-select-${usr.id}`}
-                                        >
-                                          <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
-                                          <option value={UserRole.ADMIN}>Ops Admin</option>
-                                          <option value={UserRole.STORE_KEEPER}>Inventory Logistics</option>
-                                          <option value={UserRole.PRODUCTION_TEAM}>Manufacturing</option>
-                                          <option value={UserRole.QUALITY_TEAM}>Quality Control</option>
-                                          <option value={UserRole.SALES_PERSON}>Sales CRM</option>
-                                          <option value={UserRole.BILLER}>Finance Hub</option>
-                                          <option value={UserRole.WARRANTY_TEAM}>Warranty Team</option>
-                                          <option value={UserRole.SERVICE_TEAM}>RMA Center</option>
-                                          <option value={UserRole.PLANT_SERVICE_ENGINEER}>Plant Engineer</option>
-                                        </select>
-                                      </div>
-                                      <div>
-                                        <span className="text-[8px] font-bold text-slate-500 uppercase block">Department</span>
-                                        <input
-                                          type="text"
-                                          value={userForm.department}
-                                          onChange={(e) => setUserForm(prev => ({ ...prev, department: e.target.value }))}
-                                          placeholder="Department"
-                                          className="w-full bg-white border border-sky-300 rounded-lg px-1.5 py-1 text-[10px] font-bold text-slate-800"
-                                          id={`edit-usr-dept-input-${usr.id}`}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <div className="space-y-1">
-                                    <span className="text-[8px] font-bold text-slate-500 uppercase block">Authorization Email</span>
-                                    <input
-                                      type="email"
-                                      value={userForm.email}
-                                      onChange={(e) => setUserForm(prev => ({ ...prev, email: e.target.value }))}
-                                      placeholder="email@domain.com"
-                                      className="w-full bg-white border border-sky-300 rounded-xl px-2.5 py-1.5 text-xs font-mono font-bold text-slate-900"
-                                      id={`edit-usr-email-input-${usr.id}`}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-mono text-slate-500 bg-white/80 px-2 py-1 rounded-lg border border-sky-200 max-w-[180px] truncate block" title={portalUrl}>
-                                      {portalUrl}
-                                    </span>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        navigator.clipboard.writeText(portalUrl);
-                                        setUserSuccess(`Portal URL copied!`);
-                                        setTimeout(() => setUserSuccess(''), 3000);
-                                      }}
-                                      className="p-1 hover:bg-white text-slate-500 rounded border border-sky-200 cursor-pointer"
-                                    >
-                                      <Copy size={11} />
-                                    </button>
-                                  </div>
-                                </td>
-                                <td className="p-3">
-                                  <div className="space-y-1">
-                                    <span className="text-[8px] font-bold text-slate-500 uppercase block">Security Passcode</span>
-                                    <input
-                                      type={revealedPasswords[usr.id] ? "text" : "password"}
-                                      value={userForm.password}
-                                      onChange={(e) => setUserForm(prev => ({ ...prev, password: e.target.value }))}
-                                      className="w-28 bg-white border border-sky-300 rounded-xl px-2 py-1.5 text-xs font-mono font-bold text-slate-900"
-                                      id={`edit-usr-pass-input-${usr.id}`}
-                                    />
-                                  </div>
-                                </td>
-                                <td className="p-3 text-right pr-6 space-y-1">
-                                  <div className="flex items-center justify-end gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        if (!userForm.name.trim() || !userForm.email.trim() || !userForm.password.trim()) {
-                                          setUserErrors('Name, email, and password are required.');
-                                          return;
-                                        }
-                                        const res = updateUser(usr.id, userForm);
-                                        if (res.success) {
-                                          setUserSuccess(`Operator ${userForm.name} changes saved successfully!`);
-                                          setIsEditingUser(null);
-                                          setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
-                                          setUserErrors('');
-                                        } else {
-                                          setUserErrors(res.error || 'Failed to save edits.');
-                                        }
-                                      }}
-                                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md cursor-pointer"
-                                      id={`save-usr-btn-${usr.id}`}
-                                    >
-                                      <Check size={12} /> Save
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setIsEditingUser(null);
-                                        setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
-                                        setUserErrors('');
-                                      }}
-                                      className="px-2.5 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-[10px] font-bold uppercase tracking-wider cursor-pointer"
-                                      id={`cancel-usr-btn-${usr.id}`}
-                                    >
-                                      <X size={12} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          }
+                          const portalUrl = `${window.location.origin}/?portal=${encodeURIComponent(usr.email)}`;
 
                           return (
                             <tr key={usr.id} className="hover:bg-slate-50/50 transition-colors">
@@ -2690,14 +2553,14 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                   return;
                 }
 
+                if (!isEditingUser) return;
+
                 const res = updateUser(isEditingUser, userForm);
                 if (res.success) {
                   setUserSuccess(`Operator ${userForm.name} updated successfully.`);
-                  setTimeout(() => {
-                    setIsEditingUser(null);
-                    setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
-                    setUserSuccess('');
-                  }, 1000);
+                  setIsEditingUser(null);
+                  setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+                  setTimeout(() => setUserSuccess(''), 4000);
                 } else {
                   setUserErrors(res.error || 'Failed to save changes.');
                 }
@@ -2783,8 +2646,25 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-sky-600/20 cursor-pointer transition-all"
+                  type="button"
+                  onClick={() => {
+                    if (!userForm.name.trim() || !userForm.email.trim() || !userForm.password.trim()) {
+                      setUserErrors('Operator name, email, and security pass are required.');
+                      return;
+                    }
+                    if (!isEditingUser) return;
+                    const res = updateUser(isEditingUser, userForm);
+                    if (res.success) {
+                      setUserSuccess(`Operator ${userForm.name} changes saved successfully!`);
+                      setIsEditingUser(null);
+                      setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+                      setTimeout(() => setUserSuccess(''), 4000);
+                    } else {
+                      setUserErrors(res.error || 'Failed to save changes.');
+                    }
+                  }}
+                  id="modal-save-operator-btn"
+                  className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-sky-600/20 cursor-pointer transition-all"
                 >
                   Save Operator Changes
                 </button>
