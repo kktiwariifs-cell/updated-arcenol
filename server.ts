@@ -5161,9 +5161,12 @@ async function startServer() {
     (db as any).users = (db as any).users || [];
     const index = (db as any).users.findIndex((u: any) => u.id === id);
     if (index !== -1) {
-      (db as any).users[index] = { ...(db as any).users[index], ...req.body };
+      (db as any).users[index] = { ...(db as any).users[index], ...req.body, id };
+    } else {
+      (db as any).users.push({ id, ...req.body });
     }
-    res.json((db as any).users[index] || req.body);
+    const target = (db as any).users.find((u: any) => u.id === id);
+    res.json(target || { id, ...req.body });
   });
 
   app.delete("/api/users/:id", (req, res) => {
