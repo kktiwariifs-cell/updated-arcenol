@@ -4087,15 +4087,18 @@ async function startServer() {
   });
 
   app.post("/api/purchase-orders", (req, res) => {
-    const { materialId, materialName, category, vendor, vendorContact, qty, unit, unitCost, estimatedDelivery, remarks, trackingNumber } = req.body;
+    const { materialId, materialName, category, vendor, vendorContact, qty, unit, unitCost, estimatedDelivery, remarks, trackingNumber, raisedByRole, isStoreKeeperRaised, status } = req.body;
     const poId = `PO-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
     
+    const isSk = raisedByRole === 'STORE_KEEPER' || isStoreKeeperRaised || status === 'Pending Admin Approval';
+    const poStatus = isSk ? "Pending Admin Approval" : (status || "Pending Supplier Confirmation");
+
     const newPO = {
       id: poId,
       materialId: materialId || `RM-${Date.now()}`,
       materialName: materialName || "Raw Material",
       category: category || "RAW_MATERIAL",
-      vendor: vendor || "Arcenol Supply Partner",
+      vendor: vendor || (isSk ? "Awaiting Admin Supplier Order" : "Arcenol Supply Partner"),
       vendorContact: vendorContact || "+91 98765 00000",
       qty: Number(qty || 100),
       unit: unit || "Pcs",
@@ -4103,9 +4106,11 @@ async function startServer() {
       totalAmount: Number(qty || 100) * Number(unitCost || 100),
       orderDate: new Date().toISOString().split('T')[0],
       estimatedDelivery: estimatedDelivery || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      status: "Pending Supplier Confirmation",
+      status: poStatus,
+      raisedByRole: isSk ? "STORE_KEEPER" : "ADMIN",
+      isStoreKeeperRaised: Boolean(isSk),
       trackingNumber: trackingNumber || `TRK-ARC-${Math.floor(1000 + Math.random() * 9000)}`,
-      remarks: remarks || "Generated via MRP Reorder Request"
+      remarks: remarks || (isSk ? "Low Stock Reorder Request raised by Store Keeper - Awaiting Admin Order" : "Generated via MRP Reorder Request")
     };
 
     if (!db.purchaseOrders) db.purchaseOrders = [];
@@ -4115,8 +4120,10 @@ async function startServer() {
     db.notifications.unshift({
       id: `n-${Date.now()}`,
       type: "SYSTEM",
-      title: `New PO Created: ${poId}`,
-      message: `Purchase Order ${poId} generated for ${newPO.materialName} (${newPO.qty} ${newPO.unit}) to ${newPO.vendor}.`,
+      title: isSk ? `Low Stock PO Request Raised: ${poId}` : `New PO Created: ${poId}`,
+      message: isSk 
+        ? `Store Keeper raised low stock PO ${poId} for ${newPO.materialName} (${newPO.qty} ${newPO.unit}). Pending Admin order placement.`
+        : `Purchase Order ${poId} generated for ${newPO.materialName} (${newPO.qty} ${newPO.unit}) to ${newPO.vendor}.`,
       date: new Date().toISOString(),
       status: "UNREAD",
       channel: "SYSTEM"
@@ -4264,31 +4271,66 @@ async function startServer() {
   });
 
   app.post("/api/inventory/bulk-reorder", (req, res) => {
-    const { orders } = req.body;
+    const { orders, raisedByRole, isStoreKeeperRaised } = req.body;
     if (!orders || !Array.isArray(orders)) {
       return res.status(400).json({ error: "INVALID_PARAMETERS", message: "Orders list is required and should be an array" });
     }
-    
+
+    if (!db.purchaseOrders) db.purchaseOrders = [];
     let updatedCount = 0;
-    orders.forEach((ord: any) => {
+
+    const isSk = raisedByRole === 'STORE_KEEPER' || isStoreKeeperRaised !== false;
+
+    orders.forEach((ord: any, idx: number) => {
       const item = db.inventory.find(i => i.id === ord.id);
-      if (item) {
-        item.qty += Number(ord.reorderQty || 0);
+      const qtyToReorder = Number(ord.reorderQty || 10);
+
+      if (isSk) {
+        // Create PO pending Admin approval
+        const poId = `PO-SK-${Date.now()}-${idx + 1}`;
+        const newPO = {
+          id: poId,
+          materialId: ord.id,
+          materialName: item?.name || ord.name || "Raw Material Component",
+          category: item?.category || "RAW_MATERIAL",
+          vendor: item?.supplier || "Awaiting Admin Supplier Assignment",
+          vendorContact: "+91 98765 00000",
+          qty: qtyToReorder,
+          unit: item?.unit || "Pcs",
+          unitCost: Number(item?.price || 100),
+          totalAmount: qtyToReorder * Number(item?.price || 100),
+          orderDate: new Date().toISOString().split('T')[0],
+          estimatedDelivery: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+          status: "Pending Admin Approval",
+          raisedByRole: "STORE_KEEPER",
+          isStoreKeeperRaised: true,
+          trackingNumber: `TRK-SK-${Math.floor(1000 + Math.random() * 9000)}`,
+          remarks: "Low Stock Reorder Request raised by Store Keeper - Awaiting Admin Order"
+        };
+        db.purchaseOrders.unshift(newPO);
         updatedCount++;
+      } else {
+        // Admin directly updating inventory stock
+        if (item) {
+          item.qty += qtyToReorder;
+          updatedCount++;
+        }
       }
     });
 
-    db.notifications.push({
+    db.notifications.unshift({
       id: `n-${Date.now()}`,
       type: "BULK_REORDER",
-      title: "Bulk Reorder Dispatched",
-      message: `Authorized replenishment of ${updatedCount} low-stock material nodes. Raw ledger balances adjusted.`,
+      title: isSk ? "Low Stock PO Requests Submitted to Admin" : "Bulk Reorder Dispatched",
+      message: isSk 
+        ? `Store Keeper raised low stock PO requests for ${updatedCount} materials. Pending Admin supplier order placement.`
+        : `Authorized replenishment of ${updatedCount} low-stock material nodes. Raw ledger balances adjusted.`,
       date: new Date().toISOString(),
       status: "UNREAD",
       channel: "SYSTEM"
     });
 
-    res.json({ success: true, updatedItemsCount: updatedCount });
+    res.json({ success: true, updatedItemsCount: updatedCount, isStoreKeeperRaised: isSk });
   });
 
   app.delete("/api/inventory/:id", (req, res) => {

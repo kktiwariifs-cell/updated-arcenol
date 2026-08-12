@@ -3268,32 +3268,58 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       }
     } else if (urlStr.includes('/api/inventory/bulk-reorder')) {
       if (method === 'POST' && body) {
-        const { orders } = body;
+        const { orders, raisedByRole, isStoreKeeperRaised } = body;
         let updatedCount = 0;
-        const reorderedItems: any[] = [];
+        const isSk = raisedByRole === 'STORE_KEEPER' || isStoreKeeperRaised !== false;
+        if (!db.purchaseOrders) db.purchaseOrders = [];
+
         if (orders && Array.isArray(orders)) {
-          orders.forEach((ord: any) => {
+          orders.forEach((ord: any, idx: number) => {
             const item = db.inventory.find((i: any) => i.id === ord.id);
-            if (item) {
-              item.qty += Number(ord.reorderQty || 0);
+            const qtyToReorder = Number(ord.reorderQty || 10);
+            if (isSk) {
+              const poId = `PO-SK-${Date.now()}-${idx + 1}`;
+              const newPO = {
+                id: poId,
+                materialId: ord.id,
+                materialName: item?.name || ord.name || "Raw Material Component",
+                category: item?.category || "RAW_MATERIAL",
+                vendor: item?.supplier || "Awaiting Admin Supplier Assignment",
+                vendorContact: "+91 98765 00000",
+                qty: qtyToReorder,
+                unit: item?.unit || "Pcs",
+                unitCost: Number(item?.price || 100),
+                totalAmount: qtyToReorder * Number(item?.price || 100),
+                orderDate: new Date().toISOString().split('T')[0],
+                estimatedDelivery: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+                status: "Pending Admin Approval",
+                raisedByRole: "STORE_KEEPER",
+                isStoreKeeperRaised: true,
+                trackingNumber: `TRK-SK-${Math.floor(1000 + Math.random() * 9000)}`,
+                remarks: "Low Stock Reorder Request raised by Store Keeper - Awaiting Admin Order"
+              };
+              db.purchaseOrders.unshift(newPO);
               updatedCount++;
-              reorderedItems.push(item);
+            } else if (item) {
+              item.qty += qtyToReorder;
+              updatedCount++;
             }
           });
         }
         if (!db.notifications) db.notifications = [];
-        db.notifications.push({
+        db.notifications.unshift({
           id: `n-${Date.now()}`,
           type: "BULK_REORDER",
-          title: "Bulk Reorder Dispatched",
-          message: `Authorized replenishment of ${updatedCount} low-stock material nodes. Raw ledger balances adjusted.`,
+          title: isSk ? "Low Stock PO Requests Submitted to Admin" : "Bulk Reorder Dispatched",
+          message: isSk 
+            ? `Store Keeper raised low stock PO requests for ${updatedCount} materials. Pending Admin supplier order placement.`
+            : `Authorized replenishment of ${updatedCount} low-stock material nodes. Raw ledger balances adjusted.`,
           date: new Date().toISOString(),
           status: "UNREAD",
           channel: "SYSTEM"
         });
         saveLocalDB(db);
-        if (reorderedItems.length > 0) syncBulkInventoryToSupabase(reorderedItems);
-        responseData = { success: true, updatedItemsCount: updatedCount };
+        responseData = { success: true, updatedItemsCount: updatedCount, isStoreKeeperRaised: isSk };
       }
     } else if (urlStr.includes('/api/inventory/')) {
       const id = urlStr.split('/api/inventory/')[1];

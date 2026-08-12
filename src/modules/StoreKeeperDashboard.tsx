@@ -13,6 +13,8 @@ import { useAuthStore, UserRole } from '../store/authStore';
 
 export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeTab }) => {
   const { user } = useAuthStore();
+  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN;
+  const isStoreKeeper = user?.role === UserRole.STORE_KEEPER || !isAdmin;
   const { data, loading, refetch } = useERPData();
   const [activeView, setActiveView] = useState<'overview' | 'raw-material'>(
     activeTab === 'raw-material-dashboard' ? 'raw-material' : 'overview'
@@ -410,6 +412,8 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          raisedByRole: isStoreKeeper ? 'STORE_KEEPER' : 'ADMIN',
+          isStoreKeeperRaised: isStoreKeeper,
           orders: activeOrders.map(item => ({
             id: item.id,
             reorderQty: Number(item.reorderQty)
@@ -421,6 +425,11 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
           await refetch();
         }
         setBulkReorderModalOpen(false);
+        if (isStoreKeeper) {
+          alert('✅ Low stock Purchase Order requisition submitted to Admin! Admin will place order with actual supplier.');
+        } else {
+          alert('✅ Bulk reorder completed successfully.');
+        }
       } else {
         const errorData = await res.json();
         alert(errorData.message || 'Failed to dispatch bulk reorder');
@@ -663,10 +672,12 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                          <p className="text-xl font-bold text-slate-900 mb-1 text-left">{wh.name}</p>
                       )}
                       <div className="mt-4 border-t border-slate-100/65 pt-4 space-y-3">
-                         <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider">
-                            <span className="text-slate-400">Raw Valuation</span>
-                            <span className="text-slate-800 text-xs font-bold">{formatCurrency(wh.rawValue)}</span>
-                         </div>
+                         {isAdmin && (
+                            <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider">
+                               <span className="text-slate-400">Raw Valuation</span>
+                               <span className="text-slate-800 text-xs font-bold">{formatCurrency(wh.rawValue)}</span>
+                            </div>
+                         )}
                          <div className="flex justify-between items-center text-[10px] font-extrabold uppercase tracking-wider">
                             <span className="text-slate-400">FG Serialized</span>
                             <span className="text-slate-800 text-xs font-bold">{wh.fgCount} UNITS</span>
@@ -1241,7 +1252,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                             "text-[9px] font-bold block mt-0.5",
                                             isSelected ? "text-cyan-100" : "text-slate-400"
                                          )}>
-                                            Value: {formatCurrency(warehouseValue)}
+                                            {isAdmin ? `Value: ${formatCurrency(warehouseValue)}` : `${activeCount} Material SKUs`}
                                          </span>
                                       </div>
                                    </div>
@@ -1470,7 +1481,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                                                  <p className="text-white truncate font-black">{hasItem.name}</p>
                                                                  <p className="text-slate-400">SKU/Serial: {hasItem.code}</p>
                                                                  <p className="text-white font-black text-indigo-200">Qty: {(hasItem.qty || 1).toLocaleString()} {hasItem.unit || 'Pcs'}</p>
-                                                                 <p className="text-emerald-400 font-bold">Val: {formatCurrency((hasItem.qty || 1) * (hasItem.price || 0))}</p>
+                                                                 {isAdmin && <p className="text-emerald-400 font-bold">Val: {formatCurrency((hasItem.qty || 1) * (hasItem.price || 0))}</p>}
                                                               </div>
                                                            ) : (
                                                               <p className="mt-1 text-slate-400 font-semibold">Ready for bin storage assignment.</p>
@@ -1862,9 +1873,9 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                                          </span>
                                       </div>
                                       <div className="bg-white border p-3.5 rounded-xl">
-                                         <span className="text-[8px] text-slate-400 block uppercase font-black">Book Valuation</span>
+                                         <span className="text-[8px] text-slate-400 block uppercase font-black">{isAdmin ? 'Book Valuation' : 'Storage Batch'}</span>
                                          <span className="font-black text-slate-900 mt-1 block text-emerald-650 text-xs text-left">
-                                            {formatCurrency(selectedItem.qty * (selectedItem.price || 0))}
+                                            {isAdmin ? formatCurrency(selectedItem.qty * (selectedItem.price || 0)) : (selectedItem.batch || 'BATCH-001')}
                                          </span>
                                       </div>
                                    </div>

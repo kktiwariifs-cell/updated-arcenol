@@ -20,6 +20,7 @@ import {
 
 export const Inventory: React.FC = () => {
   const { user } = useAuthStore();
+  const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN;
   const { data, loading, refetch } = useERPData();
   const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories'>('dashboard');
   const [search, setSearch] = useState('');
@@ -121,6 +122,9 @@ export const Inventory: React.FC = () => {
 
   const filteredPurchaseOrders = useMemo(() => {
     return purchaseOrdersList.filter((po: any) => {
+      if (!isAdmin && (po.status === 'Pending Admin Approval' || po.isStoreKeeperRaised)) {
+        return false;
+      }
       const matchesSearch = !poSearch || 
         po.id.toLowerCase().includes(poSearch.toLowerCase()) ||
         po.materialName.toLowerCase().includes(poSearch.toLowerCase()) ||
@@ -129,7 +133,7 @@ export const Inventory: React.FC = () => {
       const matchesStatus = poStatusFilter === 'ALL' || po.status === poStatusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [purchaseOrdersList, poSearch, poStatusFilter]);
+  }, [purchaseOrdersList, poSearch, poStatusFilter, isAdmin]);
 
   const handleUpdatePoStatus = async (poId: string, newStatus: string) => {
     try {
@@ -168,11 +172,14 @@ export const Inventory: React.FC = () => {
           unit: poUnit,
           unitCost: poUnitCost,
           estimatedDelivery: poEstDelivery || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-          remarks: poRemarks
+          remarks: poRemarks,
+          raisedByRole: isAdmin ? 'ADMIN' : 'STORE_KEEPER',
+          isStoreKeeperRaised: !isAdmin,
+          status: isAdmin ? 'Pending Supplier Confirmation' : 'Pending Admin Approval'
         })
       });
       if (res.ok) {
-        alert(`✅ Purchase Order created successfully!`);
+        alert(isAdmin ? `✅ Purchase Order created successfully!` : `✅ Low stock Purchase Order request submitted to Admin! Admin will place order with actual supplier.`);
         setIsCreatePoModalOpen(false);
         setPoMaterialName('');
         setPoVendor('');
@@ -467,8 +474,6 @@ export const Inventory: React.FC = () => {
   const [defaultRmWarehouse, setDefaultRmWarehouse] = useState('Raw Hub');
   const [defaultRmSupplier, setDefaultRmSupplier] = useState('Global Metals');
   const [defaultRmUnit, setDefaultRmUnit] = useState('Kg');
-
-  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   useEffect(() => {
     if (data?.inventory && data.inventory.length > 0 && !selectedExistingId) {
@@ -1690,7 +1695,7 @@ export const Inventory: React.FC = () => {
     { title: "MRP RESERVATION & ALLOCATION", desc: "BOM dynamic locking mechanism", metric: `${reservedQtySum} Reserved items`, icon: Sliders, color: "text-cyan-500", bg: "bg-cyan-50", action: () => { setActiveTab('mrp'); } },
     { title: "SEMI-FINISHED INVENTORY", desc: "WIP welded modules & calibrated circuit", metric: `${data?.wipInventory?.length || 0} Batches Active`, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-50", action: () => { setActiveTab('wip'); } },
     { title: "FINAL PRODUCT INVENTORY", desc: "Pack assembly complete certified lots", metric: `${data?.finishedGoods?.length || 0} Finished Packs`, icon: CheckCircle2, color: "text-sky-500", bg: "bg-sky-50", action: () => { setIsFinalInventoryModalOpen(true); } },
-    { title: "DISPATCH / SALES LEDGER", desc: "E-Way bills, outbound commercial invoices", metric: `${data?.invoices?.length || 0} Invoices Generated`, icon: History, color: "text-teal-500", bg: "bg-teal-50", action: () => { setIsSalesLedgerModalOpen(true); } },
+    ...(isAdmin ? [{ title: "DISPATCH / SALES LEDGER", desc: "E-Way bills, outbound commercial invoices", metric: `${data?.invoices?.length || 0} Invoices Generated`, icon: History, color: "text-teal-500", bg: "bg-teal-50", action: () => { setIsSalesLedgerModalOpen(true); } }] : []),
     { title: "RMA SERVICE RETURN", desc: "Defective disassembly reprocessing line", metric: `${data?.complaints?.length || 0} Incidents Logs`, icon: RefreshCw, color: "text-pink-500", bg: "bg-pink-50", action: () => { setIsRmaModalOpen(true); } },
   ];
 
@@ -1838,11 +1843,13 @@ export const Inventory: React.FC = () => {
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
             
-            <div className="bg-white p-4 sm:p-5 lg:p-4 xl:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-xs hover:border-primary-300 transition-all group min-w-0 overflow-hidden">
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 truncate">Total Asset Value</p>
-              <h4 className="text-lg sm:text-xl lg:text-base xl:text-xl 2xl:text-2xl font-black text-slate-800 mt-2 tracking-tighter italic font-mono truncate max-w-full block" title={formatCurrency(totalValuation)}>{formatCurrency(totalValuation)}</h4>
-              <span className="text-[8px] bg-primary-50 text-primary-600 px-2 py-0.5 rounded-md font-bold uppercase mt-3 inline-block shrink-0">100% Audited</span>
-            </div>
+            {isAdmin && (
+              <div className="bg-white p-4 sm:p-5 lg:p-4 xl:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-xs hover:border-primary-300 transition-all group min-w-0 overflow-hidden">
+                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 truncate">Total Asset Value</p>
+                <h4 className="text-lg sm:text-xl lg:text-base xl:text-xl 2xl:text-2xl font-black text-slate-800 mt-2 tracking-tighter italic font-mono truncate max-w-full block" title={formatCurrency(totalValuation)}>{formatCurrency(totalValuation)}</h4>
+                <span className="text-[8px] bg-primary-50 text-primary-600 px-2 py-0.5 rounded-md font-bold uppercase mt-3 inline-block shrink-0">100% Audited</span>
+              </div>
+            )}
 
             <div className="bg-white p-4 sm:p-5 lg:p-4 xl:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200/80 shadow-xs hover:border-emerald-300 transition-all group min-w-0 overflow-hidden">
               <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 truncate">Available Stock Qty</p>
@@ -2097,6 +2104,7 @@ export const Inventory: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               {[
                 { id: 'ALL', label: 'All POs' },
+                ...(isAdmin ? [{ id: 'Pending Admin Approval', label: 'Pending Admin Approval' }] : []),
                 { id: 'Pending Supplier Confirmation', label: 'Pending Confirmation' },
                 { id: 'In Transit', label: 'In Transit' },
                 { id: 'Arrived at Gate', label: 'Arrived at Gate' },
@@ -2180,19 +2188,31 @@ export const Inventory: React.FC = () => {
                         <div className="flex flex-col gap-2">
                           <span className={cn(
                             "inline-flex items-center px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider w-fit",
+                            (po.status === 'Pending Admin Approval' || po.isStoreKeeperRaised) && "bg-amber-100 text-amber-800 border border-amber-200",
                             po.status === 'Pending Supplier Confirmation' && "bg-amber-100 text-amber-800 border border-amber-200",
                             po.status === 'In Transit' && "bg-blue-100 text-blue-800 border border-blue-200",
                             po.status === 'Arrived at Gate' && "bg-purple-100 text-purple-800 border border-purple-200",
                             po.status === 'GRN Received' && "bg-emerald-100 text-emerald-800 border border-emerald-200"
                           )}>
                             {po.status === 'In Transit' && <Truck size={12} className="mr-1.5" />}
-                            {po.status === 'Pending Supplier Confirmation' && <Clock size={12} className="mr-1.5" />}
+                            {(po.status === 'Pending Supplier Confirmation' || po.status === 'Pending Admin Approval') && <Clock size={12} className="mr-1.5" />}
                             {po.status === 'Arrived at Gate' && <ShieldCheck size={12} className="mr-1.5" />}
                             {po.status === 'GRN Received' && <CheckCircle2 size={12} className="mr-1.5" />}
                             {po.status}
                           </span>
 
                           {/* Action Status Progression Buttons */}
+                          {(po.status === 'Pending Admin Approval' || po.isStoreKeeperRaised) && isAdmin && (
+                            <button
+                              onClick={() => {
+                                handleUpdatePoStatus(po.id, 'Pending Supplier Confirmation');
+                                alert('✅ Requisition approved and order placed to supplier!');
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm cursor-pointer flex items-center gap-1"
+                            >
+                              <CheckCircle2 size={12} /> Approve & Place Supplier Order
+                            </button>
+                          )}
                           {po.status === 'Pending Supplier Confirmation' && (
                             <button
                               onClick={() => handleUpdatePoStatus(po.id, 'In Transit')}
@@ -2523,12 +2543,21 @@ export const Inventory: React.FC = () => {
                          </div>
 
                          <div className="flex justify-between items-center pt-1">
-                            <div>
-                               <span className="text-[8px] text-slate-400 uppercase tracking-widest block font-sans font-bold text-left">Valuation</span>
-                               <span className="font-black italic text-slate-800 text-xs mt-0.5 block">
-                                  {formatCurrency(item.qty * (item.price || 150))}
-                               </span>
-                            </div>
+                            {isAdmin ? (
+                               <div>
+                                  <span className="text-[8px] text-slate-400 uppercase tracking-widest block font-sans font-bold text-left">Valuation</span>
+                                  <span className="font-black italic text-slate-800 text-xs mt-0.5 block">
+                                     {formatCurrency(item.qty * (item.price || 150))}
+                                  </span>
+                               </div>
+                            ) : (
+                               <div>
+                                  <span className="text-[8px] text-slate-400 uppercase tracking-widest block font-sans font-bold text-left">Category</span>
+                                  <span className="font-bold text-slate-700 text-xs mt-0.5 block uppercase">
+                                     {item.category || 'RAW_MATERIAL'}
+                                  </span>
+                               </div>
+                            )}
                             
                             <div className="flex items-center space-x-1.5">
                                <button 
@@ -2589,7 +2618,7 @@ export const Inventory: React.FC = () => {
                     <th className="px-6 py-5">QC Status</th>
                     <th className="px-6 py-5">Storage Location</th>
                     <th className="px-6 py-5">Active Quantity</th>
-                    <th className="px-6 py-5">Valuation</th>
+                    {isAdmin && <th className="px-6 py-5">Valuation</th>}
                     <th className="px-6 py-5 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -2647,9 +2676,11 @@ export const Inventory: React.FC = () => {
                             <span className="text-[8px] font-bold text-slate-400 block uppercase">Min ROL: {item.minStock || 100}</span>
                           </div>
                         </td>
-                        <td className="px-8 py-6 font-black italic text-slate-800">
-                          {formatCurrency(item.qty * (item.price || 150))}
-                        </td>
+                        {isAdmin && (
+                          <td className="px-8 py-6 font-black italic text-slate-800">
+                            {formatCurrency(item.qty * (item.price || 150))}
+                          </td>
+                        )}
                         <td className="px-8 py-6 text-right">
                           <div className="flex items-center justify-end space-x-2">
                             <button 

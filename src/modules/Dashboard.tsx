@@ -74,7 +74,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ setActiveTab, activeTab })
       color: 'text-primary-600', 
       trend: '+12.4%', 
       detail: 'Raw Materials + WIP',
-      roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM, UserRole.BILLER]
+      roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN]
     },
     { 
       label: 'Active Assets', 

@@ -27,6 +27,7 @@ interface BillingProps {
 export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
   const { user: currentUser } = useAuthStore();
+  const isAdmin = currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.ADMIN;
   const [view, setView] = useState<'list' | 'create'>('list');
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'parties' | 'tax'>('dashboard');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1046,13 +1047,15 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Suppliers credit ledger</p>
               </div>
 
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white shadow-sm col-span-2 lg:col-span-1">
-                <span className="text-[9px] font-black text-primary-400 uppercase tracking-wider flex items-center gap-1">
-                  <ShoppingBag size={10} className="text-primary-400" /> Stock Valuation
-                </span>
-                <p className="text-lg sm:text-xl lg:text-base xl:text-lg 2xl:text-xl font-mono font-black text-white mt-1.5 tracking-tight truncate" title={formatCurrency(dynamicStockValuation)}>{formatCurrency(dynamicStockValuation)}</p>
-                <p className="text-[8px] font-bold text-primary-300 uppercase tracking-widest mt-0.5">Computed asset value</p>
-              </div>
+              {isAdmin && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-slate-900 text-white shadow-sm col-span-2 lg:col-span-1">
+                  <span className="text-[9px] font-black text-primary-400 uppercase tracking-wider flex items-center gap-1">
+                    <ShoppingBag size={10} className="text-primary-400" /> Stock Valuation
+                  </span>
+                  <p className="text-lg sm:text-xl lg:text-base xl:text-lg 2xl:text-xl font-mono font-black text-white mt-1.5 tracking-tight truncate" title={formatCurrency(dynamicStockValuation)}>{formatCurrency(dynamicStockValuation)}</p>
+                  <p className="text-[8px] font-bold text-primary-300 uppercase tracking-widest mt-0.5">Computed asset value</p>
+                </div>
+              )}
             </div>
           )}
 
