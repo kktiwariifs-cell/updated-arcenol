@@ -124,21 +124,23 @@ export const Service: React.FC = () => {
              </p>
           </div>
         </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-3xl border border-slate-200 backdrop-blur-md overflow-x-auto max-w-full">
+        <div className="flex bg-slate-100/90 p-1.5 rounded-3xl border border-slate-200 backdrop-blur-md overflow-x-auto max-w-full gap-1">
             {[
-              { id: 'dashboard', label: 'Monitor', icon: Activity },
-
-              { id: 'analytics', label: 'Failure Analysis', icon: Microscope },
+              { id: 'dashboard', label: 'Monitor & RMA Tickets', icon: Activity, color: 'bg-rose-500', activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700' },
+              { id: 'analytics', label: 'Failure & MTBF Analysis', icon: Microscope, color: 'bg-red-500', activeClass: 'bg-red-600 text-white shadow-lg shadow-red-200 border-red-700' },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => handleAction(`Switch to ${tab.label}`, () => setView(tab.id as any))}
                 className={cn(
-                  "flex items-center px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer shrink-0",
-                  view === tab.id ? "bg-emerald-600 text-white shadow-lg scale-[1.02]" : "text-slate-500 hover:text-slate-400"
+                  "flex items-center px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer shrink-0 border",
+                  view === tab.id
+                    ? cn(tab.activeClass, "scale-[1.02]")
+                    : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
                 )}
               >
-                <tab.icon size={14} className="mr-2" />
+                <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
+                <tab.icon size={14} className="mr-2 shrink-0" />
                 {tab.label}
               </button>
             ))}

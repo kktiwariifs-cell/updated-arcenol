@@ -37,44 +37,44 @@ const navigation = [
     title: 'ADMINISTRATION',
     accentColor: 'bg-amber-400',
     items: [
-      { id: 'super-admin', label: 'SUPER ADMIN PANEL', icon: Settings, roles: [UserRole.SUPER_ADMIN] },
+      { id: 'super-admin', label: 'SUPER ADMIN PANEL', icon: Settings, itemColor: 'bg-amber-400', roles: [UserRole.SUPER_ADMIN] },
     ]
   },
   {
     title: 'OVERVIEW',
     accentColor: 'bg-cyan-400',
     items: [
-      { id: 'dashboard', label: 'Overview Monitoring', icon: LayoutDashboard, roles: Object.values(UserRole) },
-      { id: 'management-kpi', label: 'MANAGEMENT KPI', icon: BarChart3, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
-      { id: 'dealer-performance', label: 'DEALER PERFORMANCE', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
-      { id: 'regional-sales', label: 'REGIONAL SALES FLOW', icon: Map, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
-      { id: 'alerts', label: 'OPERATIONAL ALERTS', icon: Bell, roles: Object.values(UserRole) },
+      { id: 'dashboard', label: 'Overview Monitoring', icon: LayoutDashboard, itemColor: 'bg-cyan-400', roles: Object.values(UserRole) },
+      { id: 'management-kpi', label: 'MANAGEMENT KPI', icon: BarChart3, itemColor: 'bg-indigo-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+      { id: 'dealer-performance', label: 'DEALER PERFORMANCE', icon: Users, itemColor: 'bg-sky-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
+      { id: 'regional-sales', label: 'REGIONAL SALES FLOW', icon: Map, itemColor: 'bg-teal-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
+      { id: 'alerts', label: 'OPERATIONAL ALERTS', icon: Bell, itemColor: 'bg-orange-400', roles: Object.values(UserRole) },
     ]
   },
   {
     title: 'OPERATIONS',
     accentColor: 'bg-emerald-400',
     items: [
-      { id: 'inventory-hub', label: 'STORES & INVENTORY HUB', icon: Layers, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
-      { id: 'production-hub', label: 'MANUFACTURING FLOOR', icon: Factory, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER] },
+      { id: 'inventory-hub', label: 'STORES & INVENTORY HUB', icon: Layers, itemColor: 'bg-amber-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
+      { id: 'production-hub', label: 'MANUFACTURING FLOOR', icon: Factory, itemColor: 'bg-purple-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER] },
     ]
   },
   {
     title: 'COMMERCIALS',
     accentColor: 'bg-purple-400',
     items: [
-      { id: 'crm', label: 'CRM & SALES', icon: Users, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
-      { id: 'billing', label: 'BILLING & ACCOUNTS', icon: ReceiptIndianRupee, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.BILLER] },
+      { id: 'crm', label: 'CRM & SALES', icon: Users, itemColor: 'bg-cyan-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
+      { id: 'billing', label: 'BILLING & ACCOUNTS', icon: ReceiptIndianRupee, itemColor: 'bg-emerald-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.BILLER] },
     ]
   },
   {
     title: 'POST SALES',
     accentColor: 'bg-rose-400',
     items: [
-      { id: 'warranty', label: 'WARRANTY MANAGEMENT', icon: ShieldCheck, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.WARRANTY_TEAM] },
-      { id: 'engagement', label: 'CUSTOMER ENGAGEMENT', icon: Smartphone, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
-      { id: 'service', label: 'SERVICE CENTER', icon: Wrench, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SERVICE_TEAM, UserRole.PLANT_SERVICE_ENGINEER] },
-      { id: 'analytics', label: 'ANALYTICS REPORTING', icon: BarChart3, roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+      { id: 'warranty', label: 'WARRANTY MANAGEMENT', icon: ShieldCheck, itemColor: 'bg-violet-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.WARRANTY_TEAM] },
+      { id: 'engagement', label: 'CUSTOMER ENGAGEMENT', icon: Smartphone, itemColor: 'bg-pink-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
+      { id: 'service', label: 'SERVICE CENTER', icon: Wrench, itemColor: 'bg-rose-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SERVICE_TEAM, UserRole.PLANT_SERVICE_ENGINEER] },
+      { id: 'analytics', label: 'ANALYTICS REPORTING', icon: BarChart3, itemColor: 'bg-blue-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     ]
   },
 ];
@@ -195,6 +195,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, mobil
                       {activeTab === item.id && (
                         <div className="absolute left-0 w-1.5 h-5 bg-primary-600 rounded-r-full shadow-lg" />
                       )}
+                      <span className={cn("w-1.5 h-1.5 rounded-full mr-2 shrink-0 transition-transform group-hover:scale-125", item.itemColor || 'bg-white/50')} />
                       <item.icon size={16} className={cn(
                         "transition-all duration-300 group-hover:scale-110 shrink-0",
                         activeTab === item.id ? "text-primary-600" : "text-white/70 group-hover:text-white"

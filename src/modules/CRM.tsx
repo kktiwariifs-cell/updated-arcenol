@@ -1447,63 +1447,31 @@ export const CRM: React.FC = () => {
       {/* Header & Internal Nav */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex bg-slate-100 p-1 rounded-2xl w-fit mb-4 border border-slate-200 relative z-10 backdrop-blur-sm overflow-x-auto max-w-full">
-            <button
-              onClick={() =>
-                handleAction("View Enquiries", () =>
-                  setActiveSubTab("enquiries"),
-                )
-              }
-              className={cn(
-                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-                activeSubTab === "enquiries"
-                  ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/20"
-                  : "text-slate-500 hover:text-slate-900",
-              )}
-            >
-              New Enquiries
-            </button>
-            <button
-              onClick={() =>
-                handleAction("View Pipeline", () => setActiveSubTab("leads"))
-              }
-              className={cn(
-                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-                activeSubTab === "leads"
-                  ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/20"
-                  : "text-slate-500 hover:text-slate-900",
-              )}
-            >
-              Lead Pipeline
-            </button>
-            <button
-              onClick={() =>
-                handleAction("View Dealers", () => setActiveSubTab("dealers"))
-              }
-              className={cn(
-                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-                activeSubTab === "dealers"
-                  ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/20"
-                  : "text-slate-500 hover:text-slate-900",
-              )}
-            >
-              Dealer Registry
-            </button>
-            <button
-              onClick={() =>
-                handleAction("View Analytics", () =>
-                  setActiveSubTab("performance"),
-                )
-              }
-              className={cn(
-                "px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-                activeSubTab === "performance"
-                  ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/20"
-                  : "text-slate-500 hover:text-slate-900",
-              )}
-            >
-              Dealer Performance
-            </button>
+          <div className="flex bg-slate-100/90 p-1.5 rounded-2xl w-fit mb-4 border border-slate-200 relative z-10 backdrop-blur-sm overflow-x-auto max-w-full gap-1">
+            {[
+              { id: "enquiries", label: "New Enquiries", color: "bg-amber-500", activeClass: "bg-amber-500 text-white shadow-lg shadow-amber-200 border-amber-600" },
+              { id: "leads", label: "Lead Pipeline", color: "bg-sky-500", activeClass: "bg-sky-600 text-white shadow-lg shadow-sky-200 border-sky-700" },
+              { id: "dealers", label: "Dealer Registry", color: "bg-cyan-500", activeClass: "bg-cyan-600 text-white shadow-lg shadow-cyan-200 border-cyan-700" },
+              { id: "performance", label: "Dealer Performance", color: "bg-violet-500", activeClass: "bg-violet-600 text-white shadow-lg shadow-violet-200 border-violet-700" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() =>
+                  handleAction(`View ${tab.label}`, () =>
+                    setActiveSubTab(tab.id as any),
+                  )
+                }
+                className={cn(
+                  "flex items-center px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 cursor-pointer border shrink-0",
+                  activeSubTab === tab.id
+                    ? cn(tab.activeClass, "scale-[1.02]")
+                    : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs",
+                )}
+              >
+                <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, activeSubTab === tab.id ? "bg-white animate-pulse" : "")} />
+                {tab.label}
+              </button>
+            ))}
           </div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">
             {activeSubTab === "enquiries"

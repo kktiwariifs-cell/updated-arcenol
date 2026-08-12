@@ -1755,29 +1755,30 @@ export const Inventory: React.FC = () => {
       </div>
 
       {/* Modern Horizontal Navigation Tabs */}
-      <div className="flex space-x-1 p-1 bg-slate-100/80 rounded-[2rem] border border-slate-200/50 w-full overflow-x-auto whitespace-nowrap scrollbar-none shadow-inner">
+      <div className="flex space-x-1.5 p-1.5 bg-slate-100/90 rounded-[2rem] border border-slate-200/60 w-full overflow-x-auto whitespace-nowrap scrollbar-none shadow-inner">
         {[
-          { id: 'dashboard', label: 'Inventory Overview & KPI', icon: BarChart3 },
-          { id: 'pos', label: 'Purchase Orders (POs)', icon: ShoppingCart },
-          { id: 'raw', label: 'Raw Master Registry', icon: Package },
-          { id: 'graded', label: 'Cell Grading Lab', icon: Zap },
-          { id: 'mrp', label: 'MRP BOM Allocator', icon: ClipboardList },
-          { id: 'wip', label: 'WIP Processing Line', icon: Sliders },
-          { id: 'warehouse', label: 'Warehouse Hub & Transfer', icon: Warehouse },
-          { id: 'categories', label: 'Manage Categories', icon: Tag }
+          { id: 'dashboard', label: 'Inventory Overview & KPI', icon: BarChart3, color: 'bg-amber-500', activeClass: 'bg-amber-500 text-white shadow-lg shadow-amber-200 border-amber-600' },
+          { id: 'pos', label: 'Purchase Orders (POs)', icon: ShoppingCart, color: 'bg-orange-500', activeClass: 'bg-orange-500 text-white shadow-lg shadow-orange-200 border-orange-600' },
+          { id: 'raw', label: 'Raw Master Registry', icon: Package, color: 'bg-blue-500', activeClass: 'bg-blue-600 text-white shadow-lg shadow-blue-200 border-blue-700' },
+          { id: 'graded', label: 'Cell Grading Lab', icon: Zap, color: 'bg-emerald-500', activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 border-emerald-700' },
+          { id: 'mrp', label: 'MRP BOM Allocator', icon: ClipboardList, color: 'bg-teal-500', activeClass: 'bg-teal-600 text-white shadow-lg shadow-teal-200 border-teal-700' },
+          { id: 'wip', label: 'WIP Processing Line', icon: Sliders, color: 'bg-rose-500', activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700' },
+          { id: 'warehouse', label: 'Warehouse Hub & Transfer', icon: Warehouse, color: 'bg-purple-500', activeClass: 'bg-purple-600 text-white shadow-lg shadow-purple-200 border-purple-700' },
+          { id: 'categories', label: 'Manage Categories', icon: Tag, color: 'bg-indigo-500', activeClass: 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 border-indigo-700' }
         ].map(tab => (
           <button
             key={tab.id}
             id={`tab_${tab.id}`}
             onClick={() => handleAction(`Log switch to ${tab.label}`, () => setActiveTab(tab.id as any))}
             className={cn(
-              "flex items-center px-6 py-3 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+              "flex items-center px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 border cursor-pointer",
               activeTab === tab.id 
-                ? "bg-white text-slate-900 shadow-sm border border-slate-200/50 scale-[1.01]" 
-                : "text-slate-500 hover:text-slate-900 hover:bg-white/40"
+                ? cn(tab.activeClass, "scale-[1.02]") 
+                : "bg-white/80 border-slate-200/60 text-slate-600 hover:text-slate-900 hover:bg-white hover:border-slate-300 shadow-xs"
             )}
           >
-            <tab.icon size={13} className="mr-2" />
+            <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, activeTab === tab.id ? "bg-white animate-pulse" : "")} />
+            <tab.icon size={13} className="mr-2 shrink-0" />
             {tab.label}
           </button>
         ))}

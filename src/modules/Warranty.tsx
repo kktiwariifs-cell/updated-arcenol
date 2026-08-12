@@ -223,6 +223,28 @@ export const Warranty: React.FC = () => {
       )}
       {view === 'dashboard' ? (
         <div className="animate-in fade-in duration-500">
+           {/* Subtab Navigation Selector */}
+           <div className="flex bg-slate-100/90 p-1.5 rounded-2xl w-fit mb-6 border border-slate-200 gap-1 overflow-x-auto">
+             {[
+               { id: 'dashboard', label: 'Serial Warranty Registry', color: 'bg-violet-500', activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-200 border-violet-700' },
+               { id: 'verify', label: 'Fast Serial Lookup', color: 'bg-amber-500', activeClass: 'bg-amber-600 text-white shadow-lg shadow-amber-200 border-amber-700' }
+             ].map(tab => (
+               <button
+                 key={tab.id}
+                 onClick={() => setView(tab.id as any)}
+                 className={cn(
+                   "flex items-center px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border shrink-0",
+                   view === tab.id
+                     ? cn(tab.activeClass, "scale-[1.02]")
+                     : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
+                 )}
+               >
+                 <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
+                 {tab.label}
+               </button>
+             ))}
+           </div>
+
            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-bold uppercase tracking-tight">Warranty Tracking Center</h2>

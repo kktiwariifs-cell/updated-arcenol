@@ -1060,11 +1060,11 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
           )}
 
           {/* Sub-tab navigations */}
-          <div className="flex border-b border-slate-200">
+          <div className="flex border-b border-slate-200 gap-2 pb-1.5 overflow-x-auto">
             {[
-              { key: 'dashboard', label: '📊 All Transactions & Flow' },
-              { key: 'parties', label: '👥 Party Ledgers & Reminders' },
-              { key: 'tax', label: '🧾 GST tax Register' }
+              { key: 'dashboard', label: '📊 All Transactions & Flow', color: 'bg-teal-500', activeClass: 'border-teal-600 text-teal-700 bg-teal-50/80 font-black' },
+              { key: 'parties', label: '👥 Party Ledgers & Reminders', color: 'bg-indigo-500', activeClass: 'border-indigo-600 text-indigo-700 bg-indigo-50/80 font-black' },
+              { key: 'tax', label: '🧾 GST Tax Register', color: 'bg-pink-500', activeClass: 'border-pink-600 text-pink-700 bg-pink-50/80 font-black' }
             ].map(tab => (
               <button
                 key={tab.key}
@@ -1073,12 +1073,13 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                   setSelectedPartyForLedger(null); // Reset detail page
                 }}
                 className={cn(
-                  "px-6 py-4.5 text-xs font-black uppercase tracking-wider border-b-2 -mb-px transition-colors duration-250",
+                  "flex items-center px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 rounded-t-xl transition-all duration-250 cursor-pointer shrink-0",
                   activeSubTab === tab.key
-                    ? "border-emerald-600 text-emerald-700"
-                    : "border-transparent text-slate-450 hover:text-slate-800"
+                    ? tab.activeClass
+                    : "border-transparent text-slate-500 hover:text-slate-900 hover:bg-slate-100/60"
                 )}
               >
+                <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, activeSubTab === tab.key ? "animate-pulse" : "")} />
                 {tab.label}
               </button>
             ))}

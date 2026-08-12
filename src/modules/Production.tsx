@@ -563,12 +563,12 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
             </p>
           </div>
         </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-3xl border border-slate-200">
+        <div className="flex bg-slate-100 p-1.5 rounded-3xl border border-slate-200 gap-1 overflow-x-auto">
           {[
-            { id: "wip", label: "WIP Control", icon: Activity },
-            { id: "assembly", label: "Final Assembly", icon: Factory },
-            { id: "grading", label: "Cell Grading", icon: FlaskConical },
-            { id: "history", label: "Logs", icon: History },
+            { id: "wip", label: "WIP Control", icon: Activity, color: "bg-rose-500", activeClass: "bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700" },
+            { id: "assembly", label: "Final Assembly", icon: Factory, color: "bg-purple-500", activeClass: "bg-purple-600 text-white shadow-lg shadow-purple-200 border-purple-700" },
+            { id: "grading", label: "Cell Grading", icon: FlaskConical, color: "bg-emerald-500", activeClass: "bg-emerald-600 text-white shadow-lg shadow-emerald-200 border-emerald-700" },
+            { id: "history", label: "Logs", icon: History, color: "bg-blue-500", activeClass: "bg-blue-600 text-white shadow-lg shadow-blue-200 border-blue-700" },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -578,13 +578,14 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                 )
               }
               className={cn(
-                "flex items-center px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                "flex items-center px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 border cursor-pointer shrink-0",
                 activeSubTab === tab.id
-                  ? "bg-emerald-600 text-white shadow-lg scale-[1.02]"
-                  : "text-slate-500 hover:text-slate-300",
+                  ? cn(tab.activeClass, "scale-[1.02]")
+                  : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs",
               )}
             >
-              <tab.icon size={14} className="mr-2" />
+              <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, activeSubTab === tab.id ? "bg-white animate-pulse" : "")} />
+              <tab.icon size={14} className="mr-2 shrink-0" />
               {tab.label}
             </button>
           ))}
