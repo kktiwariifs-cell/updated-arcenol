@@ -22,7 +22,7 @@ if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
   } catch (e) {}
 }
 
-export function notifyCrossTabSync() {
+export function notifyCrossTabSync(reason?: string) {
   if (syncChannel) {
     try {
       syncChannel.postMessage('REFETCH');

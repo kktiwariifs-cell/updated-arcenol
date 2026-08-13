@@ -34,6 +34,12 @@ import {
   Download,
   RefreshCw,
   Search,
+  ShieldCheck,
+  Upload,
+  FileSpreadsheet,
+  FileText,
+  Save,
+  Loader2,
 } from "lucide-react";
 import { useERPData, notifyCrossTabSync } from "../hooks/useERPData";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";
@@ -72,13 +78,13 @@ const SafeBarcode: React.FC<{ value: string }> = ({ value }) => {
   );
 };
 
-export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "grading" | "history" }> = ({ initialSubTab = "wip" }) => {
+export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "grading" | "eol_qc" | "scrap_operator" | "history" }> = ({ initialSubTab = "wip" }) => {
   const { data, loading, refetch } = useERPData();
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPER_ADMIN;
 
   const [activeSubTab, setActiveSubTab] = useState<
-    "wip" | "assembly" | "grading" | "history"
+    "wip" | "assembly" | "grading" | "eol_qc" | "scrap_operator" | "history"
   >(initialSubTab);
 
   React.useEffect(() => {
@@ -86,6 +92,229 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
       setActiveSubTab(initialSubTab);
     }
   }, [initialSubTab]);
+
+  // Phase 2: QC & Manufacturing Data States
+  const [cellGradingBatches, setCellGradingBatches] = useState<any[]>([]);
+  const [eolCertificates, setEolCertificates] = useState<any[]>([]);
+  const [scrapLogs, setScrapLogs] = useState<any[]>([]);
+
+  // Phase 2: Modals & Dialog States
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [viewCurveBatch, setViewCurveBatch] = useState<any | null>(null);
+
+  const [isEolModalOpen, setIsEolModalOpen] = useState(false);
+  const [viewEolCert, setViewEolCert] = useState<any | null>(null);
+
+  const [isScrapModalOpen, setIsScrapModalOpen] = useState(false);
+
+  // Form Submission Loaders
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+  const [isSubmittingEol, setIsSubmittingEol] = useState(false);
+  const [isSubmittingScrap, setIsSubmittingScrap] = useState(false);
+
+  // Form Fields - Cell Grading Batch
+  const [gbBatchCode, setGbBatchCode] = useState(`LOT-LFP-32700-${Math.floor(100 + Math.random() * 900)}`);
+  const [gbSupplierLot, setGbSupplierLot] = useState("CATL-2026-A8");
+  const [gbTotalTested, setGbTotalTested] = useState(500);
+  const [gbGradeA, setGbGradeA] = useState(485);
+  const [gbGradeB, setGbGradeB] = useState(12);
+  const [gbGradeC, setGbGradeC] = useState(3);
+  const [gbAvgCap, setGbAvgCap] = useState(3.22);
+  const [gbAvgIR, setGbAvgIR] = useState(18.4);
+  const [gbAmbientTemp, setGbAmbientTemp] = useState(25.0);
+  const [gbChannelCount, setGbChannelCount] = useState(64);
+  const [gbInspector, setGbInspector] = useState(user?.name || "QC Lead Suresh");
+
+  // Form Fields - EOL Battery Quality Cert
+  const [eolSerial, setEolSerial] = useState("AESPL EV 28G26001044");
+  const [eolModel, setEolModel] = useState("72V30A");
+  const [eolHiPotResistance, setEolHiPotResistance] = useState(500);
+  const [eolDielectricResult, setEolDielectricResult] = useState("PASS (1500V AC 1 min)");
+  const [eolBmsMac, setEolBmsMac] = useState("A4:C1:38:90:FE:12");
+  const [eolBmsFirmware, setEolBmsFirmware] = useState("v2.4.12-BMS-CAN");
+  const [eolCellDelta, setEolCellDelta] = useState(12);
+  const [eolPackCapacity, setEolPackCapacity] = useState(30.8);
+  const [eolTestedBy, setEolTestedBy] = useState(user?.name || "Senior QC Engineer Anil Mehta");
+  const [eolTestBenchId, setEolTestBenchId] = useState("TB-02-HV");
+
+  // Form Fields - Machine Operator Scrap Log
+  const [scMachineId, setScMachineId] = useState("SPOT_WELDER_01");
+  const [scMachineName, setScMachineName] = useState("Pneumatic Spot Welder #1");
+  const [scShift, setScShift] = useState("Shift A (Morning 06:00 - 14:00)");
+  const [scOperator, setScOperator] = useState("Vikram R.");
+  const [scMaterialId, setScMaterialId] = useState("RM-NICKEL");
+  const [scMaterialName, setScMaterialName] = useState("Nickel Strip 0.15mm");
+  const [scQty, setScQty] = useState(2.5);
+  const [scUnit, setScUnit] = useState("Kg");
+  const [scReason, setScReason] = useState("Electrode Burnout / Weld Spatter");
+  const [scCost, setScCost] = useState(1875);
+  const [scSupervisor, setScSupervisor] = useState("QC Supv - K. Sharma");
+
+  const fetchQcData = async () => {
+    try {
+      const [cgbRes, eolRes, scrapRes] = await Promise.all([
+        fetch('/api/qc/cell-grading-batches'),
+        fetch('/api/qc/eol-certificates'),
+        fetch('/api/qc/scrap-logs')
+      ]);
+      if (cgbRes.ok) setCellGradingBatches(await cgbRes.json());
+      if (eolRes.ok) setEolCertificates(await eolRes.json());
+      if (scrapRes.ok) setScrapLogs(await scrapRes.json());
+    } catch (err) {
+      console.error('Error fetching Phase 2 QC data:', err);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchQcData();
+  }, []);
+
+  const handleCreateCellBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingBatch(true);
+    // Temp Compensation Factor: R25 = RT / (1 + 0.00393 * (T - 25))
+    const tempComp = Number((1 / (1 + 0.00393 * (gbAmbientTemp - 25))).toFixed(4));
+    try {
+      const res = await fetch('/api/qc/cell-grading-batches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          batchCode: gbBatchCode,
+          supplierLotNo: gbSupplierLot,
+          totalCellsTested: gbTotalTested,
+          gradeAQty: gbGradeA,
+          gradeBQty: gbGradeB,
+          gradeCQty: gbGradeC,
+          avgCapacityAh: gbAvgCap,
+          avgOhmicImpedancemOm: gbAvgIR,
+          ambientTempCelsius: gbAmbientTemp,
+          tempCompensationFactor: tempComp,
+          testerChannelCount: gbChannelCount,
+          inspectedBy: gbInspector,
+        })
+      });
+      if (res.ok) {
+        setIsBatchModalOpen(false);
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('CELL_GRADING_BATCH');
+      } else {
+        alert("Failed to create cell grading batch");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingBatch(false);
+    }
+  };
+
+  const handleParseCsvTester = () => {
+    if (!csvText.trim()) return;
+    const lines = csvText.trim().split('\n');
+    let total = 0, a = 0, b = 0, c = 0;
+    let sumCap = 0, sumIR = 0;
+
+    lines.forEach((line, idx) => {
+      if (idx === 0 && line.toLowerCase().includes('channel')) return; // skip header
+      const parts = line.split(',');
+      if (parts.length >= 3) {
+        const cap = parseFloat(parts[1]) || 3.2;
+        const ir = parseFloat(parts[2]) || 18.0;
+        total++;
+        sumCap += cap;
+        sumIR += ir;
+        if (cap >= 3.2 && ir <= 20) a++;
+        else if (cap >= 3.0) b++;
+        else c++;
+      }
+    });
+
+    if (total > 0) {
+      setGbTotalTested(total);
+      setGbGradeA(a);
+      setGbGradeB(b);
+      setGbGradeC(c);
+      setGbAvgCap(Number((sumCap / total).toFixed(2)));
+      setGbAvgIR(Number((sumIR / total).toFixed(1)));
+      setIsCsvModalOpen(false);
+      setCsvText("");
+    } else {
+      alert("No valid CSV rows parsed. Format: Channel, CapacityAh, IRmOm");
+    }
+  };
+
+  const handleCreateEolCert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingEol(true);
+    try {
+      const res = await fetch('/api/qc/eol-certificates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serialNumber: eolSerial,
+          packModel: eolModel,
+          hiPotInsulationResistanceMOm: eolHiPotResistance,
+          dielectricBreakdownTest: eolDielectricResult,
+          bmsMacAddress: eolBmsMac,
+          bmsFirmwareVersion: eolBmsFirmware,
+          cellVoltageDeltaMaxmV: eolCellDelta,
+          packCapacityAh: eolPackCapacity,
+          testedBy: eolTestedBy,
+          testBenchId: eolTestBenchId,
+        })
+      });
+      if (res.ok) {
+        setIsEolModalOpen(false);
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('EOL_CERTIFICATE');
+      } else {
+        alert("Failed to issue EOL Quality Certificate");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingEol(false);
+    }
+  };
+
+  const handleCreateScrapLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingScrap(true);
+    try {
+      const res = await fetch('/api/qc/scrap-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          machineId: scMachineId,
+          machineName: scMachineName,
+          shift: scShift,
+          operatorName: scOperator,
+          materialId: scMaterialId,
+          materialName: scMaterialName,
+          scrapQty: scQty,
+          unit: scUnit,
+          scrapReason: scReason,
+          financialScrapCost: scCost,
+          qcSupervisorSignOff: scSupervisor,
+        })
+      });
+      if (res.ok) {
+        setIsScrapModalOpen(false);
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('SCRAP_LOGGED');
+      } else {
+        alert("Failed to log machine scrap entry");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmittingScrap(false);
+    }
+  };
 
   // Production Step State
   const [step, setStep] = useState(1);
@@ -568,6 +797,8 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
             { id: "wip", label: "WIP Control", icon: Activity, color: "bg-rose-500", activeClass: "bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700" },
             { id: "assembly", label: "Final Assembly", icon: Factory, color: "bg-purple-500", activeClass: "bg-purple-600 text-white shadow-lg shadow-purple-200 border-purple-700" },
             { id: "grading", label: "Cell Grading", icon: FlaskConical, color: "bg-emerald-500", activeClass: "bg-emerald-600 text-white shadow-lg shadow-emerald-200 border-emerald-700" },
+            { id: "eol_qc", label: "EOL Battery Cert", icon: ShieldCheck, color: "bg-cyan-500", activeClass: "bg-cyan-600 text-white shadow-lg shadow-cyan-200 border-cyan-700" },
+            { id: "scrap_operator", label: "Machine Scrap Log", icon: Trash2, color: "bg-amber-500", activeClass: "bg-amber-600 text-white shadow-lg shadow-amber-200 border-amber-700" },
             { id: "history", label: "Logs", icon: History, color: "bg-blue-500", activeClass: "bg-blue-600 text-white shadow-lg shadow-blue-200 border-blue-700" },
           ].map((tab) => (
             <button
@@ -2153,6 +2384,304 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
               )}
             </div>
           </div>
+
+          {/* Multi-Channel Cell Tester Batch Inspection Log & Temperature Compensation Ledger */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
+                  <Microscope size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Multi-Channel Cell Tester Batch Logs & Temperature Compensation</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Automated Tester CSV Parsing & Ohmic Impedance Reference (25°C Ref)</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsCsvModalOpen(true)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5"
+                >
+                  <Upload size={14} /> Import CSV Tester Log
+                </button>
+                <button
+                  onClick={() => setIsBatchModalOpen(true)}
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  <Plus size={14} /> Log Cell Batch Inspection
+                </button>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-sans">
+                <thead>
+                  <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-100">
+                    <th className="py-3 px-4">Batch & Lot ID</th>
+                    <th className="py-3 px-4">Total Cells Tested</th>
+                    <th className="py-3 px-4">Grade Distribution</th>
+                    <th className="py-3 px-4">Avg Capacity & Ohmic IR</th>
+                    <th className="py-3 px-4">Ambient Temp & Compensation</th>
+                    <th className="py-3 px-4">Inspector & Date</th>
+                    <th className="py-3 px-4 text-right">Telemetry</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {cellGradingBatches.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
+                        No Cell Grading Batches Logged Yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    cellGradingBatches.map(b => (
+                      <tr key={b.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-4 font-mono">
+                          <span className="font-extrabold text-slate-900 block">{b.batchCode}</span>
+                          <span className="text-[9px] text-slate-400 block">Lot: {b.supplierLotNo}</span>
+                        </td>
+                        <td className="py-4 px-4 font-extrabold text-slate-900">
+                          {b.totalCellsTested} Cells ({b.testerChannelCount || 64}-Ch Tester)
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1.5">
+                            <span className="bg-emerald-100 text-emerald-800 font-black px-2 py-0.5 rounded text-[10px]">A: {b.gradeAQty}</span>
+                            <span className="bg-blue-100 text-blue-800 font-black px-2 py-0.5 rounded text-[10px]">B: {b.gradeBQty}</span>
+                            <span className="bg-rose-100 text-rose-800 font-black px-2 py-0.5 rounded text-[10px]">C: {b.gradeCQty}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 font-mono">
+                          <span className="text-emerald-700 font-bold block">{b.avgCapacityAh} Ah</span>
+                          <span className="text-purple-700 font-extrabold block">{b.avgOhmicImpedancemOm} mΩ</span>
+                        </td>
+                        <td className="py-4 px-4 font-mono text-[10px]">
+                          <span className="text-slate-800 font-bold block">🌡️ {b.ambientTempCelsius}°C Ambient</span>
+                          <span className="text-slate-500 block">Comp Factor: {b.tempCompensationFactor || '1.000'}</span>
+                        </td>
+                        <td className="py-4 px-4 text-[10px]">
+                          <span className="font-bold text-slate-800 block">{b.inspectedBy}</span>
+                          <span className="text-slate-400 block font-mono">{b.inspectionDate}</span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => setViewCurveBatch(b)}
+                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <LineChartIcon size={12} /> View Curve
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : activeSubTab === "eol_qc" ? (
+        /* PHASE 2: EOL BATTERY QUALITY CERTIFICATE & HI-POT TEST BENCH */
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Certified EV Packs</span>
+              <span className="text-3xl font-black text-slate-900 block mt-1">{eolCertificates.length}</span>
+              <span className="text-[10px] font-bold text-emerald-600 uppercase mt-1 block">100% High-Voltage Insulation Verified</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hi-Pot Insulation Pass Rate</span>
+              <span className="text-3xl font-black text-cyan-600 block mt-1">100%</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Min 100 MΩ @ 1000V DC Insulation Test</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">BMS CAN Telemetry Paired</span>
+              <span className="text-3xl font-black text-purple-600 block mt-1">
+                {eolCertificates.filter(c => c.bmsTelemetryPaired).length} / {eolCertificates.length}
+              </span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Live Firmware & MAC Handshake Active</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-cyan-100 text-cyan-700 rounded-2xl">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">End-of-Line (EOL) Battery Quality Certificate & Hi-Pot Test Bench</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">High-Voltage Dielectric Insulation & BMS CAN Telemetry Pairing</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsEolModalOpen(true)}
+                className="px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-cyan-600/20 active:scale-95"
+              >
+                <Plus size={14} /> Issue EOL Quality Certificate
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-sans">
+                <thead>
+                  <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-100">
+                    <th className="py-3 px-4">Certificate ID & Serial</th>
+                    <th className="py-3 px-4">Pack Model</th>
+                    <th className="py-3 px-4">Hi-Pot Insulation (1000V DC)</th>
+                    <th className="py-3 px-4">BMS MAC & Telemetry</th>
+                    <th className="py-3 px-4">Cell Delta & Capacity</th>
+                    <th className="py-3 px-4">Test Bench & Lead</th>
+                    <th className="py-3 px-4 text-right">Certificate Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {eolCertificates.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
+                        No EOL Battery Certificates Issued Yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    eolCertificates.map(c => (
+                      <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-4 font-mono">
+                          <span className="font-extrabold text-cyan-800 block">{c.id}</span>
+                          <span className="text-[10px] text-slate-900 font-bold block">{c.serialNumber}</span>
+                        </td>
+                        <td className="py-4 px-4 font-extrabold text-slate-900">
+                          {c.packModel}
+                        </td>
+                        <td className="py-4 px-4 font-mono">
+                          <span className="text-emerald-700 font-black block">⚡ {c.hiPotInsulationResistanceMOm} MΩ</span>
+                          <span className="text-[9px] text-slate-400 block">{c.dielectricBreakdownTest}</span>
+                        </td>
+                        <td className="py-4 px-4 font-mono text-[10px]">
+                          <span className="text-slate-800 font-bold block">MAC: {c.bmsMacAddress}</span>
+                          <span className="text-purple-700 font-bold block">FW: {c.bmsFirmwareVersion}</span>
+                        </td>
+                        <td className="py-4 px-4 font-mono text-[10px]">
+                          <span className="text-emerald-700 font-bold block">Max ΔV: {c.cellVoltageDeltaMaxmV} mV</span>
+                          <span className="text-slate-800 font-bold block">Capacity: {c.packCapacityAh} Ah</span>
+                        </td>
+                        <td className="py-4 px-4 text-[10px]">
+                          <span className="font-bold text-slate-800 block">{c.testedBy}</span>
+                          <span className="text-slate-400 block font-mono">{c.testBenchId} • {c.testTimestamp}</span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => setViewEolCert(c)}
+                            className="px-3.5 py-1.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            <FileText size={12} /> View Certificate
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : activeSubTab === "scrap_operator" ? (
+        /* PHASE 2: MACHINE OPERATOR & LINE SCRAP LOG */
+        <div className="space-y-8 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Machine Scrap Logs</span>
+              <span className="text-3xl font-black text-amber-600 block mt-1">{scrapLogs.length}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Line-side Scrap & Wastage Ledger</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Financial Scrap Loss Value</span>
+              <span className="text-3xl font-black text-rose-600 block mt-1">
+                ₹{scrapLogs.reduce((acc, curr) => acc + Number(curr.financialScrapCost || 0), 0).toLocaleString()}
+              </span>
+              <span className="text-[10px] font-bold text-rose-500 uppercase mt-1 block">Auto-deducted from raw materials</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">QC Line Supervisor Sign-Offs</span>
+              <span className="text-3xl font-black text-emerald-600 block mt-1">100%</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Shift Operator & Supervisor Verified</span>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+                  <Trash2 size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase italic tracking-tight">Machine Operator & Line Component Scrap Log</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Machine ID Allocation, Operator Shift Log & Financial Wastage Ledger</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsScrapModalOpen(true)}
+                className="px-5 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-amber-600/20 active:scale-95"
+              >
+                <Plus size={14} /> Log Machine Scrap / Wastage
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left font-sans">
+                <thead>
+                  <tr className="bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-100">
+                    <th className="py-3 px-4">Log ID & Date</th>
+                    <th className="py-3 px-4">Machine Allocation</th>
+                    <th className="py-3 px-4">Shift & Operator</th>
+                    <th className="py-3 px-4">Scrapped Component & Qty</th>
+                    <th className="py-3 px-4">Defect / Scrap Reason</th>
+                    <th className="py-3 px-4">Financial Loss (₹)</th>
+                    <th className="py-3 px-4 text-right">QC Supervisor Sign-Off</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {scrapLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
+                        No Machine Scrap Entries Logged Yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    scrapLogs.map(s => (
+                      <tr key={s.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-4 font-mono">
+                          <span className="font-extrabold text-slate-900 block">{s.id}</span>
+                          <span className="text-[9px] text-slate-400 block">{s.logDate}</span>
+                        </td>
+                        <td className="py-4 px-4 font-bold text-slate-900">
+                          <span className="block text-amber-800 font-mono text-[11px]">{s.machineId}</span>
+                          <span className="text-[10px] text-slate-500 block">{s.machineName}</span>
+                        </td>
+                        <td className="py-4 px-4 text-slate-800">
+                          <span className="font-bold block">{s.shift}</span>
+                          <span className="text-[10px] text-slate-500 block">Op: {s.operatorName}</span>
+                        </td>
+                        <td className="py-4 px-4 font-mono">
+                          <span className="font-extrabold text-slate-900 block">{s.materialName}</span>
+                          <span className="text-[10px] text-amber-700 font-bold block">{s.scrapQty} {s.unit}</span>
+                        </td>
+                        <td className="py-4 px-4 text-[10px] text-slate-600 font-bold">
+                          {s.scrapReason}
+                        </td>
+                        <td className="py-4 px-4 font-mono font-black text-rose-600">
+                          ₹{Number(s.financialScrapCost).toLocaleString()}
+                        </td>
+                        <td className="py-4 px-4 text-right font-mono text-[10px] text-emerald-700 font-bold">
+                          ✓ {s.qcSupervisorSignOff}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl animate-in fade-in duration-500">
@@ -2227,6 +2756,734 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* MODAL 1: Log Cell Grading Batch */}
+      {isBatchModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
+                  <Microscope size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Log Cell Grading Batch</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Multi-Channel Tester Batch Record & Temp Compensation</p>
+                </div>
+              </div>
+              <button onClick={() => setIsBatchModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCellBatch} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Batch / Lot Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={gbBatchCode}
+                    onChange={(e) => setGbBatchCode(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Supplier Lot No.</label>
+                  <input
+                    type="text"
+                    required
+                    value={gbSupplierLot}
+                    onChange={(e) => setGbSupplierLot(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Total Tested</label>
+                  <input
+                    type="number"
+                    required
+                    value={gbTotalTested}
+                    onChange={(e) => setGbTotalTested(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-emerald-600 block mb-1">Grade A</label>
+                  <input
+                    type="number"
+                    required
+                    value={gbGradeA}
+                    onChange={(e) => setGbGradeA(Number(e.target.value))}
+                    className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-emerald-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-blue-600 block mb-1">Grade B</label>
+                  <input
+                    type="number"
+                    required
+                    value={gbGradeB}
+                    onChange={(e) => setGbGradeB(Number(e.target.value))}
+                    className="w-full bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-blue-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-rose-600 block mb-1">Grade C / Scrap</label>
+                  <input
+                    type="number"
+                    required
+                    value={gbGradeC}
+                    onChange={(e) => setGbGradeC(Number(e.target.value))}
+                    className="w-full bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-rose-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Avg Capacity (Ah)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    required
+                    value={gbAvgCap}
+                    onChange={(e) => setGbAvgCap(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Avg Ohmic IR (mΩ)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={gbAvgIR}
+                    onChange={(e) => setGbAvgIR(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Ambient Temp (°C)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    required
+                    value={gbAmbientTemp}
+                    onChange={(e) => setGbAmbientTemp(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-100 rounded-xl text-[10px] text-slate-600 font-mono flex items-center justify-between">
+                <span>Calculated Temp Compensation Factor (25°C Ref):</span>
+                <span className="font-extrabold text-slate-900">
+                  {(1 / (1 + 0.00393 * (gbAmbientTemp - 25))).toFixed(4)}
+                </span>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Inspector / QC Officer</label>
+                <input
+                  type="text"
+                  required
+                  value={gbInspector}
+                  onChange={(e) => setGbInspector(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsBatchModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingBatch}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingBatch ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Save Batch Record
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Import CSV Tester Log */}
+      {isCsvModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-slate-100 text-slate-700 rounded-2xl">
+                  <FileSpreadsheet size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Import Multi-Channel Tester CSV</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Paste automated cell tester machine output</p>
+                </div>
+              </div>
+              <button onClick={() => setIsCsvModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[10px] text-slate-500 font-bold">
+                Paste rows from your 64/128-channel cell tester CSV file (Format: <code className="bg-slate-100 px-1 py-0.5 rounded text-emerald-700">Channel, CapacityAh, IRmOm</code>):
+              </p>
+
+              <textarea
+                rows={8}
+                value={csvText}
+                onChange={(e) => setCsvText(e.target.value)}
+                placeholder={`Channel, CapacityAh, IRmOm\nCh-01, 3.22, 18.2\nCh-02, 3.24, 17.9\nCh-03, 3.18, 20.5\nCh-04, 3.21, 18.4`}
+                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+              ></textarea>
+
+              <div className="flex justify-between items-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCsvText(`Channel, CapacityAh, IRmOm\nCh-01, 3.25, 18.1\nCh-02, 3.22, 18.4\nCh-03, 3.24, 17.8\nCh-04, 3.19, 19.8\nCh-05, 3.21, 18.2\nCh-06, 3.26, 17.5\nCh-07, 2.95, 24.1`)}
+                  className="text-[10px] text-emerald-600 font-black uppercase hover:underline cursor-pointer"
+                >
+                  Load Sample CSV
+                </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsCsvModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleParseCsvTester}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer"
+                  >
+                    Parse & Populate Fields
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: View Discharge Telemetry Curve */}
+      {viewCurveBatch && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-2xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-purple-100 text-purple-700 rounded-2xl">
+                  <LineChartIcon size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Lot Discharge Telemetry Curve</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Batch: {viewCurveBatch.batchCode} • Lot: {viewCurveBatch.supplierLotNo}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewCurveBatch(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Simulated Discharge Voltage Curve Graph */}
+            <div className="bg-slate-900 p-6 rounded-2xl space-y-4 text-white">
+              <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+                <span>1C Constant Current Discharge Telemetry</span>
+                <span className="text-emerald-400 font-bold">Cutoff: 2.50V • Nominal: 3.20V</span>
+              </div>
+
+              {/* Graphic SVG Plot */}
+              <div className="h-48 w-full flex items-end relative border-b border-l border-slate-700 pb-2 pl-2">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 150">
+                  {/* Grid lines */}
+                  <line x1="0" y1="30" x2="500" y2="30" stroke="#334155" strokeDasharray="3 3" />
+                  <line x1="0" y1="75" x2="500" y2="75" stroke="#334155" strokeDasharray="3 3" />
+                  <line x1="0" y1="120" x2="500" y2="120" stroke="#334155" strokeDasharray="3 3" />
+                  {/* Curve Path */}
+                  <path
+                    d="M 0 10 Q 50 35, 100 40 T 250 50 T 400 65 Q 450 110, 500 145"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="3"
+                  />
+                  {/* Reference curve for Grade B */}
+                  <path
+                    d="M 0 15 Q 50 42, 100 48 T 250 62 T 400 80 Q 450 125, 500 148"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                  />
+                </svg>
+              </div>
+
+              <div className="flex justify-between text-[9px] font-mono text-slate-400">
+                <span>0 min (3.65V Full)</span>
+                <span>30 min (3.20V Plateau)</span>
+                <span>60 min (2.50V Cutoff)</span>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setViewCurveBatch(null)}
+                className="px-5 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase cursor-pointer"
+              >
+                Close Telemetry View
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 4: Issue EOL Quality Certificate */}
+      {isEolModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-cyan-100 text-cyan-700 rounded-2xl">
+                  <ShieldCheck size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Issue EOL Quality Certificate</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Hi-Pot Voltage Testing & BMS Telemetry Pairing</p>
+                </div>
+              </div>
+              <button onClick={() => setIsEolModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEolCert} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Battery Serial Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolSerial}
+                    onChange={(e) => setEolSerial(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Pack Model Specification</label>
+                  <select
+                    value={eolModel}
+                    onChange={(e) => setEolModel(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500"
+                  >
+                    <option value="72V30A">72V30A (Heavy Duty EV)</option>
+                    <option value="60V26A">60V26A (Standard Scooter)</option>
+                    <option value="48V24A">48V24A (Light EV Pack)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Hi-Pot Insulation (MΩ @ 1000V DC)</label>
+                  <input
+                    type="number"
+                    required
+                    value={eolHiPotResistance}
+                    onChange={(e) => setEolHiPotResistance(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Dielectric Breakdown Test</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolDielectricResult}
+                    onChange={(e) => setEolDielectricResult(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">BMS MAC Address</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolBmsMac}
+                    onChange={(e) => setEolBmsMac(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">BMS Firmware Version</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolBmsFirmware}
+                    onChange={(e) => setEolBmsFirmware(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Max Cell Delta (mV)</label>
+                  <input
+                    type="number"
+                    required
+                    value={eolCellDelta}
+                    onChange={(e) => setEolCellDelta(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Measured Pack Capacity (Ah)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={eolPackCapacity}
+                    onChange={(e) => setEolPackCapacity(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Test Bench ID</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolTestBenchId}
+                    onChange={(e) => setEolTestBenchId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">QC Engineer</label>
+                  <input
+                    type="text"
+                    required
+                    value={eolTestedBy}
+                    onChange={(e) => setEolTestedBy(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEolModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEol}
+                  className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingEol ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />} Issue Certificate
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 5: View Printable EOL Certificate */}
+      {viewEolCert && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-2xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-cyan-100 text-cyan-800 rounded-2xl">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Quality Certificate of Conformity</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Certificate ID: {viewEolCert.id}</p>
+                </div>
+              </div>
+              <button onClick={() => setViewEolCert(null)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Certificate Template Card */}
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-4 font-sans text-slate-800">
+              <div className="text-center border-b border-slate-200 pb-4">
+                <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">AESPL HIGH-VOLTAGE BATTERY QUALITY CERTIFICATE</h2>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">Automated End-of-Line Hi-Pot Insulation & BMS CAN Telemetry Verification</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 text-xs font-mono">
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Battery Serial Number</span>
+                  <span className="font-extrabold text-cyan-900">{viewEolCert.serialNumber}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Battery Pack Model</span>
+                  <span className="font-extrabold text-slate-900">{viewEolCert.packModel}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Hi-Pot Insulation Resistance</span>
+                  <span className="font-extrabold text-emerald-700">⚡ {viewEolCert.hiPotInsulationResistanceMOm} MΩ (PASS)</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Dielectric Breakdown Test</span>
+                  <span className="font-extrabold text-slate-900">{viewEolCert.dielectricBreakdownTest}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">BMS MAC & Telemetry</span>
+                  <span className="font-extrabold text-purple-800">{viewEolCert.bmsMacAddress} ({viewEolCert.bmsFirmwareVersion})</span>
+                </div>
+                <div>
+                  <span className="text-[9px] text-slate-400 font-bold block uppercase">Cell Delta & Measured Cap</span>
+                  <span className="font-extrabold text-slate-900">ΔV: {viewEolCert.cellVoltageDeltaMaxmV} mV • {viewEolCert.packCapacityAh} Ah</span>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-200 flex justify-between items-end text-[10px]">
+                <div>
+                  <span className="text-slate-400 font-bold block uppercase">Test Bench & Officer</span>
+                  <span className="font-bold text-slate-900 block">{viewEolCert.testedBy} ({viewEolCert.testBenchId})</span>
+                  <span className="text-slate-500 block font-mono">{viewEolCert.testTimestamp}</span>
+                </div>
+                <div className="text-right">
+                  <span className="bg-emerald-100 text-emerald-800 font-black px-3 py-1 rounded-full text-[10px] uppercase">
+                    ✓ PASSED & CERTIFIED
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => downloadReportDataAsPDF({
+                  title: "EOL BATTERY QUALITY CERTIFICATE",
+                  subtitle: `Serial Number: ${viewEolCert.serialNumber} • Model: ${viewEolCert.packModel}`,
+                  headers: ["Test Parameter", "Measured / Verified Value"],
+                  rows: [
+                    ["Battery Serial Number", viewEolCert.serialNumber],
+                    ["Battery Pack Model", viewEolCert.packModel],
+                    ["Hi-Pot Insulation Resistance", `${viewEolCert.hiPotInsulationResistanceMOm} MΩ (1000V DC)`],
+                    ["Dielectric Breakdown Test", viewEolCert.dielectricBreakdownTest],
+                    ["BMS MAC Address", viewEolCert.bmsMacAddress],
+                    ["BMS Firmware Version", viewEolCert.bmsFirmwareVersion],
+                    ["Max Cell Voltage Delta", `${viewEolCert.cellVoltageDeltaMaxmV} mV`],
+                    ["Measured Pack Capacity", `${viewEolCert.packCapacityAh} Ah`],
+                    ["Test Bench ID", viewEolCert.testBenchId],
+                    ["Inspected By", viewEolCert.testedBy],
+                    ["Timestamp", viewEolCert.testTimestamp]
+                  ],
+                  filename: `EOL_QUALITY_CERT_${viewEolCert.serialNumber}`
+                })}
+                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-2 shadow-md"
+              >
+                <Download size={14} /> Download Certificate PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: Log Machine Operator Scrap */}
+      {isScrapModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Log Machine Operator Scrap</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Machine Allocation & Line Component Wastage Ledger</p>
+                </div>
+              </div>
+              <button onClick={() => setIsScrapModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateScrapLog} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Machine Allocation</label>
+                  <select
+                    value={scMachineId}
+                    onChange={(e) => {
+                      setScMachineId(e.target.value);
+                      const names: Record<string, string> = {
+                        SPOT_WELDER_01: "Pneumatic Spot Welder #1",
+                        ULTRASONIC_BONDER_02: "Ultrasonic Wire Bonder #2",
+                        LASER_CLEANER_01: "Laser Surface Cleaner",
+                        AUTOMATED_TAB_WELDER_01: "Automated Tab Welder"
+                      };
+                      setScMachineName(names[e.target.value] || e.target.value);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  >
+                    <option value="SPOT_WELDER_01">SPOT_WELDER_01 - Spot Welder #1</option>
+                    <option value="ULTRASONIC_BONDER_02">ULTRASONIC_BONDER_02 - Wire Bonder #2</option>
+                    <option value="LASER_CLEANER_01">LASER_CLEANER_01 - Laser Cleaner</option>
+                    <option value="AUTOMATED_TAB_WELDER_01">AUTOMATED_TAB_WELDER_01 - Tab Welder</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Shift Assignment</label>
+                  <select
+                    value={scShift}
+                    onChange={(e) => setScShift(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                  >
+                    <option value="Shift A (Morning 06:00 - 14:00)">Shift A (Morning 06:00 - 14:00)</option>
+                    <option value="Shift B (Evening 14:00 - 22:00)">Shift B (Evening 14:00 - 22:00)</option>
+                    <option value="Shift C (Night 22:00 - 06:00)">Shift C (Night 22:00 - 06:00)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Operator Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={scOperator}
+                    onChange={(e) => setScOperator(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Scrapped Component / Raw Material</label>
+                  <select
+                    value={scMaterialId}
+                    onChange={(e) => {
+                      setScMaterialId(e.target.value);
+                      const matMap: Record<string, { name: string; unit: string; costPerUnit: number }> = {
+                        "RM-NICKEL": { name: "Nickel Strip 0.15mm", unit: "Kg", costPerUnit: 750 },
+                        "RM-BUSBAR": { name: "Copper Busbar", unit: "Pcs", costPerUnit: 350 },
+                        "RM-HARNESS": { name: "BMS Wire Harness", unit: "Pcs", costPerUnit: 450 },
+                        "RM-SLEEVE": { name: "PVC Heat Shrink Sleeve", unit: "Mtr", costPerUnit: 120 }
+                      };
+                      const item = matMap[e.target.value];
+                      if (item) {
+                        setScMaterialName(item.name);
+                        setScUnit(item.unit);
+                        setScCost(item.costPerUnit * scQty);
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  >
+                    <option value="RM-NICKEL">RM-NICKEL (Nickel Strip 0.15mm)</option>
+                    <option value="RM-BUSBAR">RM-BUSBAR (Copper Busbar)</option>
+                    <option value="RM-HARNESS">RM-HARNESS (BMS Wire Harness)</option>
+                    <option value="RM-SLEEVE">RM-SLEEVE (PVC Heat Shrink Sleeve)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Scrap Quantity</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={scQty}
+                    onChange={(e) => {
+                      const qtyVal = Number(e.target.value);
+                      setScQty(qtyVal);
+                      const unitCosts: Record<string, number> = { "RM-NICKEL": 750, "RM-BUSBAR": 350, "RM-HARNESS": 450, "RM-SLEEVE": 120 };
+                      setScCost((unitCosts[scMaterialId] || 500) * qtyVal);
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Unit</label>
+                  <input
+                    type="text"
+                    disabled
+                    value={scUnit}
+                    className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3 py-2 text-slate-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-rose-600 block mb-1">Financial Loss (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={scCost}
+                    onChange={(e) => setScCost(Number(e.target.value))}
+                    className="w-full bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-rose-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono font-black"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Defect / Scrap Reason</label>
+                <input
+                  type="text"
+                  required
+                  value={scReason}
+                  onChange={(e) => setScReason(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">QC Line Supervisor Sign-Off</label>
+                <input
+                  type="text"
+                  required
+                  value={scSupervisor}
+                  onChange={(e) => setScSupervisor(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsScrapModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingScrap}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingScrap ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Log Scrap Entry
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

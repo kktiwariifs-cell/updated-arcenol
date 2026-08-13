@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, ShieldAlert, BadgeCheck, Search, Info, Wrench, History, CheckCircle2, ChevronRight, ArrowLeft, PlusCircle, AlertCircle, Calendar, Zap, X, Printer, Download } from 'lucide-react';
+import { Shield, ShieldAlert, BadgeCheck, Search, Info, Wrench, History, CheckCircle2, ChevronRight, ArrowLeft, PlusCircle, AlertCircle, Calendar, Zap, X, Printer, Download, Smartphone, Activity, Save, Loader2, IndianRupee, Cpu, FileCheck } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { downloadElementAsPDF, printElement } from '../lib/pdfGenerator';
@@ -15,6 +15,120 @@ export const Warranty: React.FC = () => {
   const [isClaiming, setIsClaiming] = useState(false);
   const [isCertifying, setIsCertifying] = useState(false);
   const [claimForm, setClaimForm] = useState({ type: 'Defective BMS', notes: '' });
+
+  // Phase 3 State Modals & Form Handlers
+  const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
+  const [isTelematicsModalOpen, setIsTelematicsModalOpen] = useState(false);
+  const [isRmaModalOpen, setIsRmaModalOpen] = useState(false);
+
+  // Form 1: End-User Activation State
+  const [actSerial, setActSerial] = useState('AESPL EV 28G26001046');
+  const [actCustName, setActCustName] = useState('Rajesh Sharma');
+  const [actCustPhone, setActCustPhone] = useState('+91 98250 12345');
+  const [actVehicleReg, setActVehicleReg] = useState('GJ-01-EV-9921');
+  const [actVehicleModel, setActVehicleModel] = useState('E-Scooter Max 2026');
+  const [actDealerCode, setActDealerCode] = useState('D-101');
+  const [isSubmittingAct, setIsSubmittingAct] = useState(false);
+
+  // Form 2: Telematics & SOH Diagnostic State
+  const [diagSerial, setDiagSerial] = useState('AESPL EV 28G26001044');
+  const [diagSoh, setDiagSoh] = useState(96.4);
+  const [diagSoc, setDiagSoc] = useState(88.0);
+  const [diagMaxTemp, setDiagMaxTemp] = useState(33.5);
+  const [diagMinTemp, setDiagMinTemp] = useState(31.0);
+  const [diagDeltaMv, setDiagDeltaMv] = useState(12);
+  const [diagCycles, setDiagCycles] = useState(124);
+  const [diagBmsFault, setDiagBmsFault] = useState('NONE_HEALTHY');
+  const [diagOdometer, setDiagOdometer] = useState(6450);
+  const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
+
+  // Form 3: RMA Warranty Claim State
+  const [rmaSerial, setRmaSerial] = useState('AESPL EV 28G26001044');
+  const [rmaDealerName, setRmaDealerName] = useState('Green Motors Ahmedabad');
+  const [rmaDefect, setRmaDefect] = useState('BMS Thermal Over-Temperature Shutdown');
+  const [rmaBmsFault, setRmaBmsFault] = useState('BMS-E04');
+  const [rmaSoh, setRmaSoh] = useState(68.5);
+  const [rmaCreditAmount, setRmaCreditAmount] = useState(35000);
+  const [isSubmittingRma, setIsSubmittingRma] = useState(false);
+
+  const handleCreateEndUserActivation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingAct(true);
+    try {
+      await fetch('/api/warranty/end-user-registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serialNumber: actSerial,
+          customerName: actCustName,
+          customerPhone: actCustPhone,
+          vehicleRegNo: actVehicleReg,
+          vehicleModel: actVehicleModel,
+          dealerCode: actDealerCode,
+          otpStatus: 'VERIFIED_SMS'
+        })
+      });
+      setIsActivationModalOpen(false);
+      refetch();
+    } catch (err) {
+      console.error('Error activating warranty:', err);
+    } finally {
+      setIsSubmittingAct(false);
+    }
+  };
+
+  const handleCreateTelematicsLog = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingDiag(true);
+    try {
+      await fetch('/api/telematics/diagnostic-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serialNumber: diagSerial,
+          sohPercent: diagSoh,
+          socPercent: diagSoc,
+          maxCellTempCelsius: diagMaxTemp,
+          minCellTempCelsius: diagMinTemp,
+          cellVoltageDeltaMaxmV: diagDeltaMv,
+          chargeDischargeCycleCount: diagCycles,
+          bmsFaultCode: diagBmsFault,
+          odometerKm: diagOdometer
+        })
+      });
+      setIsTelematicsModalOpen(false);
+      refetch();
+    } catch (err) {
+      console.error('Error logging telematics:', err);
+    } finally {
+      setIsSubmittingDiag(false);
+    }
+  };
+
+  const handleCreateRmaClaim = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingRma(true);
+    try {
+      await fetch('/api/warranty/rma-claims', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          serialNumber: rmaSerial,
+          dealerName: rmaDealerName,
+          defectSymptom: rmaDefect,
+          bmsFaultCode: rmaBmsFault,
+          currentSohPercent: rmaSoh,
+          dealerCreditNoteAmount: rmaCreditAmount
+        })
+      });
+      setIsRmaModalOpen(false);
+      refetch();
+    } catch (err) {
+      console.error('Error creating RMA claim:', err);
+    } finally {
+      setIsSubmittingRma(false);
+    }
+  };
 
   const handleDirectSearch = (serialToSearch: string) => {
     if (!serialToSearch) return;
@@ -223,26 +337,49 @@ export const Warranty: React.FC = () => {
       )}
       {view === 'dashboard' ? (
         <div className="animate-in fade-in duration-500">
-           {/* Subtab Navigation Selector */}
-           <div className="flex bg-slate-100/90 p-1.5 rounded-2xl w-fit mb-6 border border-slate-200 gap-1 overflow-x-auto">
-             {[
-               { id: 'dashboard', label: 'Serial Warranty Registry', color: 'bg-violet-500', activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-200 border-violet-700' },
-               { id: 'verify', label: 'Fast Serial Lookup', color: 'bg-amber-500', activeClass: 'bg-amber-600 text-white shadow-lg shadow-amber-200 border-amber-700' }
-             ].map(tab => (
+           {/* Subtab Navigation Selector & Phase 3 Quick Actions */}
+           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+             <div className="flex bg-slate-100/90 p-1.5 rounded-2xl w-fit border border-slate-200 gap-1 overflow-x-auto">
+               {[
+                 { id: 'dashboard', label: 'Serial Warranty Registry', color: 'bg-violet-500', activeClass: 'bg-violet-600 text-white shadow-lg shadow-violet-200 border-violet-700' },
+                 { id: 'verify', label: 'Fast Serial Lookup', color: 'bg-amber-500', activeClass: 'bg-amber-600 text-white shadow-lg shadow-amber-200 border-amber-700' }
+               ].map(tab => (
+                 <button
+                   key={tab.id}
+                   onClick={() => setView(tab.id as any)}
+                   className={cn(
+                     "flex items-center px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border shrink-0",
+                     view === tab.id
+                       ? cn(tab.activeClass, "scale-[1.02]")
+                       : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
+                   )}
+                 >
+                   <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
+                   {tab.label}
+                 </button>
+               ))}
+             </div>
+
+             <div className="flex flex-wrap items-center gap-2">
                <button
-                 key={tab.id}
-                 onClick={() => setView(tab.id as any)}
-                 className={cn(
-                   "flex items-center px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer border shrink-0",
-                   view === tab.id
-                     ? cn(tab.activeClass, "scale-[1.02]")
-                     : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
-                 )}
+                 onClick={() => setIsActivationModalOpen(true)}
+                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-200"
                >
-                 <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
-                 {tab.label}
+                 <Smartphone size={14} /> End-User Activation
                </button>
-             ))}
+               <button
+                 onClick={() => setIsTelematicsModalOpen(true)}
+                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-purple-200"
+               >
+                 <Activity size={14} /> Log Telematics SOH
+               </button>
+               <button
+                 onClick={() => setIsRmaModalOpen(true)}
+                 className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-amber-200"
+               >
+                 <Wrench size={14} /> File RMA Claim
+               </button>
+             </div>
            </div>
 
            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-8">
@@ -767,6 +904,393 @@ export const Warranty: React.FC = () => {
               </div>
            </div>
         )}
+
+      {/* MODAL 1: End-User Customer Warranty Activation (SMS/OTP) */}
+      {isActivationModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
+                  <Smartphone size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Activate End-User Battery Warranty</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Customer Phone Pairing & SMS OTP Verification</p>
+                </div>
+              </div>
+              <button onClick={() => setIsActivationModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateEndUserActivation} className="space-y-4 text-xs font-bold text-slate-700">
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Battery Serial Code</label>
+                <input
+                  type="text"
+                  required
+                  value={actSerial}
+                  onChange={(e) => setActSerial(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Customer Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={actCustName}
+                    onChange={(e) => setActCustName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Mobile Number (SMS OTP)</label>
+                  <input
+                    type="text"
+                    required
+                    value={actCustPhone}
+                    onChange={(e) => setActCustPhone(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">EV Registration No.</label>
+                  <input
+                    type="text"
+                    required
+                    value={actVehicleReg}
+                    onChange={(e) => setActVehicleReg(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Vehicle Model Specification</label>
+                  <input
+                    type="text"
+                    required
+                    value={actVehicleModel}
+                    onChange={(e) => setActVehicleModel(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Authorized Dealer Code</label>
+                <input
+                  type="text"
+                  required
+                  value={actDealerCode}
+                  onChange={(e) => setActDealerCode(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
+                />
+              </div>
+
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-[10px] text-emerald-800">
+                <span className="flex items-center gap-1.5 font-bold">
+                  <CheckCircle2 size={14} className="text-emerald-600" /> Mobile OTP Auth Status:
+                </span>
+                <span className="font-extrabold uppercase bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded font-mono">
+                  VERIFIED_SMS
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsActivationModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingAct}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingAct ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Activate 36-Mo Warranty
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Telematics & SOH Diagnostic Logger */}
+      {isTelematicsModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-purple-100 text-purple-700 rounded-2xl">
+                  <Activity size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">Log Live Telematics & SOH Metrics</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Remote BMS Health Check & Thermal Diagnostics</p>
+                </div>
+              </div>
+              <button onClick={() => setIsTelematicsModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTelematicsLog} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Battery Serial Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={diagSerial}
+                    onChange={(e) => setDiagSerial(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Odometer Mileage (km)</label>
+                  <input
+                    type="number"
+                    required
+                    value={diagOdometer}
+                    onChange={(e) => setDiagOdometer(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-purple-600 block mb-1">State of Health (SOH %)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={diagSoh}
+                    onChange={(e) => setDiagSoh(Number(e.target.value))}
+                    className="w-full bg-purple-50 border border-purple-200 rounded-xl px-3 py-2 text-purple-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono font-black"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">State of Charge (SOC %)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={diagSoc}
+                    onChange={(e) => setDiagSoc(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Charge Cycles</label>
+                  <input
+                    type="number"
+                    required
+                    value={diagCycles}
+                    onChange={(e) => setDiagCycles(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-amber-600 block mb-1">Max Cell Temp (°C)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={diagMaxTemp}
+                    onChange={(e) => setDiagMaxTemp(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Min Cell Temp (°C)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={diagMinTemp}
+                    onChange={(e) => setDiagMinTemp(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Cell ΔV Max (mV)</label>
+                  <input
+                    type="number"
+                    required
+                    value={diagDeltaMv}
+                    onChange={(e) => setDiagDeltaMv(Number(e.target.value))}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">BMS Diagnostic Fault Code</label>
+                <select
+                  value={diagBmsFault}
+                  onChange={(e) => setDiagBmsFault(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs"
+                >
+                  <option value="NONE_HEALTHY">NONE_HEALTHY - Pack Operating Within Thermal Limits</option>
+                  <option value="BMS-E04">BMS-E04 - Over-Temperature Alarm Trip (&gt; 55°C)</option>
+                  <option value="BMS-E01">BMS-E01 - Single Cell Under-Voltage Cutoff</option>
+                  <option value="BMS-E12">BMS-E12 - Cell Imbalance Delta Excessive (&gt; 50mV)</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTelematicsModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingDiag}
+                  className="px-6 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingDiag ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Log Telematics Metric
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3: Field Service RMA Claim & Dealer Credit Note */}
+      {isRmaModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 max-w-xl w-full shadow-2xl space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-amber-100 text-amber-700 rounded-2xl">
+                  <Wrench size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 uppercase italic">File Field Service RMA Claim</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Return Merchandise Authorization & Dealer Credit Note</p>
+                </div>
+              </div>
+              <button onClick={() => setIsRmaModalOpen(false)} className="text-slate-400 hover:text-slate-700 cursor-pointer">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateRmaClaim} className="space-y-4 text-xs font-bold text-slate-700">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Defective Serial Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={rmaSerial}
+                    onChange={(e) => setRmaSerial(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Partner Dealer Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={rmaDealerName}
+                    onChange={(e) => setRmaDealerName(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Defect Symptom / Customer Complaint</label>
+                <input
+                  type="text"
+                  required
+                  value={rmaDefect}
+                  onChange={(e) => setRmaDefect(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">BMS Fault Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={rmaBmsFault}
+                    onChange={(e) => setRmaBmsFault(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-rose-600 block mb-1">Current SOH (%)</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    required
+                    value={rmaSoh}
+                    onChange={(e) => {
+                      const sohVal = Number(e.target.value);
+                      setRmaSoh(sohVal);
+                      if (sohVal < 70) setRmaCreditAmount(35000);
+                      else setRmaCreditAmount(2500);
+                    }}
+                    className="w-full bg-rose-50 border border-rose-200 rounded-xl px-3 py-2 text-rose-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono font-black"
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase text-emerald-700 block mb-1">Credit Note (₹)</label>
+                  <input
+                    type="number"
+                    required
+                    value={rmaCreditAmount}
+                    onChange={(e) => setRmaCreditAmount(Number(e.target.value))}
+                    className="w-full bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-emerald-900 outline-none focus:ring-2 focus:ring-amber-500 font-mono font-black"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900 font-mono flex items-center justify-between">
+                <span>RMA Automated Decision Recommendation:</span>
+                <span className="font-extrabold uppercase bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
+                  {rmaSoh < 70 ? "FULL_PACK_REPLACEMENT" : "CELL_SWAP_REPAIR"}
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRmaModalOpen(false)}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[10px] font-black uppercase cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingRma}
+                  className="px-6 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer flex items-center gap-2 shadow-md"
+                >
+                  {isSubmittingRma ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Log RMA & Issue Credit
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

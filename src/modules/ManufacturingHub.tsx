@@ -7,14 +7,16 @@ import {
   Activity,
   Microscope,
   History,
-  Boxes
+  Boxes,
+  ShieldCheck,
+  Trash2
 } from "lucide-react";
 import { Production } from "./Production";
 import { MRP } from "./MRP";
 import { cn } from "../lib/utils";
 
 export const ManufacturingHub: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<"wip" | "assembly" | "grading" | "mrp" | "history">("wip");
+  const [activeSubTab, setActiveSubTab] = useState<"wip" | "assembly" | "grading" | "eol_qc" | "scrap_operator" | "mrp" | "history">("wip");
 
   return (
     <div className="space-y-6">
@@ -30,7 +32,7 @@ export const ManufacturingHub: React.FC = () => {
                 MANUFACTURING & PLAN HUB
               </h2>
               <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1.5 font-sans">
-                Real-time assembly lines, cell quality grading, and material demand planning
+                Real-time assembly lines, cell grading, EOL battery testing & machine scrap tracking
               </p>
             </div>
           </div>
@@ -41,7 +43,9 @@ export const ManufacturingHub: React.FC = () => {
           {[
             { id: "wip", label: "Assembly Floor WIP", icon: Activity },
             { id: "assembly", label: "Pack Assembly", icon: Factory },
-            { id: "grading", label: "Cell Grading & QC Lab", icon: Microscope },
+            { id: "grading", label: "Cell Grading & IR QC", icon: Microscope },
+            { id: "eol_qc", label: "EOL Battery Hi-Pot Cert", icon: ShieldCheck },
+            { id: "scrap_operator", label: "Machine Scrap Log", icon: Trash2 },
             { id: "mrp", label: "MRP & Material Demand", icon: Cpu },
             { id: "history", label: "Production Logs", icon: History }
           ].map((tab) => {
@@ -52,7 +56,7 @@ export const ManufacturingHub: React.FC = () => {
                 key={tab.id}
                 onClick={() => setActiveSubTab(tab.id as any)}
                 className={cn(
-                  "flex items-center px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95",
+                  "flex items-center px-3.5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer active:scale-95",
                   isActive
                     ? "bg-emerald-600 text-white shadow-md font-extrabold"
                     : "text-slate-500 hover:text-slate-800"
@@ -77,3 +81,4 @@ export const ManufacturingHub: React.FC = () => {
     </div>
   );
 };
+

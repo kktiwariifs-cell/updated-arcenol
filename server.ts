@@ -352,6 +352,71 @@ async function startServer() {
         dispatchedBy: "Store Keeper - Raw Hub"
       }
     ],
+    cellGradingBatches: [
+      {
+        id: "CGB-2026-001",
+        batchCode: "LOT-LFP-32700-081",
+        supplierLotNo: "CATL-2026-A8",
+        totalCellsTested: 500,
+        gradeAQty: 485,
+        gradeBQty: 12,
+        gradeCQty: 3,
+        avgCapacityAh: 3.22,
+        avgOhmicImpedancemOm: 18.4,
+        ambientTempCelsius: 25.0,
+        tempCompensationFactor: 1.012,
+        testerChannelCount: 64,
+        dischargeTelemetryCurve: [
+          { timeSec: 0, voltageV: 3.65, currentA: 3.0 },
+          { timeSec: 600, voltageV: 3.42, currentA: 3.0 },
+          { timeSec: 1200, voltageV: 3.28, currentA: 3.0 },
+          { timeSec: 1800, voltageV: 3.20, currentA: 3.0 },
+          { timeSec: 2400, voltageV: 3.12, currentA: 3.0 },
+          { timeSec: 3000, voltageV: 2.80, currentA: 3.0 },
+          { timeSec: 3600, voltageV: 2.50, currentA: 0.0 }
+        ],
+        inspectedBy: "QC Engineer Suresh",
+        inspectionDate: "2026-08-10",
+        status: "RELEASED_TO_PRODUCTION"
+      }
+    ],
+    eolCertificates: [
+      {
+        id: "EOL-2026-901",
+        serialNumber: "AESPL EV 28G26001044",
+        packModel: "72V30A",
+        hiPotInsulationResistanceMOm: 500,
+        dielectricBreakdownTest: "PASS (1500V AC 1 min)",
+        bmsMacAddress: "A4:C1:38:90:FE:12",
+        bmsTelemetryPaired: true,
+        bmsFirmwareVersion: "v2.4.12-BMS-CAN",
+        cellVoltageDeltaMaxmV: 12,
+        packCapacityAh: 30.8,
+        testedBy: "Senior QC Lead - Anil Mehta",
+        testBenchId: "TB-02-HV",
+        testTimestamp: "2026-08-12 14:30",
+        certificateStatus: "PASSED_CERTIFIED",
+        attachmentReport: "EOL_TEST_REPORT_28G26001044.pdf"
+      }
+    ],
+    scrapLogs: [
+      {
+        id: "SCRAP-2026-042",
+        machineId: "SPOT_WELDER_01",
+        machineName: "Pneumatic Spot Welder #1",
+        shift: "Shift A (Morning)",
+        operatorName: "Vikram R.",
+        materialId: "RM-NICKEL",
+        materialName: "Nickel Strip 0.15mm",
+        scrapQty: 2.5,
+        unit: "Kg",
+        scrapReason: "Electrode Burnout / Weld Spatter",
+        financialScrapCost: 1875,
+        qcSupervisorSignOff: "QC Supv - K. Sharma",
+        logDate: "2026-08-12 11:15",
+        status: "LOGGED"
+      }
+    ],
     notifications: [
       { id: "n1", type: "FOLLOW_UP", title: "Upcoming Follow-up", message: "Dealer: Green Motors Ahmedabad at 11:00 AM", date: new Date().toISOString(), status: "UNREAD", channel: "WHATSAPP" },
       { id: "n2", type: "LOW_STOCK", title: "Low Stock Alert: Cells", message: "Current stock: 450 units. Reorder point: 1000.", date: new Date().toISOString(), status: "UNREAD", channel: "SYSTEM" }
@@ -4531,7 +4596,7 @@ async function startServer() {
     if (!gate) return res.status(404).json({ error: "Gate Entry not found" });
 
     gate.status = status;
-    if (remarks) gate.remarks = remarks;
+    if (remarks) (gate as any).remarks = remarks;
 
     res.json({ success: true, gateEntry: gate });
   });
@@ -4598,13 +4663,13 @@ async function startServer() {
 
     if (action === 'REJECT') {
       audit.status = 'REJECTED';
-      audit.adminNotes = adminNotes || 'Rejected by Admin';
+      (audit as any).adminNotes = adminNotes || 'Rejected by Admin';
       return res.json({ success: true, audit });
     }
 
     audit.status = 'APPROVED_&_ADJUSTED';
-    audit.adminNotes = adminNotes || 'Approved by Admin & Ledger Auto-Adjusted';
-    audit.approvedAt = new Date().toLocaleString();
+    (audit as any).adminNotes = adminNotes || 'Approved by Admin & Ledger Auto-Adjusted';
+    (audit as any).approvedAt = new Date().toLocaleString();
 
     // Reconcile ERP inventory system quantities to physical counted quantities
     if (Array.isArray(audit.items)) {
@@ -4682,13 +4747,341 @@ async function startServer() {
     if (!trn) return res.status(404).json({ error: "Transfer record not found" });
 
     trn.status = status;
-    if (receivedNotes) trn.receivedNotes = receivedNotes;
-    if (receivedBy) trn.receivedBy = receivedBy;
+    if (receivedNotes) (trn as any).receivedNotes = receivedNotes;
+    if (receivedBy) (trn as any).receivedBy = receivedBy;
     if (status === 'RECEIVED_&_SEAL_VERIFIED') {
-      trn.receivedAt = new Date().toLocaleString();
+      (trn as any).receivedAt = new Date().toLocaleString();
     }
 
     res.json({ success: true, transfer: trn });
+  });
+
+  // --- PHASE 2: QC & MANUFACTURING FORMS ENDPOINTS ---
+  // 1. Cell Grading & Ohmic Impedance Batch Inspection Log
+  app.get("/api/qc/cell-grading-batches", (req, res) => {
+    res.json(db.cellGradingBatches || []);
+  });
+
+  app.post("/api/qc/cell-grading-batches", (req, res) => {
+    const batch = req.body;
+    if (!db.cellGradingBatches) db.cellGradingBatches = [];
+
+    const newBatch = {
+      id: `CGB-2026-${Math.floor(100 + Math.random() * 900)}`,
+      batchCode: batch.batchCode || `LOT-${Date.now().toString().slice(-6)}`,
+      supplierLotNo: batch.supplierLotNo || "CATL-LOT-001",
+      totalCellsTested: Number(batch.totalCellsTested || 0),
+      gradeAQty: Number(batch.gradeAQty || 0),
+      gradeBQty: Number(batch.gradeBQty || 0),
+      gradeCQty: Number(batch.gradeCQty || 0),
+      avgCapacityAh: Number(batch.avgCapacityAh || 3.2),
+      avgOhmicImpedancemOm: Number(batch.avgOhmicImpedancemOm || 18.0),
+      ambientTempCelsius: Number(batch.ambientTempCelsius || 25.0),
+      tempCompensationFactor: Number(batch.tempCompensationFactor || 1.0),
+      testerChannelCount: Number(batch.testerChannelCount || 64),
+      dischargeTelemetryCurve: batch.dischargeTelemetryCurve || [
+        { timeSec: 0, voltageV: 3.65, currentA: 3.0 },
+        { timeSec: 600, voltageV: 3.42, currentA: 3.0 },
+        { timeSec: 1200, voltageV: 3.28, currentA: 3.0 },
+        { timeSec: 1800, voltageV: 3.20, currentA: 3.0 },
+        { timeSec: 2400, voltageV: 3.12, currentA: 3.0 },
+        { timeSec: 3000, voltageV: 2.80, currentA: 3.0 },
+        { timeSec: 3600, voltageV: 2.50, currentA: 0.0 }
+      ],
+      inspectedBy: batch.inspectedBy || "QC Engineer",
+      inspectionDate: new Date().toISOString().split('T')[0],
+      status: "RELEASED_TO_PRODUCTION"
+    };
+
+    db.cellGradingBatches.unshift(newBatch);
+    res.json({ success: true, batch: newBatch });
+  });
+
+  // 2. End-of-Line (EOL) Battery Quality Certificate & Hi-Pot Test Bench
+  app.get("/api/qc/eol-certificates", (req, res) => {
+    res.json(db.eolCertificates || []);
+  });
+
+  app.post("/api/qc/eol-certificates", (req, res) => {
+    const eol = req.body;
+    if (!db.eolCertificates) db.eolCertificates = [];
+
+    const newCert = {
+      id: `EOL-2026-${Math.floor(100 + Math.random() * 900)}`,
+      serialNumber: eol.serialNumber || "AESPL EV UNKNOWN",
+      packModel: eol.packModel || "72V30A",
+      hiPotInsulationResistanceMOm: Number(eol.hiPotInsulationResistanceMOm || 500),
+      dielectricBreakdownTest: eol.dielectricBreakdownTest || "PASS (1500V AC 1 min)",
+      bmsMacAddress: eol.bmsMacAddress || "A4:C1:38:00:00:00",
+      bmsTelemetryPaired: eol.bmsTelemetryPaired !== false,
+      bmsFirmwareVersion: eol.bmsFirmwareVersion || "v2.4.12-BMS-CAN",
+      cellVoltageDeltaMaxmV: Number(eol.cellVoltageDeltaMaxmV || 10),
+      packCapacityAh: Number(eol.packCapacityAh || 30.0),
+      testedBy: eol.testedBy || "QC Lead",
+      testBenchId: eol.testBenchId || "TB-01-HV",
+      testTimestamp: new Date().toLocaleString(),
+      certificateStatus: "PASSED_CERTIFIED",
+      attachmentReport: `EOL_TEST_REPORT_${(eol.serialNumber || '').replace(/[^A-Z0-9]/gi, '')}.pdf`
+    };
+
+    db.eolCertificates.unshift(newCert);
+
+    // Also update finished goods status if matching serial found
+    const fgItem = db.finishedGoods.find((f: any) => f.serial === newCert.serialNumber);
+    if (fgItem) {
+      fgItem.status = "QC_PASSED_CERTIFIED";
+      (fgItem as any).eolCertId = newCert.id;
+    }
+
+    res.json({ success: true, certificate: newCert });
+  });
+
+  // 3. Machine Operator & Line Scrap Log
+  app.get("/api/qc/scrap-logs", (req, res) => {
+    res.json(db.scrapLogs || []);
+  });
+
+  app.post("/api/qc/scrap-logs", (req, res) => {
+    const scrap = req.body;
+    if (!db.scrapLogs) db.scrapLogs = [];
+
+    const newScrap = {
+      id: `SCRAP-2026-${Math.floor(100 + Math.random() * 900)}`,
+      machineId: scrap.machineId || "SPOT_WELDER_01",
+      machineName: scrap.machineName || "Pneumatic Spot Welder #1",
+      shift: scrap.shift || "Shift A",
+      operatorName: scrap.operatorName || "Machine Operator",
+      materialId: scrap.materialId || "RM-NICKEL",
+      materialName: scrap.materialName || "Nickel Strip",
+      scrapQty: Number(scrap.scrapQty || 0),
+      unit: scrap.unit || "Kg",
+      scrapReason: scrap.scrapReason || "Machine Calibration Spatter",
+      financialScrapCost: Number(scrap.financialScrapCost || 0),
+      qcSupervisorSignOff: scrap.qcSupervisorSignOff || "QC Supervisor Verified",
+      logDate: new Date().toLocaleString(),
+      status: "LOGGED"
+    };
+
+    db.scrapLogs.unshift(newScrap);
+
+    // Auto-deduct scrap quantity from raw inventory
+    if (newScrap.materialId) {
+      const invItem = db.inventory.find((i: any) => i.id === newScrap.materialId);
+      if (invItem) {
+        invItem.qty = Math.max(0, Number(invItem.qty) - newScrap.scrapQty);
+      }
+    }
+
+    res.json({ success: true, scrapLog: newScrap });
+  });
+
+  // ==================== PHASE 3: COMMERCIAL OPERATIONS, SALES, WARRANTY & SERVICE ENDPOINTS ==================== //
+
+  // 1. Commercial Sales Invoices & Serialized Battery Pack Allocation
+  app.get("/api/commercial/sales-invoices", (req, res) => {
+    res.json(db.invoices || []);
+  });
+
+  app.post("/api/commercial/sales-invoices", (req, res) => {
+    const inv = req.body;
+    (db as any).invoices = (db as any).invoices || [];
+
+    const totalSubtotal = Number(inv.subtotal || inv.amount || 0);
+    const gstRate = Number(inv.gstRate || 18);
+    const totalGst = Number(inv.totalGst || (totalSubtotal * (gstRate / 100)));
+    const grandTotal = totalSubtotal + totalGst;
+
+    const newInvoice = {
+      id: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      dealerId: inv.dealerId || "D-101",
+      partyName: inv.partyName || inv.dealerName || "Green Motors Ahmedabad",
+      gstin: inv.gstin || "24AAACG1234A1Z5",
+      invoiceDate: inv.invoiceDate || new Date().toISOString().split('T')[0],
+      eWayBillNo: inv.eWayBillNo || `EWB-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+      subtotal: totalSubtotal,
+      gstRate: gstRate,
+      totalGst: totalGst,
+      grandTotal: grandTotal,
+      paymentStatus: inv.paymentStatus || "CREDIT_PENDING",
+      creditDaysAllowed: Number(inv.creditDaysAllowed || 30),
+      items: inv.items || [
+        {
+          model: inv.model || "72V30A High Efficiency Pack",
+          qty: Number(inv.qty || 1),
+          unitPrice: Number(inv.unitPrice || 35000),
+          serials: inv.serials || ["AESPL EV 28G26001044"]
+        }
+      ],
+      remarks: inv.remarks || "Commercial Sales Dispatch Order"
+    };
+
+    (db as any).invoices.unshift(newInvoice);
+
+    // Update finished goods status for linked serials to SOLD
+    if (Array.isArray(newInvoice.items)) {
+      newInvoice.items.forEach((it: any) => {
+        if (Array.isArray(it.serials)) {
+          it.serials.forEach((s: string) => {
+            const fg = (db as any).finishedGoods?.find((f: any) => f.serial === s);
+            if (fg) {
+              fg.status = "SOLD";
+              fg.dealerName = newInvoice.partyName;
+              fg.soldDate = newInvoice.invoiceDate;
+            }
+          });
+        }
+      });
+    }
+
+    res.json({ success: true, invoice: newInvoice });
+  });
+
+  // 2. Customer Battery Warranty Activation & OTP Pairing
+  app.get("/api/warranty/end-user-registrations", (req, res) => {
+    res.json((db as any).endUserRegistrations || []);
+  });
+
+  app.post("/api/warranty/end-user-registrations", (req, res) => {
+    const reg = req.body;
+    (db as any).endUserRegistrations = (db as any).endUserRegistrations || [];
+
+    const registration = {
+      id: `WREG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      serialNumber: reg.serialNumber,
+      customerName: reg.customerName,
+      customerPhone: reg.customerPhone,
+      vehicleRegNo: reg.vehicleRegNo || "GJ-01-EV-8821",
+      vehicleModel: reg.vehicleModel || "E-Scooter Pro",
+      dealerCode: reg.dealerCode || "D-101",
+      registrationDate: new Date().toISOString().split('T')[0],
+      warrantyExpiryDate: new Date(Date.now() + 3 * 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      otpStatus: reg.otpStatus || "VERIFIED_SMS",
+      status: "ACTIVE"
+    };
+
+    (db as any).endUserRegistrations.unshift(registration);
+
+    // Update or insert into db.warranty
+    const existingIndex = db.warranty.findIndex((w: any) => w.serial === registration.serialNumber);
+    if (existingIndex !== -1) {
+      db.warranty[existingIndex].status = "ACTIVE";
+      db.warranty[existingIndex].customerName = registration.customerName;
+      db.warranty[existingIndex].customerPhone = registration.customerPhone;
+      db.warranty[existingIndex].vehicleRegNo = registration.vehicleRegNo;
+      db.warranty[existingIndex].startDate = registration.registrationDate;
+    } else {
+      db.warranty.unshift({
+        id: `W-${Math.floor(100 + Math.random() * 900)}`,
+        serial: registration.serialNumber,
+        dealerId: registration.dealerCode,
+        dealerName: "Partner Dealer",
+        customerName: registration.customerName,
+        customerPhone: registration.customerPhone,
+        vehicleRegNo: registration.vehicleRegNo,
+        startDate: registration.registrationDate,
+        expiryDate: registration.warrantyExpiryDate,
+        status: "ACTIVE",
+        claimsCount: 0,
+        history: [{ date: registration.registrationDate, type: "WARRANTY_ACTIVATED", description: `End-user warranty activated for ${registration.customerName} (${registration.vehicleRegNo})` }]
+      });
+    }
+
+    res.json({ success: true, registration });
+  });
+
+  // 3. Telematics & SOH Diagnostic Logs
+  app.get("/api/telematics/diagnostic-logs", (req, res) => {
+    res.json((db as any).telematicsLogs || []);
+  });
+
+  app.post("/api/telematics/diagnostic-logs", (req, res) => {
+    const log = req.body;
+    (db as any).telematicsLogs = (db as any).telematicsLogs || [];
+
+    const soh = Number(log.sohPercent || 98.5);
+    let healthRating = "EXCELLENT";
+    if (soh < 70) healthRating = "CRITICAL_FAULT";
+    else if (soh < 82) healthRating = "WARNING";
+    else if (soh < 92) healthRating = "GOOD";
+
+    const diagEntry = {
+      id: `DIAG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      serialNumber: log.serialNumber,
+      sohPercent: soh,
+      socPercent: Number(log.socPercent || 85),
+      maxCellTempCelsius: Number(log.maxCellTempCelsius || 34.2),
+      minCellTempCelsius: Number(log.minCellTempCelsius || 31.8),
+      cellVoltageDeltaMaxmV: Number(log.cellVoltageDeltaMaxmV || 14),
+      chargeDischargeCycleCount: Number(log.chargeDischargeCycleCount || 142),
+      bmsFaultCode: log.bmsFaultCode || "NONE_HEALTHY",
+      healthRating: healthRating,
+      timestamp: new Date().toLocaleString(),
+      odometerKm: Number(log.odometerKm || 8420)
+    };
+
+    (db as any).telematicsLogs.unshift(diagEntry);
+    res.json({ success: true, diagnosticLog: diagEntry });
+  });
+
+  // 4. RMA Field Service Warranty Claims & Dealer Credit Notes
+  app.get("/api/warranty/rma-claims", (req, res) => {
+    res.json((db as any).rmaClaims || []);
+  });
+
+  app.post("/api/warranty/rma-claims", (req, res) => {
+    const claim = req.body;
+    (db as any).rmaClaims = (db as any).rmaClaims || [];
+
+    // RMA Automated Recommendation Engine
+    const soh = Number(claim.currentSohPercent || 90);
+    let rec = "CELL_SWAP_REPAIR";
+    if (soh < 70) rec = "FULL_PACK_REPLACEMENT";
+    if (claim.isOutofWarranty) rec = "OUT_OF_WARRANTY_CHARGEABLE";
+
+    const rma = {
+      id: `RMA-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      serialNumber: claim.serialNumber,
+      dealerId: claim.dealerId || "D-101",
+      dealerName: claim.dealerName || "Green Motors Ahmedabad",
+      defectSymptom: claim.defectSymptom || "BMS Over-Temp Trip",
+      bmsFaultCode: claim.bmsFaultCode || "BMS-E04",
+      currentSohPercent: soh,
+      recommendedAction: rec,
+      replacementSerialAllocated: claim.replacementSerialAllocated || (rec === "FULL_PACK_REPLACEMENT" ? `AESPL EV 28G2600${Math.floor(1000 + Math.random() * 9000)}` : "N/A"),
+      dealerCreditNoteAmount: Number(claim.dealerCreditNoteAmount || (rec === "FULL_PACK_REPLACEMENT" ? 35000 : 2500)),
+      creditNoteNo: `CN-2026-${Math.floor(100 + Math.random() * 900)}`,
+      claimDate: new Date().toISOString().split('T')[0],
+      status: "UNDER_REVIEW",
+      technicianRemarks: claim.technicianRemarks || "Awaiting RMA evaluation"
+    };
+
+    (db as any).rmaClaims.unshift(rma);
+    res.json({ success: true, rmaClaim: rma });
+  });
+
+  app.post("/api/warranty/rma-claims/:id/process", (req, res) => {
+    const { id } = req.params;
+    const { status, remarks } = req.body;
+
+    (db as any).rmaClaims = (db as any).rmaClaims || [];
+    const claim = (db as any).rmaClaims.find((c: any) => c.id === id);
+    if (!claim) return res.status(404).json({ error: "RMA Claim not found" });
+
+    claim.status = status || "APPROVED_CREDIT_ISSUED";
+    if (remarks) claim.technicianRemarks = remarks;
+
+    // Issue notification
+    db.notifications.push({
+      id: `n-${Date.now()}`,
+      type: "SERVICE_DELAY",
+      title: `RMA Decision Processed: ${claim.id}`,
+      message: `RMA Claim for ${claim.serialNumber} set to ${claim.status}. Dealer Credit Note ${claim.creditNoteNo} (₹${claim.dealerCreditNoteAmount}) generated.`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json({ success: true, rmaClaim: claim });
   });
 
   app.put("/api/warehouses", (req, res) => {
