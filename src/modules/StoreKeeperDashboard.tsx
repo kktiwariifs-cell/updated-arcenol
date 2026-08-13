@@ -2579,6 +2579,11 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                               .reduce((acc, item) => acc + (Number(item.reorderQty || 0) * (item.price || 120)), 0)
                         )}
                      </span>
+                     {isStoreKeeper && (
+                        <span className="text-[9px] font-bold text-amber-600 block mt-1">
+                           * Rate acceptance & final PO placement will be executed by Admin.
+                        </span>
+                     )}
                   </div>
                   <div className="flex gap-4 w-full sm:w-auto">
                      <button
@@ -2594,7 +2599,7 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
                         className="px-8 py-3.5 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xl shadow-red-600/25 active:scale-95 disabled:opacity-50 leading-none"
                      >
                         {reorderingInProgress ? <RefreshCcw className="animate-spin" size={13} /> : <Check size={14} />}
-                        Authorize & Replenish Stock
+                        {isStoreKeeper ? 'Submit Requisition to Admin' : 'Authorize & Replenish Stock'}
                      </button>
                   </div>
                </form>

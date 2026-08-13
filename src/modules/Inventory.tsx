@@ -6,7 +6,7 @@ import {
   Activity, ShieldCheck, Zap, Layers, Microscope, QrCode, Trash2,
   Database, Boxes, Thermometer, Beaker, TrendingUp, Calendar, MapPin, X,
   ClipboardList, ArrowRight, Printer, CheckCircle2, Sliders, RefreshCw, AlertCircle, Edit, Save,
-  Upload, FileSpreadsheet, FileText, Check, Loader2, ShoppingCart, Truck, Clock, Phone, Building2
+  Upload, FileSpreadsheet, FileText, Check, Loader2, ShoppingCart, Truck, Clock, Phone, Building2, Send, ShieldAlert
 } from 'lucide-react';
 import { useERPData, notifyCrossTabSync } from '../hooks/useERPData';
 import { cn, formatCurrency } from '../lib/utils';
@@ -42,6 +42,13 @@ export const Inventory: React.FC = () => {
   const [poEstDelivery, setPoEstDelivery] = useState('');
   const [poRemarks, setPoRemarks] = useState('');
   const [poIsSubmitting, setPoIsSubmitting] = useState(false);
+
+  // Approval Modal States for Admin Rate Acceptance
+  const [approvePoModalData, setApprovePoModalData] = useState<any | null>(null);
+  const [approvalUnitCost, setApprovalUnitCost] = useState<number>(0);
+  const [approvalVendor, setApprovalVendor] = useState<string>('');
+  const [approvalVendorContact, setApprovalVendorContact] = useState<string>('');
+  const [isApprovingPo, setIsApprovingPo] = useState(false);
 
   // Purchase Orders Data Memorandum
   const purchaseOrdersList = useMemo(() => {

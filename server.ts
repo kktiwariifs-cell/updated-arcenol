@@ -4157,7 +4157,7 @@ async function startServer() {
 
   app.patch("/api/purchase-orders/:id/status", (req, res) => {
     const { id } = req.params;
-    const { status, remarks } = req.body;
+    const { status, remarks, unitCost, vendor, vendorContact } = req.body;
 
     if (!db.purchaseOrders) db.purchaseOrders = [];
     const po = db.purchaseOrders.find((p: any) => p.id === id);
@@ -4165,6 +4165,12 @@ async function startServer() {
 
     po.status = status;
     if (remarks) po.remarks = remarks;
+    if (unitCost !== undefined) {
+      po.unitCost = Number(unitCost);
+      po.totalAmount = Number(po.qty || 1) * Number(unitCost);
+    }
+    if (vendor) po.vendor = vendor;
+    if (vendorContact) po.vendorContact = vendorContact;
 
     // If status is "GRN Received", add or update the inventory quantity
     if (status === "GRN Received") {
