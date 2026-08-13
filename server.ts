@@ -4964,13 +4964,13 @@ async function startServer() {
     // Update or insert into db.warranty
     const existingIndex = db.warranty.findIndex((w: any) => w.serial === registration.serialNumber);
     if (existingIndex !== -1) {
-      db.warranty[existingIndex].status = "ACTIVE";
-      db.warranty[existingIndex].customerName = registration.customerName;
-      db.warranty[existingIndex].customerPhone = registration.customerPhone;
-      db.warranty[existingIndex].vehicleRegNo = registration.vehicleRegNo;
-      db.warranty[existingIndex].startDate = registration.registrationDate;
+      (db.warranty[existingIndex] as any).status = "ACTIVE";
+      (db.warranty[existingIndex] as any).customerName = registration.customerName;
+      (db.warranty[existingIndex] as any).customerPhone = registration.customerPhone;
+      (db.warranty[existingIndex] as any).vehicleRegNo = registration.vehicleRegNo;
+      (db.warranty[existingIndex] as any).startDate = registration.registrationDate;
     } else {
-      db.warranty.unshift({
+      (db.warranty as any[]).unshift({
         id: `W-${Math.floor(100 + Math.random() * 900)}`,
         serial: registration.serialNumber,
         dealerId: registration.dealerCode,

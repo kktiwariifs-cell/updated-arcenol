@@ -433,28 +433,28 @@ export const Analytics: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Lithium ($\text{Li}$) Recovered</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase">Lithium (Li) Recovered</p>
               <p className="text-xl font-black text-emerald-700">
                 {eprLedger.reduce((a, b) => a + Number(b.lithiumRecoveryKg || 0), 0).toFixed(1)} Kg
               </p>
               <p className="text-[10px] text-slate-400 font-bold">12% High Purity Recovery Rate</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Cobalt ($\text{Co}$) Recovered</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase">Cobalt (Co) Recovered</p>
               <p className="text-xl font-black text-emerald-700">
                 {eprLedger.reduce((a, b) => a + Number(b.cobaltRecoveryKg || 0), 0).toFixed(1)} Kg
               </p>
               <p className="text-[10px] text-slate-400 font-bold">20% Black Mass Fraction</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Nickel ($\text{Ni}$) Recovered</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase">Nickel (Ni) Recovered</p>
               <p className="text-xl font-black text-emerald-700">
                 {eprLedger.reduce((a, b) => a + Number(b.nickelRecoveryKg || 0), 0).toFixed(1)} Kg
               </p>
               <p className="text-[10px] text-slate-400 font-bold">35% High Density Recovery</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs space-y-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase">Carbon Offset ($\text{CO}_2$)</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase">Carbon Offset (CO₂)</p>
               <p className="text-xl font-black text-emerald-700">
                 {eprLedger.reduce((a, b) => a + Number(b.co2OffsetTons || 0), 0).toFixed(1)} Metric Tons
               </p>
@@ -669,7 +669,7 @@ export const Analytics: React.FC = () => {
                           <Area type="monotone" dataKey="sales" stroke="#0284c7" strokeWidth={3} fillOpacity={1} fill="url(#colorSales)" />
                        </AreaChart>
                     ) : (
-                       <BarChart data={activeTab === 'warranty' ? failureTimeline : salesData}>
+                       <BarChart data={(activeTab === 'warranty' ? failureTimeline : salesData) as any}>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                           <XAxis dataKey="month" tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />
                           <YAxis tick={{fontSize: 10, fill: '#64748b'}} axisLine={false} tickLine={false} />

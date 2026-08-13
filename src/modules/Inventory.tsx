@@ -158,6 +158,45 @@ export const Inventory: React.FC = () => {
     }
   };
 
+  const handleAdminApprovePo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!approvePoModalData) return;
+    if (!approvalVendor) {
+      alert('Please specify a vendor/supplier name.');
+      return;
+    }
+    if (approvalUnitCost <= 0) {
+      alert('Please accept/specify a valid purchase rate (Unit Cost > 0).');
+      return;
+    }
+
+    setIsApprovingPo(true);
+    try {
+      const res = await fetch(`/api/purchase-orders/${approvePoModalData.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'Pending Supplier Confirmation',
+          unitCost: approvalUnitCost,
+          vendor: approvalVendor,
+          vendorContact: approvalVendorContact,
+          remarks: `Rate accepted (₹${approvalUnitCost}/${approvePoModalData.unit}) & PO placed by Admin.`
+        })
+      });
+      if (res.ok) {
+        alert(`✅ Purchase rate ₹${approvalUnitCost}/${approvePoModalData.unit} accepted by Admin!\nPurchase Order ${approvePoModalData.id} issued to ${approvalVendor} for total amount ₹${(approvePoModalData.qty * approvalUnitCost).toLocaleString()}.`);
+        setApprovePoModalData(null);
+        refetch();
+      } else {
+        alert('Failed to approve purchase rate and issue PO.');
+      }
+    } catch (err) {
+      alert('Error updating PO with accepted rate.');
+    } finally {
+      setIsApprovingPo(false);
+    }
+  };
+
   const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!poMaterialName || !poVendor) {
@@ -2769,16 +2808,25 @@ export const Inventory: React.FC = () => {
                           </span>
 
                           {/* Action Status Progression Buttons */}
-                          {(po.status === 'Pending Admin Approval' || po.isStoreKeeperRaised) && isAdmin && (
-                            <button
-                              onClick={() => {
-                                handleUpdatePoStatus(po.id, 'Pending Supplier Confirmation');
-                                alert('✅ Requisition approved and order placed to supplier!');
-                              }}
-                              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm cursor-pointer flex items-center gap-1"
-                            >
-                              <CheckCircle2 size={12} /> Approve & Place Supplier Order
-                            </button>
+                          {(po.status === 'Pending Admin Approval' || (po.isStoreKeeperRaised && po.status === 'Pending Admin Approval')) && (
+                            isAdmin ? (
+                              <button
+                                onClick={() => {
+                                  setApprovePoModalData(po);
+                                  setApprovalUnitCost(po.unitCost || 100);
+                                  setApprovalVendor(po.vendor && po.vendor !== 'Awaiting Admin Supplier Order' ? po.vendor : 'Energy Plus Ltd');
+                                  setApprovalVendorContact(po.vendorContact || '+91 98765 43210');
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-black uppercase tracking-wider transition-all w-fit shadow-sm cursor-pointer flex items-center gap-1 active:scale-95"
+                                title="Admin Rate Acceptance and Final Purchase Order Issuance"
+                              >
+                                <ShieldCheck size={12} /> Accept Purchase Rate & Issue PO
+                              </button>
+                            ) : (
+                              <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 text-[9px] font-bold border border-amber-200 inline-flex items-center gap-1 w-fit">
+                                <Clock size={10} /> Requisition Initiated — Pending Admin Rate Acceptance
+                              </span>
+                            )
                           )}
                           {po.status === 'Pending Supplier Confirmation' && (
                             <button
@@ -7592,6 +7640,116 @@ export const Inventory: React.FC = () => {
                 >
                   {isSubmittingTransfer ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                   Dispatch Inter-Warehouse Transfer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADMIN PURCHASE RATE ACCEPTANCE & PO ISSUANCE */}
+      {approvePoModalData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 max-h-[90vh] overflow-y-auto text-left">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
+                  <ShieldCheck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Admin Purchase Rate Acceptance</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Commercial Clearance & Final PO Issuance</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setApprovePoModalData(null)}
+                className="p-2 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mt-6 p-4 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1">
+              <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-amber-800">
+                <AlertCircle size={14} /> Store Keeper Requisition Clearance
+              </div>
+              <p className="font-medium">
+                Store Keeper initiated raw material request for <strong>{approvePoModalData.qty?.toLocaleString()} {approvePoModalData.unit}</strong> of <strong>{approvePoModalData.materialName}</strong> ({approvePoModalData.id}).
+                As ADMIN, verify & accept the purchase rate (₹/unit), specify the supplier, and issue the final Purchase Order.
+              </p>
+            </div>
+
+            <form onSubmit={handleAdminApprovePo} className="space-y-6 mt-6">
+              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                <div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Material Component</span>
+                  <span className="text-xs font-black text-slate-900 block mt-0.5">{approvePoModalData.materialName}</span>
+                </div>
+                <div>
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Required Quantity</span>
+                  <span className="text-xs font-black text-slate-900 block mt-0.5 font-mono">{approvePoModalData.qty?.toLocaleString()} {approvePoModalData.unit}</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Approved Supplier / Vendor Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={approvalVendor}
+                    onChange={e => setApprovalVendor(e.target.value)}
+                    placeholder="e.g. Energy Plus Ltd"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Vendor Contact Phone</label>
+                  <input
+                    type="text"
+                    value={approvalVendorContact}
+                    onChange={e => setApprovalVendorContact(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                  />
+                </div>
+              </div>
+
+              <div className="p-5 bg-emerald-50/60 rounded-2xl border border-emerald-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-emerald-900 uppercase tracking-widest block">
+                    Accepted Purchase Rate (₹ per {approvePoModalData.unit}) *
+                  </label>
+                  <span className="text-xs font-black text-emerald-800 font-mono">
+                    Total Order Value: ₹{((approvePoModalData.qty || 0) * approvalUnitCost).toLocaleString()}
+                  </span>
+                </div>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  required
+                  value={approvalUnitCost}
+                  onChange={e => setApprovalUnitCost(Number(e.target.value))}
+                  className="w-full px-4 py-3 bg-white border border-emerald-300 rounded-xl text-sm font-black text-slate-900 font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                />
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setApprovePoModalData(null)}
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isApprovingPo}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isApprovingPo ? <Loader2 size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+                  Accept Rate & Issue Purchase Order
                 </button>
               </div>
             </form>
