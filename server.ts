@@ -262,6 +262,96 @@ async function startServer() {
       { id: "ph1", model: "72V30A", qty: 2, serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045"], date: "2024-05-10", status: "COMPLETED" }
     ],
     warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
+    gateEntries: [
+      {
+        id: "GATE-2026-101",
+        gatePassNo: "GP-2026-8801",
+        poNumber: "PO-2026-080",
+        supplier: "Chemical Ltd",
+        materialName: "Sulfuric Acid",
+        challanNo: "CH-2026-103",
+        invoiceNo: "INV-CHEM-991",
+        vehicleNo: "GJ-18-XY-9012",
+        driverName: "Vikram Singh",
+        driverLicense: "GJ-01201994821",
+        grossWeight: 14500,
+        tareWeight: 4500,
+        netWeight: 10000,
+        weighbridgeSlipNo: "WB-88219",
+        mtcCertificateNo: "MTC-CHEM-882",
+        baseAmount: 450000,
+        taxType: "CGST_SGST",
+        cgstPct: 9,
+        sgstPct: 9,
+        igstPct: 0,
+        taxAmount: 81000,
+        totalInvoiceVal: 531000,
+        status: "GRN_VERIFIED",
+        entryTimestamp: "2026-08-01 10:30",
+        receivedBy: "Ramesh Storekeeper"
+      },
+      {
+        id: "GATE-2026-102",
+        gatePassNo: "GP-2026-8802",
+        poNumber: "PO-2026-083",
+        supplier: "Global Metals Corp",
+        materialName: "Lead Alloy",
+        challanNo: "CH-2026-108",
+        invoiceNo: "INV-GM-7721",
+        vehicleNo: "MH-12-PQ-8891",
+        driverName: "Rajesh Kumar",
+        driverLicense: "MH-12201884920",
+        grossWeight: 12200,
+        tareWeight: 7200,
+        netWeight: 5000,
+        weighbridgeSlipNo: "WB-88230",
+        mtcCertificateNo: "MTC-GM-9901",
+        baseAmount: 900000,
+        taxType: "IGST",
+        cgstPct: 0,
+        sgstPct: 0,
+        igstPct: 18,
+        taxAmount: 162000,
+        totalInvoiceVal: 1062000,
+        status: "QC_PENDING",
+        entryTimestamp: "2026-08-11 14:15",
+        receivedBy: "Suresh Storekeeper"
+      }
+    ],
+    stockAudits: [
+      {
+        id: "AUDIT-2026-001",
+        auditDate: "2026-08-10",
+        warehouse: "Raw Hub",
+        auditorName: "Ramesh Patel",
+        auditorRole: "Senior Stock Auditor",
+        auditorSignature: "R. Patel (Digital Sign-off)",
+        status: "PENDING_ADMIN_APPROVAL",
+        items: [
+          { itemId: "RM-LEAD", name: "Lead Alloy", systemQty: 25000, countedQty: 24850, unit: "Kg", price: 180, variance: -150, varianceValue: -27000, reason: "In-transit handling losses & moisture evaporation" },
+          { itemId: "RM-OXIDE", name: "Lead Oxide", systemQty: 12000, countedQty: 12000, unit: "Kg", price: 210, variance: 0, varianceValue: 0, reason: "Verified match" }
+        ]
+      }
+    ],
+    warehouseTransfers: [
+      {
+        id: "TRN-2026-001",
+        transferDate: "2026-08-12",
+        sourceWarehouse: "Raw Hub",
+        destWarehouse: "Ahmedabad Warehouse",
+        itemId: "RM-CELLS",
+        itemName: "Lithium Cells (3.7V 3Ah)",
+        qtyTransferred: 2000,
+        unit: "Pcs",
+        transporterName: "FastTrack Logistics",
+        driverPhone: "+91 98250 11223",
+        vehicleRegNo: "GJ-01-XX-4321",
+        eWayBillNo: "EWB-9912048291",
+        sealNumber: "SEAL-883921",
+        status: "DISPATCHED_IN_TRANSIT",
+        dispatchedBy: "Store Keeper - Raw Hub"
+      }
+    ],
     notifications: [
       { id: "n1", type: "FOLLOW_UP", title: "Upcoming Follow-up", message: "Dealer: Green Motors Ahmedabad at 11:00 AM", date: new Date().toISOString(), status: "UNREAD", channel: "WHATSAPP" },
       { id: "n2", type: "LOW_STOCK", title: "Low Stock Alert: Cells", message: "Current stock: 450 units. Reorder point: 1000.", date: new Date().toISOString(), status: "UNREAD", channel: "SYSTEM" }
@@ -4360,6 +4450,245 @@ async function startServer() {
     db.warehouses.push(name);
     batchUpsert('warehouses', [mapWarehouse(name)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
     res.json({ success: true, warehouses: db.warehouses });
+  });
+
+  // --- PHASE 1: STORES & WAREHOUSE REGISTERS ENDPOINTS ---
+  
+  // 1. Inward Gate Entry & GRN Register
+  app.get("/api/inventory/gate-entries", (req, res) => {
+    res.json(db.gateEntries || []);
+  });
+
+  app.post("/api/inventory/gate-entries", (req, res) => {
+    const entry = req.body;
+    if (!db.gateEntries) db.gateEntries = [];
+    
+    const gross = Number(entry.grossWeight || 0);
+    const tare = Number(entry.tareWeight || 0);
+    const net = gross > tare ? gross - tare : Number(entry.netWeight || 0);
+    
+    const baseAmt = Number(entry.baseAmount || 0);
+    const cgst = Number(entry.cgstPct || 0);
+    const sgst = Number(entry.sgstPct || 0);
+    const igst = Number(entry.igstPct || 0);
+    const taxAmt = entry.taxType === 'IGST' 
+      ? baseAmt * (igst / 100) 
+      : baseAmt * ((cgst + sgst) / 100);
+    const totalVal = baseAmt + taxAmt;
+
+    const newGateEntry = {
+      id: `GATE-2026-${Math.floor(100 + Math.random() * 900)}`,
+      gatePassNo: entry.gatePassNo || `GP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      poNumber: entry.poNumber || "DIRECT-GATE-INWARD",
+      supplier: entry.supplier || "Vendor Inward",
+      materialName: entry.materialName || "Raw Inward Lot",
+      challanNo: entry.challanNo || "CH-PENDING",
+      invoiceNo: entry.invoiceNo || "INV-PENDING",
+      vehicleNo: entry.vehicleNo || "N/A",
+      driverName: entry.driverName || "Driver Unspecified",
+      driverLicense: entry.driverLicense || "N/A",
+      grossWeight: gross,
+      tareWeight: tare,
+      netWeight: net,
+      weighbridgeSlipNo: entry.weighbridgeSlipNo || "WB-PENDING",
+      weighbridgeSlipImg: entry.weighbridgeSlipImg || null,
+      mtcCertificateNo: entry.mtcCertificateNo || "MTC-PENDING",
+      mtcAttachment: entry.mtcAttachment || null,
+      baseAmount: baseAmt,
+      taxType: entry.taxType || "CGST_SGST",
+      cgstPct: cgst,
+      sgstPct: sgst,
+      igstPct: igst,
+      taxAmount: taxAmt,
+      totalInvoiceVal: totalVal,
+      status: entry.status || "QC_PENDING",
+      entryTimestamp: new Date().toLocaleString(),
+      receivedBy: entry.receivedBy || "Store Keeper"
+    };
+
+    db.gateEntries.unshift(newGateEntry);
+
+    // Notify
+    if (!db.notifications) db.notifications = [];
+    db.notifications.unshift({
+      id: `n-${Date.now()}`,
+      type: "GATE_INWARD",
+      title: `Inward Gate Entry ${newGateEntry.id} Logged`,
+      message: `Vehicle ${newGateEntry.vehicleNo} logged for ${newGateEntry.supplier}. Net Weight: ${newGateEntry.netWeight} Kg. Status: ${newGateEntry.status}`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json({ success: true, gateEntry: newGateEntry });
+  });
+
+  app.patch("/api/inventory/gate-entries/:id/status", (req, res) => {
+    const { id } = req.params;
+    const { status, remarks } = req.body;
+    if (!db.gateEntries) db.gateEntries = [];
+    const gate = db.gateEntries.find((g: any) => g.id === id);
+    if (!gate) return res.status(404).json({ error: "Gate Entry not found" });
+
+    gate.status = status;
+    if (remarks) gate.remarks = remarks;
+
+    res.json({ success: true, gateEntry: gate });
+  });
+
+  // 2. Physical Stock Audit & Variance Register
+  app.get("/api/inventory/stock-audits", (req, res) => {
+    res.json(db.stockAudits || []);
+  });
+
+  app.post("/api/inventory/stock-audits", (req, res) => {
+    const auditData = req.body;
+    if (!db.stockAudits) db.stockAudits = [];
+
+    const newAudit = {
+      id: `AUDIT-2026-${Math.floor(100 + Math.random() * 900)}`,
+      auditDate: auditData.auditDate || new Date().toISOString().split('T')[0],
+      warehouse: auditData.warehouse || "Raw Hub",
+      auditorName: auditData.auditorName || "Store Auditor",
+      auditorRole: auditData.auditorRole || "Inventory Auditor",
+      auditorSignature: auditData.auditorSignature || `${auditData.auditorName || "Auditor"} (Verified)`,
+      status: "PENDING_ADMIN_APPROVAL",
+      items: (auditData.items || []).map((it: any) => {
+        const sys = Number(it.systemQty || 0);
+        const cnt = Number(it.countedQty || 0);
+        const vari = cnt - sys;
+        const pr = Number(it.price || 100);
+        return {
+          itemId: it.itemId,
+          name: it.name,
+          unit: it.unit || 'Pcs',
+          price: pr,
+          systemQty: sys,
+          countedQty: cnt,
+          variance: vari,
+          varianceValue: vari * pr,
+          reason: it.reason || (vari === 0 ? "Exact Match" : "Stock Count Variance")
+        };
+      })
+    };
+
+    db.stockAudits.unshift(newAudit);
+
+    if (!db.notifications) db.notifications = [];
+    db.notifications.unshift({
+      id: `n-${Date.now()}`,
+      type: "STOCK_AUDIT",
+      title: `Stock Audit ${newAudit.id} Submitted for Admin Approval`,
+      message: `Auditor ${newAudit.auditorName} logged physical stock audit for ${newAudit.warehouse}. Awaiting Admin ledger adjustment.`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json({ success: true, audit: newAudit });
+  });
+
+  app.patch("/api/inventory/stock-audits/:id/approve", (req, res) => {
+    const { id } = req.params;
+    const { adminNotes, action } = req.body; // action: 'APPROVE' | 'REJECT'
+    if (!db.stockAudits) db.stockAudits = [];
+
+    const audit = db.stockAudits.find((a: any) => a.id === id);
+    if (!audit) return res.status(404).json({ error: "Stock audit record not found" });
+
+    if (action === 'REJECT') {
+      audit.status = 'REJECTED';
+      audit.adminNotes = adminNotes || 'Rejected by Admin';
+      return res.json({ success: true, audit });
+    }
+
+    audit.status = 'APPROVED_&_ADJUSTED';
+    audit.adminNotes = adminNotes || 'Approved by Admin & Ledger Auto-Adjusted';
+    audit.approvedAt = new Date().toLocaleString();
+
+    // Reconcile ERP inventory system quantities to physical counted quantities
+    if (Array.isArray(audit.items)) {
+      audit.items.forEach((it: any) => {
+        const invItem = db.inventory.find((i: any) => i.id === it.itemId);
+        if (invItem) {
+          invItem.qty = Number(it.countedQty);
+        }
+      });
+    }
+
+    if (!db.notifications) db.notifications = [];
+    db.notifications.unshift({
+      id: `n-${Date.now()}`,
+      type: "STOCK_AUDIT_APPROVED",
+      title: `Stock Audit ${audit.id} Approved & Ledger Reconciled`,
+      message: `Admin approved audit ${audit.id}. ${audit.items?.length || 0} material SKU quantities updated in primary stock ledger.`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json({ success: true, audit });
+  });
+
+  // 3. Inter-Warehouse Transfer Manifest Slips
+  app.get("/api/inventory/transfers", (req, res) => {
+    res.json(db.warehouseTransfers || []);
+  });
+
+  app.post("/api/inventory/transfers", (req, res) => {
+    const trn = req.body;
+    if (!db.warehouseTransfers) db.warehouseTransfers = [];
+
+    const newTransfer = {
+      id: `TRN-2026-${Math.floor(100 + Math.random() * 900)}`,
+      transferDate: trn.transferDate || new Date().toISOString().split('T')[0],
+      sourceWarehouse: trn.sourceWarehouse || "Raw Hub",
+      destWarehouse: trn.destWarehouse || "Ahmedabad Warehouse",
+      itemId: trn.itemId,
+      itemName: trn.itemName || "Raw Material",
+      qtyTransferred: Number(trn.qtyTransferred || 0),
+      unit: trn.unit || "Pcs",
+      transporterName: trn.transporterName || "Internal Logistics",
+      driverPhone: trn.driverPhone || "+91 98765 00000",
+      vehicleRegNo: trn.vehicleRegNo || "GJ-01-XX-0000",
+      eWayBillNo: trn.eWayBillNo || "EWB-PENDING",
+      sealNumber: trn.sealNumber || `SEAL-${Math.floor(100000 + Math.random() * 900000)}`,
+      status: "DISPATCHED_IN_TRANSIT",
+      dispatchedBy: trn.dispatchedBy || "Store Keeper"
+    };
+
+    db.warehouseTransfers.unshift(newTransfer);
+
+    if (!db.notifications) db.notifications = [];
+    db.notifications.unshift({
+      id: `n-${Date.now()}`,
+      type: "WAREHOUSE_TRANSFER",
+      title: `Transfer Manifest ${newTransfer.id} Dispatched`,
+      message: `${newTransfer.qtyTransferred} ${newTransfer.unit} of ${newTransfer.itemName} dispatched from ${newTransfer.sourceWarehouse} to ${newTransfer.destWarehouse}. Vehicle: ${newTransfer.vehicleRegNo}`,
+      date: new Date().toISOString(),
+      status: "UNREAD",
+      channel: "SYSTEM"
+    });
+
+    res.json({ success: true, transfer: newTransfer });
+  });
+
+  app.patch("/api/inventory/transfers/:id/status", (req, res) => {
+    const { id } = req.params;
+    const { status, receivedNotes, receivedBy } = req.body;
+    if (!db.warehouseTransfers) db.warehouseTransfers = [];
+
+    const trn = db.warehouseTransfers.find((t: any) => t.id === id);
+    if (!trn) return res.status(404).json({ error: "Transfer record not found" });
+
+    trn.status = status;
+    if (receivedNotes) trn.receivedNotes = receivedNotes;
+    if (receivedBy) trn.receivedBy = receivedBy;
+    if (status === 'RECEIVED_&_SEAL_VERIFIED') {
+      trn.receivedAt = new Date().toLocaleString();
+    }
+
+    res.json({ success: true, transfer: trn });
   });
 
   app.put("/api/warehouses", (req, res) => {

@@ -307,6 +307,231 @@ export const Inventory: React.FC = () => {
   const [subSearchGrading, setSubSearchGrading] = useState('');
   const [subGradeFilterGrading, setSubGradeFilterGrading] = useState('ALL');
 
+  // --- PHASE 1: STORES & WAREHOUSE REGISTERS STATES ---
+  const [gateEntriesList, setGateEntriesList] = useState<any[]>([]);
+  const [stockAuditsList, setStockAuditsList] = useState<any[]>([]);
+  const [transfersList, setTransfersList] = useState<any[]>([]);
+
+  // Gate Entry Modal State
+  const [isGateModalOpen, setIsGateModalOpen] = useState(false);
+  const [gatePoNo, setGatePoNo] = useState('PO-2026-083');
+  const [gateSupplier, setGateSupplier] = useState('Global Metals Corp');
+  const [gateMaterial, setGateMaterial] = useState('Lead Alloy');
+  const [gateChallan, setGateChallan] = useState('CH-2026-109');
+  const [gateInvoice, setGateInvoice] = useState('INV-GM-8820');
+  const [gateVehicle, setGateVehicle] = useState('GJ-01-AB-9988');
+  const [gateDriverName, setGateDriverName] = useState('Manish Verma');
+  const [gateDriverLicense, setGateDriverLicense] = useState('GJ-01202008812');
+  const [gateGrossWeight, setGateGrossWeight] = useState<number>(18500);
+  const [gateTareWeight, setGateTareWeight] = useState<number>(3500);
+  const [gateWeighbridgeSlipNo, setGateWeighbridgeSlipNo] = useState('WB-2026-9081');
+  const [gateWeighbridgeSlipImg, setGateWeighbridgeSlipImg] = useState('');
+  const [gateMtcNo, setGateMtcNo] = useState('MTC-2026-771');
+  const [gateMtcImg, setGateMtcImg] = useState('');
+  const [gateBaseAmount, setGateBaseAmount] = useState<number>(1200000);
+  const [gateTaxType, setGateTaxType] = useState<'CGST_SGST' | 'IGST'>('IGST');
+  const [gateCgstPct, setGateCgstPct] = useState<number>(9);
+  const [gateSgstPct, setGateSgstPct] = useState<number>(9);
+  const [gateIgstPct, setGateIgstPct] = useState<number>(18);
+  const [isSubmittingGate, setIsSubmittingGate] = useState(false);
+  const [viewGateSlip, setViewGateSlip] = useState<any | null>(null);
+
+  // Stock Audit Modal State
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [auditWarehouse, setAuditWarehouse] = useState('Raw Hub');
+  const [auditorName, setAuditorName] = useState(user?.name || 'Ramesh Patel');
+  const [auditorRole, setAuditorRole] = useState('Store Auditor');
+  const [auditItemsList, setAuditItemsList] = useState<any[]>([]);
+  const [auditorSignature, setAuditorSignature] = useState(`${user?.name || 'Ramesh Patel'} (Digital Sign-off)`);
+  const [isSubmittingAudit, setIsSubmittingAudit] = useState(false);
+
+  // Transfer Manifest Modal State
+  const [isNewTransferModalOpen, setIsNewTransferModalOpen] = useState(false);
+  const [trSourceWh, setTrSourceWh] = useState('Raw Hub');
+  const [trDestWh, setTrDestWh] = useState('Ahmedabad Warehouse');
+  const [trItemId, setTrItemId] = useState('RM-CELLS');
+  const [trItemName, setTrItemName] = useState('Lithium Cells (3.7V 3Ah)');
+  const [trQty, setTrQty] = useState<number>(1000);
+  const [trTransporter, setTrTransporter] = useState('Express Logistics');
+  const [trDriverPhone, setTrDriverPhone] = useState('+91 98980 11223');
+  const [trVehicleReg, setTrVehicleReg] = useState('GJ-01-TR-9988');
+  const [trEWayBill, setTrEWayBill] = useState('EWB-99482100');
+  const [trSeal, setTrSeal] = useState(`SEAL-${Math.floor(100000 + Math.random() * 900000)}`);
+  const [isSubmittingTransfer, setIsSubmittingTransfer] = useState(false);
+
+  // Fetch Phase 1 data
+  const fetchPhase1Data = async () => {
+    try {
+      const [gateRes, auditRes, trRes] = await Promise.all([
+        fetch('/api/inventory/gate-entries'),
+        fetch('/api/inventory/stock-audits'),
+        fetch('/api/inventory/transfers')
+      ]);
+      if (gateRes.ok) setGateEntriesList(await gateRes.json());
+      if (auditRes.ok) setStockAuditsList(await auditRes.json());
+      if (trRes.ok) setTransfersList(await trRes.json());
+    } catch (e) {
+      console.error("Error fetching Phase 1 data", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchPhase1Data();
+  }, []);
+
+  // --- PHASE 1 HANDLERS ---
+  const handleCreateGateEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingGate(true);
+    try {
+      const res = await fetch('/api/inventory/gate-entries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          poNumber: gatePoNo,
+          supplier: gateSupplier,
+          materialName: gateMaterial,
+          challanNo: gateChallan,
+          invoiceNo: gateInvoice,
+          vehicleNo: gateVehicle,
+          driverName: gateDriverName,
+          driverLicense: gateDriverLicense,
+          grossWeight: gateGrossWeight,
+          tareWeight: gateTareWeight,
+          weighbridgeSlipNo: gateWeighbridgeSlipNo,
+          weighbridgeSlipImg: gateWeighbridgeSlipImg,
+          mtcCertificateNo: gateMtcNo,
+          mtcAttachment: gateMtcImg,
+          baseAmount: gateBaseAmount,
+          taxType: gateTaxType,
+          cgstPct: gateCgstPct,
+          sgstPct: gateSgstPct,
+          igstPct: gateIgstPct,
+          receivedBy: user?.name || 'Store Keeper'
+        })
+      });
+      if (res.ok) {
+        alert('✅ Inward Gate Entry & GRN registered successfully!');
+        setIsGateModalOpen(false);
+        fetchPhase1Data();
+        refetch();
+      } else {
+        alert('Failed to register gate entry');
+      }
+    } catch (err) {
+      alert('Network error submitting gate entry');
+    } finally {
+      setIsSubmittingGate(false);
+    }
+  };
+
+  const handleCreateStockAudit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auditItemsList || auditItemsList.length === 0) {
+      alert('Please select at least one item for physical audit.');
+      return;
+    }
+    setIsSubmittingAudit(true);
+    try {
+      const res = await fetch('/api/inventory/stock-audits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          warehouse: auditWarehouse,
+          auditorName: auditorName,
+          auditorRole: auditorRole,
+          auditorSignature: auditorSignature,
+          items: auditItemsList
+        })
+      });
+      if (res.ok) {
+        alert('✅ Physical Stock Audit register submitted for Admin approval!');
+        setIsAuditModalOpen(false);
+        fetchPhase1Data();
+      } else {
+        alert('Failed to submit stock audit');
+      }
+    } catch (err) {
+      alert('Network error submitting stock audit');
+    } finally {
+      setIsSubmittingAudit(false);
+    }
+  };
+
+  const handleApproveStockAudit = async (auditId: string, action: 'APPROVE' | 'REJECT') => {
+    try {
+      const res = await fetch(`/api/inventory/stock-audits/${auditId}/approve`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action,
+          adminNotes: action === 'APPROVE' ? 'Approved & Stock Ledger Auto-Reconciled' : 'Rejected by Admin'
+        })
+      });
+      if (res.ok) {
+        alert(action === 'APPROVE' ? '✅ Stock Audit Approved! Inventory balances reconciled.' : '❌ Stock Audit Rejected.');
+        fetchPhase1Data();
+        refetch();
+      }
+    } catch (err) {
+      alert('Error updating stock audit status');
+    }
+  };
+
+  const handleCreateWarehouseTransfer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingTransfer(true);
+    try {
+      const res = await fetch('/api/inventory/transfers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sourceWarehouse: trSourceWh,
+          destWarehouse: trDestWh,
+          itemId: trItemId,
+          itemName: trItemName,
+          qtyTransferred: trQty,
+          transporterName: trTransporter,
+          driverPhone: trDriverPhone,
+          vehicleRegNo: trVehicleReg,
+          eWayBillNo: trEWayBill,
+          sealNumber: trSeal,
+          dispatchedBy: user?.name || 'Store Keeper'
+        })
+      });
+      if (res.ok) {
+        alert('✅ Inter-Warehouse Transfer Manifest dispatched!');
+        setIsNewTransferModalOpen(false);
+        fetchPhase1Data();
+      }
+    } catch (err) {
+      alert('Error creating transfer manifest');
+    } finally {
+      setIsSubmittingTransfer(false);
+    }
+  };
+
+  const handleVerifyTransferSeal = async (trId: string) => {
+    try {
+      const res = await fetch(`/api/inventory/transfers/${trId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'RECEIVED_&_SEAL_VERIFIED',
+          receivedBy: user?.name || 'Destination Store Keeper',
+          receivedNotes: 'Physical seal intact, quantity verified upon arrival.'
+        })
+      });
+      if (res.ok) {
+        alert('✅ Transfer Seal & Material verified into destination warehouse!');
+        fetchPhase1Data();
+        refetch();
+      }
+    } catch (err) {
+      alert('Error verifying transfer');
+    }
+  };
+
   // Pagination States for Data Sheets (20 entries per page default)
   const [rmCurrentPage, setRmCurrentPage] = useState(1);
   const [rmItemsPerPage, setRmItemsPerPage] = useState(20);
@@ -1765,6 +1990,8 @@ export const Inventory: React.FC = () => {
       <div className="flex space-x-1.5 p-1.5 bg-slate-100/90 rounded-[2rem] border border-slate-200/60 w-full overflow-x-auto whitespace-nowrap scrollbar-none shadow-inner">
         {[
           { id: 'dashboard', label: 'Inventory Overview & KPI', icon: BarChart3, color: 'bg-amber-500', activeClass: 'bg-amber-500 text-white shadow-lg shadow-amber-200 border-amber-600' },
+          { id: 'gate_entries', label: 'Inward Gate & GRN Register', icon: Truck, color: 'bg-cyan-500', activeClass: 'bg-cyan-600 text-white shadow-lg shadow-cyan-200 border-cyan-700' },
+          { id: 'stock_audit', label: 'Physical Stock Audit', icon: CheckCircle2, color: 'bg-sky-500', activeClass: 'bg-sky-600 text-white shadow-lg shadow-sky-200 border-sky-700' },
           { id: 'pos', label: 'Purchase Orders (POs)', icon: ShoppingCart, color: 'bg-orange-500', activeClass: 'bg-orange-500 text-white shadow-lg shadow-orange-200 border-orange-600' },
           { id: 'raw', label: 'Raw Master Registry', icon: Package, color: 'bg-blue-500', activeClass: 'bg-blue-600 text-white shadow-lg shadow-blue-200 border-blue-700' },
           { id: 'graded', label: 'Cell Grading Lab', icon: Zap, color: 'bg-emerald-500', activeClass: 'bg-emerald-600 text-white shadow-lg shadow-emerald-200 border-emerald-700' },
@@ -2010,6 +2237,338 @@ export const Inventory: React.FC = () => {
             </div>
           </div>
 
+        </div>
+      )}
+
+      {/* TAB: INWARD GATE ENTRY & GRN REGISTER */}
+      {activeTab === 'gate_entries' && (
+        <div className="animate-in fade-in duration-500 space-y-8 text-left">
+          {/* Header Banner */}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200/80 shadow-sm relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <span className="px-3.5 py-1 bg-cyan-100 text-cyan-800 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck size={12} /> Goods Receipt Note (GRN) & Gate Entry
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Weighbridge & Tax Breakdown Inward Register</span>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Inward Gate Entry & GRN Registry</h2>
+              <p className="text-xs text-slate-500 max-w-2xl font-medium">
+                Log vehicle entry, weighbridge gross/tare weights, driver license identification, Material Test Certificates (MTC), and IGST/CGST tax splits upon material arrival at the factory gate.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setIsGateModalOpen(true)}
+              className="px-6 py-3.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/20 active:scale-95 shrink-0"
+            >
+              <Plus size={15} /> Log Inward Gate Pass
+            </button>
+          </div>
+
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Total Gate Passes Logged</span>
+              <span className="text-2xl font-extrabold text-slate-900 block mt-1">{gateEntriesList.length}</span>
+              <span className="text-[10px] font-bold text-cyan-600 mt-1 block">Inward Materials Received</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Weighbridge Total Net Weight</span>
+              <span className="text-2xl font-extrabold text-slate-900 block mt-1">
+                {gateEntriesList.reduce((acc, g) => acc + (Number(g.netWeight) || 0), 0).toLocaleString()} <span className="text-xs text-slate-500 font-bold">Kg</span>
+              </span>
+              <span className="text-[10px] font-bold text-emerald-600 mt-1 block">Verified Gross - Tare</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Pending QC Inspection</span>
+              <span className="text-2xl font-extrabold text-amber-600 block mt-1">
+                {gateEntriesList.filter(g => g.status === 'QC_PENDING').length}
+              </span>
+              <span className="text-[10px] font-bold text-amber-600 mt-1 block">Awaiting Quality Clearance</span>
+            </div>
+            <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Total Inward Invoice Value</span>
+              <span className="text-2xl font-extrabold text-slate-900 block mt-1">
+                {formatCurrency(gateEntriesList.reduce((acc, g) => acc + (Number(g.totalInvoiceVal) || 0), 0))}
+              </span>
+              <span className="text-[10px] font-bold text-indigo-600 mt-1 block">Base + GST Tax Split</span>
+            </div>
+          </div>
+
+          {/* Gate Entries Table */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200/80 overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center space-x-3">
+                <span className="p-2 bg-cyan-50 text-cyan-600 rounded-xl">
+                  <FileText size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Official Gate Entry Ledger</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Permanent Store Receipt Audit Log</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/70 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200/60">
+                    <th className="py-4 px-6">Gate ID / Pass</th>
+                    <th className="py-4 px-6">PO & Supplier</th>
+                    <th className="py-4 px-6">Vehicle & Driver</th>
+                    <th className="py-4 px-6">Weighbridge (Kg)</th>
+                    <th className="py-4 px-6">Tax Split & Invoice</th>
+                    <th className="py-4 px-6">Documents / MTC</th>
+                    <th className="py-4 px-6">QC Status</th>
+                    <th className="py-4 px-6 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {gateEntriesList.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
+                        No Inward Gate Entries recorded yet. Click "Log Inward Gate Pass" to record new vehicle entry.
+                      </td>
+                    </tr>
+                  ) : (
+                    gateEntriesList.map((entry: any) => (
+                      <tr key={entry.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-6 font-mono font-bold text-slate-900">
+                          <span className="block text-cyan-700 font-extrabold">{entry.id}</span>
+                          <span className="text-[10px] text-slate-400 font-bold block">{entry.gatePassNo}</span>
+                          <span className="text-[9px] text-slate-400 font-normal block mt-0.5">{entry.entryTimestamp}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-extrabold text-slate-900 block">{entry.materialName}</span>
+                          <span className="text-[10px] text-slate-500 font-bold block">{entry.supplier}</span>
+                          <span className="text-[9px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-semibold inline-block mt-1">PO: {entry.poNumber}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-bold text-slate-800 block flex items-center gap-1">
+                            <Truck size={12} className="text-cyan-600" /> {entry.vehicleNo}
+                          </span>
+                          <span className="text-[10px] text-slate-500 block">Driver: {entry.driverName}</span>
+                          <span className="text-[9px] text-slate-400 block font-mono">DL: {entry.driverLicense}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="space-y-0.5">
+                            <span className="text-xs font-black text-slate-900 block">Net: {Number(entry.netWeight).toLocaleString()} Kg</span>
+                            <span className="text-[9px] text-slate-400 block">Gross: {Number(entry.grossWeight).toLocaleString()} | Tare: {Number(entry.tareWeight).toLocaleString()}</span>
+                            <span className="text-[9px] font-mono text-cyan-600 font-bold block">WB Slip: {entry.weighbridgeSlipNo}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-black text-slate-900 block">{formatCurrency(entry.totalInvoiceVal)}</span>
+                          <span className="text-[10px] text-slate-500 block">Base: {formatCurrency(entry.baseAmount)}</span>
+                          <span className="text-[9px] text-emerald-600 font-bold block">
+                            Tax ({entry.taxType}): {formatCurrency(entry.taxAmount)}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <div className="space-y-1">
+                            <span className="text-[10px] font-bold text-slate-700 block">MTC: {entry.mtcCertificateNo}</span>
+                            <span className="text-[10px] text-slate-500 block">Inv: {entry.invoiceNo}</span>
+                            <span className="text-[10px] text-slate-500 block">Challan: {entry.challanNo}</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1",
+                            entry.status === 'GRN_VERIFIED' ? "bg-emerald-100 text-emerald-800 border border-emerald-200" :
+                            entry.status === 'QC_PENDING' ? "bg-amber-100 text-amber-800 border border-amber-200" :
+                            "bg-rose-100 text-rose-800 border border-rose-200"
+                          )}>
+                            {entry.status === 'GRN_VERIFIED' && <CheckCircle2 size={10} />}
+                            {entry.status === 'QC_PENDING' && <Clock size={10} />}
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          <button
+                            onClick={() => setViewGateSlip(entry)}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1 border border-slate-200"
+                          >
+                            <Printer size={12} /> Print GRN Slip
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB: PHYSICAL STOCK AUDIT & VARIANCE REGISTER */}
+      {activeTab === 'stock_audit' && (
+        <div className="animate-in fade-in duration-500 space-y-8 text-left">
+          {/* Header Banner */}
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200/80 shadow-sm relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center space-x-3">
+                <span className="px-3.5 py-1 bg-sky-100 text-sky-800 rounded-full text-[9px] font-black uppercase tracking-wider flex items-center gap-1.5">
+                  <CheckCircle2 size={12} /> Stock Audit & Variance Reconciliation
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-slate-300"></span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Physical Ledger vs ERP Stock Auto-Adjust</span>
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 uppercase italic tracking-tight">Physical Stock Audit & Variance Register</h2>
+              <p className="text-xs text-slate-500 max-w-2xl font-medium">
+                Perform physical inventory stock counts, calculate system vs counted variance, record shortage/excess financial valuation, capture store auditor digital signatures, and trigger Admin approval to automatically reconcile ERP stock balances.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => {
+                if (Array.isArray(data?.inventory)) {
+                  setAuditItemsList(data.inventory.map((item: any) => ({
+                    itemId: item.id,
+                    name: item.name,
+                    code: item.code,
+                    unit: item.unit || 'Kg',
+                    price: Number(item.price || 100),
+                    systemQty: Number(item.qty || 0),
+                    countedQty: Number(item.qty || 0),
+                    variance: 0,
+                    varianceValue: 0,
+                    reason: 'Physical Count Verification'
+                  })));
+                }
+                setIsAuditModalOpen(true);
+              }}
+              className="px-6 py-3.5 bg-sky-600 hover:bg-sky-700 text-white rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-sky-600/20 active:scale-95 shrink-0"
+            >
+              <ClipboardList size={15} /> Conduct Physical Stock Audit
+            </button>
+          </div>
+
+          {/* Audit Registers Table */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200/80 overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center space-x-3">
+                <span className="p-2 bg-sky-50 text-sky-600 rounded-xl">
+                  <ClipboardList size={18} />
+                </span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider">Physical Stock Audit & Variance Ledger</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Auditor Sign-offs & Admin Reconciliation Workflow</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/70 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200/60">
+                    <th className="py-4 px-6">Audit Ref ID</th>
+                    <th className="py-4 px-6">Date & Warehouse</th>
+                    <th className="py-4 px-6">Store Auditor</th>
+                    <th className="py-4 px-6">Audited SKUs & Variance Summary</th>
+                    <th className="py-4 px-6">Financial Impact</th>
+                    <th className="py-4 px-6">Approval Status</th>
+                    <th className="py-4 px-6 text-right">Actions / Workflow</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {stockAuditsList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
+                        No Physical Stock Audits logged yet. Click "Conduct Physical Stock Audit" to log physical stock counts.
+                      </td>
+                    </tr>
+                  ) : (
+                    stockAuditsList.map((audit: any) => {
+                      const totalVarianceVal = (audit.items || []).reduce((acc: number, it: any) => acc + (Number(it.varianceValue) || 0), 0);
+                      return (
+                        <tr key={audit.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4 px-6 font-mono font-bold text-slate-900">
+                            <span className="block text-sky-700 font-extrabold">{audit.id}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="font-extrabold text-slate-900 block">{audit.warehouse}</span>
+                            <span className="text-[10px] text-slate-500 block">{audit.auditDate}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className="font-bold text-slate-800 block">{audit.auditorName}</span>
+                            <span className="text-[10px] text-slate-500 block">{audit.auditorRole}</span>
+                            <span className="text-[9px] text-sky-600 font-mono italic block mt-0.5">✍️ {audit.auditorSignature}</span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="space-y-1.5 max-w-xs">
+                              {(audit.items || []).map((it: any, idx: number) => (
+                                <div key={idx} className="text-[10px] bg-slate-50 p-2 rounded-xl border border-slate-200/60">
+                                  <div className="flex justify-between font-bold text-slate-800">
+                                    <span>{it.name}</span>
+                                    <span className={it.variance < 0 ? "text-red-600 font-black" : it.variance > 0 ? "text-emerald-600 font-black" : "text-slate-600"}>
+                                      Var: {it.variance > 0 ? `+${it.variance}` : it.variance} {it.unit}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between text-[9px] text-slate-500 mt-0.5">
+                                    <span>Sys: {it.systemQty} | Count: {it.countedQty}</span>
+                                    <span>{it.reason}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={cn(
+                              "text-sm font-black block",
+                              totalVarianceVal < 0 ? "text-red-600" : totalVarianceVal > 0 ? "text-emerald-600" : "text-slate-800"
+                            )}>
+                              {formatCurrency(totalVarianceVal)}
+                            </span>
+                            <span className="text-[9px] text-slate-400 block font-bold uppercase mt-0.5">
+                              {totalVarianceVal < 0 ? "Net Shortage Loss" : totalVarianceVal > 0 ? "Net Surplus Gain" : "Zero Variance"}
+                            </span>
+                          </td>
+                          <td className="py-4 px-6">
+                            <span className={cn(
+                              "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1",
+                              audit.status === 'APPROVED_&_ADJUSTED' ? "bg-emerald-100 text-emerald-800 border border-emerald-200" :
+                              audit.status === 'PENDING_ADMIN_APPROVAL' ? "bg-amber-100 text-amber-800 border border-amber-200" :
+                              "bg-rose-100 text-rose-800 border border-rose-200"
+                            )}>
+                              {audit.status === 'APPROVED_&_ADJUSTED' && <CheckCircle2 size={10} />}
+                              {audit.status === 'PENDING_ADMIN_APPROVAL' && <Clock size={10} />}
+                              {audit.status}
+                            </span>
+                            {audit.approvedAt && (
+                              <span className="text-[9px] text-slate-400 block mt-1">Reconciled: {audit.approvedAt}</span>
+                            )}
+                          </td>
+                          <td className="py-4 px-6 text-right">
+                            {audit.status === 'PENDING_ADMIN_APPROVAL' ? (
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => handleApproveStockAudit(audit.id, 'APPROVE')}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
+                                >
+                                  <Check size={11} /> Approve & Auto-Adjust ERP
+                                </button>
+                                <button
+                                  onClick={() => handleApproveStockAudit(audit.id, 'REJECT')}
+                                  className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[10px] font-bold transition-all cursor-pointer border border-rose-200"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400 italic">Ledger Synchronized</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
@@ -3354,6 +3913,105 @@ export const Inventory: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+
+          {/* Inter-Warehouse Transfer Manifests Register */}
+          <div className="bg-white rounded-[2.5rem] border border-slate-200/80 overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
+              <div className="flex items-center space-x-3">
+                <span className="p-2.5 bg-purple-100 text-purple-700 rounded-2xl">
+                  <Warehouse size={20} />
+                </span>
+                <div>
+                  <h3 className="text-base font-black text-slate-900 uppercase tracking-tight italic">Inter-Warehouse Transfer Manifest Register</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">E-Way Bills, Security Seals & Destination Store Acceptance</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsNewTransferModalOpen(true)}
+                className="px-5 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer flex items-center gap-2 shadow-lg shadow-purple-600/20 active:scale-95 shrink-0"
+              >
+                <Plus size={14} /> Dispatch Transfer Manifest
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-100/70 text-[9px] font-black uppercase tracking-widest text-slate-500 border-b border-slate-200/60">
+                    <th className="py-4 px-6">Transfer ID</th>
+                    <th className="py-4 px-6">Route (Source ➔ Destination)</th>
+                    <th className="py-4 px-6">Material & Qty</th>
+                    <th className="py-4 px-6">Transporter & Driver</th>
+                    <th className="py-4 px-6">E-Way Bill & Security Seal</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6 text-right">Destination Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                  {transfersList.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
+                        No Inter-Warehouse Transfer Manifests dispatched yet. Click "Dispatch Transfer Manifest" to create a new movement order.
+                      </td>
+                    </tr>
+                  ) : (
+                    transfersList.map((tr: any) => (
+                      <tr key={tr.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-4 px-6 font-mono font-bold text-slate-900">
+                          <span className="block text-purple-700 font-extrabold">{tr.id}</span>
+                          <span className="text-[9px] text-slate-400 block font-normal">{tr.dispatchTimestamp}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-extrabold text-slate-900 block flex items-center gap-1.5">
+                            {tr.sourceWarehouse} <ArrowRight size={12} className="text-purple-500 shrink-0" /> {tr.destWarehouse}
+                          </span>
+                          <span className="text-[9px] text-slate-400 block">Dispatched by: {tr.dispatchedBy}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-extrabold text-slate-900 block">{tr.itemName}</span>
+                          <span className="text-[10px] text-purple-700 font-bold block">{Number(tr.qtyTransferred).toLocaleString()} Pcs</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-bold text-slate-800 block">{tr.transporterName}</span>
+                          <span className="text-[10px] text-slate-500 font-mono block">Vehicle: {tr.vehicleRegNo}</span>
+                          <span className="text-[9px] text-slate-400 font-mono block">Phone: {tr.driverPhone}</span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className="font-mono text-[10px] font-bold text-slate-800 block">E-Way: {tr.eWayBillNo}</span>
+                          <span className="font-mono text-[10px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-100 inline-block mt-1">
+                            🔐 {tr.sealNumber}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6">
+                          <span className={cn(
+                            "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1",
+                            tr.status === 'RECEIVED_&_SEAL_VERIFIED' ? "bg-emerald-100 text-emerald-800 border border-emerald-200" :
+                            "bg-purple-100 text-purple-800 border border-purple-200"
+                          )}>
+                            {tr.status === 'RECEIVED_&_SEAL_VERIFIED' ? <CheckCircle2 size={10} /> : <Truck size={10} />}
+                            {tr.status}
+                          </span>
+                        </td>
+                        <td className="py-4 px-6 text-right">
+                          {tr.status !== 'RECEIVED_&_SEAL_VERIFIED' ? (
+                            <button
+                              onClick={() => handleVerifyTransferSeal(tr.id)}
+                              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1.5 ml-auto"
+                            >
+                              <ShieldCheck size={12} /> Verify Seal & Receive
+                            </button>
+                          ) : (
+                            <span className="text-[10px] font-bold text-emerald-600 italic">Seal Intact & Received</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
         </div>
@@ -6370,6 +7028,570 @@ export const Inventory: React.FC = () => {
                 >
                   {poIsSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                   Issue Purchase Order
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: INWARD GATE ENTRY & GRN FORM */}
+      {isGateModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 max-h-[90vh] overflow-y-auto text-left">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-cyan-100 text-cyan-700 rounded-2xl">
+                  <Truck size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Inward Gate Entry & GRN Form</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Weighbridge & Document Inward Register</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsGateModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateGateEntry} className="space-y-6 mt-6">
+              {/* Row 1: PO & Material */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">PO Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gatePoNo}
+                    onChange={e => setGatePoNo(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Supplier Company *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateSupplier}
+                    onChange={e => setGateSupplier(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Material Description *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateMaterial}
+                    onChange={e => setGateMaterial(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: Invoices & Challan */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Supplier Challan No *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateChallan}
+                    onChange={e => setGateChallan(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Invoice Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateInvoice}
+                    onChange={e => setGateInvoice(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Vehicle & Driver License */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-cyan-50/50 p-4 rounded-2xl border border-cyan-100">
+                <div>
+                  <label className="text-[10px] font-black text-cyan-800 uppercase tracking-widest block mb-1">Vehicle Reg Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateVehicle}
+                    onChange={e => setGateVehicle(e.target.value)}
+                    placeholder="e.g. GJ-01-AB-9988"
+                    className="w-full px-4 py-3 bg-white border border-cyan-200 rounded-xl text-xs font-black uppercase font-mono text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-cyan-800 uppercase tracking-widest block mb-1">Driver Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateDriverName}
+                    onChange={e => setGateDriverName(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-cyan-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-cyan-800 uppercase tracking-widest block mb-1">Driver License ID *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateDriverLicense}
+                    onChange={e => setGateDriverLicense(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-cyan-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Row 4: Weighbridge Calculator */}
+              <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
+                    ⚖️ Weighbridge Slip & Mass Reconciliation
+                  </span>
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    Calculated Net Weight: {Math.max(0, gateGrossWeight - gateTareWeight).toLocaleString()} Kg
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Gross Weight (Kg) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={gateGrossWeight}
+                      onChange={e => setGateGrossWeight(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Tare Weight (Kg) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={gateTareWeight}
+                      onChange={e => setGateTareWeight(Number(e.target.value))}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-extrabold text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Weighbridge Slip No *</label>
+                    <input
+                      type="text"
+                      required
+                      value={gateWeighbridgeSlipNo}
+                      onChange={e => setGateWeighbridgeSlipNo(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 5: MTC Certificate & Financials */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">MTC Certificate No *</label>
+                  <input
+                    type="text"
+                    required
+                    value={gateMtcNo}
+                    onChange={e => setGateMtcNo(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Base Supplier Amount (₹) *</label>
+                  <input
+                    type="number"
+                    required
+                    value={gateBaseAmount}
+                    onChange={e => setGateBaseAmount(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">GST Tax Scheme *</label>
+                  <select
+                    value={gateTaxType}
+                    onChange={e => setGateTaxType(e.target.value as any)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  >
+                    <option value="IGST">IGST (Inter-state - 18%)</option>
+                    <option value="CGST_SGST">CGST (9%) + SGST (9%)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsGateModalOpen(false)}
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingGate}
+                  className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingGate ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Register Gate Pass & Inward GRN
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PRINTABLE GRN SLIP VIEW */}
+      {viewGateSlip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 text-left space-y-6">
+            <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+              <div>
+                <span className="text-[9px] font-black bg-cyan-100 text-cyan-800 px-3 py-1 rounded-full uppercase tracking-wider inline-block">Official Store Voucher</span>
+                <h2 className="text-xl font-black text-slate-900 uppercase italic mt-1">ARCENOL ENERGY SOLUTIONS</h2>
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Inward Goods Receipt Note (GRN) — {viewGateSlip.id}</p>
+              </div>
+              <div className="text-right">
+                <QRCodeSVG value={`GRN-${viewGateSlip.id}-${viewGateSlip.gatePassNo}`} size={56} />
+                <span className="text-[9px] font-mono text-slate-400 block mt-1">{viewGateSlip.gatePassNo}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-xs font-medium">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase block">Material & PO Details</span>
+                <span className="font-extrabold text-slate-900 block">{viewGateSlip.materialName}</span>
+                <span className="text-slate-600 block">Supplier: {viewGateSlip.supplier}</span>
+                <span className="text-slate-500 font-mono block">PO Ref: {viewGateSlip.poNumber}</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                <span className="text-[9px] font-black text-slate-400 uppercase block">Logistics & Driver</span>
+                <span className="font-extrabold text-slate-900 block font-mono">Vehicle: {viewGateSlip.vehicleNo}</span>
+                <span className="text-slate-600 block">Driver: {viewGateSlip.driverName}</span>
+                <span className="text-slate-500 font-mono block">DL: {viewGateSlip.driverLicense}</span>
+              </div>
+            </div>
+
+            <div className="p-4 bg-cyan-50/50 rounded-2xl border border-cyan-100 space-y-2">
+              <span className="text-[10px] font-black text-cyan-900 uppercase tracking-widest block">Weighbridge Measurement Reconciliation</span>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="p-2 bg-white rounded-xl border border-cyan-100">
+                  <span className="text-[9px] font-bold text-slate-400 block">GROSS</span>
+                  <span className="text-sm font-black text-slate-800">{Number(viewGateSlip.grossWeight).toLocaleString()} Kg</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-cyan-100">
+                  <span className="text-[9px] font-bold text-slate-400 block">TARE</span>
+                  <span className="text-sm font-black text-slate-800">{Number(viewGateSlip.tareWeight).toLocaleString()} Kg</span>
+                </div>
+                <div className="p-2 bg-cyan-600 text-white rounded-xl">
+                  <span className="text-[9px] font-bold text-cyan-100 block">VERIFIED NET</span>
+                  <span className="text-sm font-black">{Number(viewGateSlip.netWeight).toLocaleString()} Kg</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <button
+                onClick={() => setViewGateSlip(null)}
+                className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer"
+              >
+                <Printer size={14} /> Print Official GRN Slip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: PHYSICAL STOCK AUDIT FORM */}
+      {isAuditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 max-h-[90vh] overflow-y-auto text-left">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-sky-100 text-sky-700 rounded-2xl">
+                  <ClipboardList size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Conduct Physical Stock Audit</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Physical Inventory Count & Variance Ledger</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAuditModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateStockAudit} className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Target Warehouse *</label>
+                  <select
+                    value={auditWarehouse}
+                    onChange={e => setAuditWarehouse(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  >
+                    {warehouses.map(wh => (
+                      <option key={wh} value={wh}>{wh}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Store Auditor Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={auditorName}
+                    onChange={e => setAuditorName(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Digital Signature Sign-off *</label>
+                  <input
+                    type="text"
+                    required
+                    value={auditorSignature}
+                    onChange={e => setAuditorSignature(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-sky-700 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Items Physical Audit Table */}
+              <div className="border border-slate-200 rounded-2xl overflow-hidden">
+                <div className="p-3 bg-slate-100/80 font-black text-[10px] uppercase tracking-widest text-slate-600">
+                  Select SKUs and Enter Physical Counted Quantities
+                </div>
+                <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto">
+                  {auditItemsList.map((it, idx) => {
+                    const variance = it.countedQty - it.systemQty;
+                    const varianceVal = variance * it.price;
+                    return (
+                      <div key={it.itemId || idx} className="p-3.5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="space-y-0.5">
+                          <span className="font-extrabold text-slate-900 block">{it.name} ({it.code})</span>
+                          <span className="text-[10px] text-slate-500 font-bold block">System ERP Balance: {it.systemQty} {it.unit} @ ₹{it.price}/unit</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <label className="text-[9px] font-black text-slate-400 uppercase block">Physical Count</label>
+                            <input
+                              type="number"
+                              value={it.countedQty}
+                              onChange={e => {
+                                const newCount = Number(e.target.value);
+                                const newItems = [...auditItemsList];
+                                const v = newCount - it.systemQty;
+                                newItems[idx] = {
+                                  ...it,
+                                  countedQty: newCount,
+                                  variance: v,
+                                  varianceValue: v * it.price
+                                };
+                                setAuditItemsList(newItems);
+                              }}
+                              className="w-24 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-black font-mono text-slate-900"
+                            />
+                          </div>
+                          <div className="text-right min-w-[100px]">
+                            <span className={cn("text-xs font-black block", variance < 0 ? "text-red-600" : variance > 0 ? "text-emerald-600" : "text-slate-600")}>
+                              {variance > 0 ? `+${variance}` : variance} {it.unit}
+                            </span>
+                            <span className="text-[9px] font-bold text-slate-400 block">{formatCurrency(varianceVal)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAuditModalOpen(false)}
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingAudit}
+                  className="px-6 py-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingAudit ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Submit Stock Audit for Admin Approval
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: INTER-WAREHOUSE TRANSFER DISPATCH */}
+      {isNewTransferModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300 p-4">
+          <div className="bg-white w-full max-w-3xl rounded-[2.5rem] border border-slate-200 shadow-2xl p-8 max-h-[90vh] overflow-y-auto text-left">
+            <div className="flex items-center justify-between pb-6 border-b border-slate-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-purple-100 text-purple-700 rounded-2xl">
+                  <Warehouse size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">Dispatch Warehouse Transfer Manifest</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-0.5">Inter-Location Stock Movement & E-Way Bill</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNewTransferModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-800 rounded-xl hover:bg-slate-100"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateWarehouseTransfer} className="space-y-6 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Source Warehouse (Dispatch) *</label>
+                  <select
+                    value={trSourceWh}
+                    onChange={e => setTrSourceWh(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  >
+                    {warehouses.map(wh => (
+                      <option key={wh} value={wh}>{wh}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Destination Warehouse (Receipt) *</label>
+                  <select
+                    value={trDestWh}
+                    onChange={e => setTrDestWh(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  >
+                    {warehouses.map(wh => (
+                      <option key={wh} value={wh}>{wh}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Material SKU Description *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trItemName}
+                    onChange={e => setTrItemName(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Transfer Quantity *</label>
+                  <input
+                    type="number"
+                    required
+                    value={trQty}
+                    onChange={e => setTrQty(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-black text-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-purple-900 uppercase tracking-widest block mb-1">Transporter Agency *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trTransporter}
+                    onChange={e => setTrTransporter(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-purple-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-purple-900 uppercase tracking-widest block mb-1">Vehicle Reg Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trVehicleReg}
+                    onChange={e => setTrVehicleReg(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-purple-200 rounded-xl text-xs font-mono font-black text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-purple-900 uppercase tracking-widest block mb-1">Driver Phone Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trDriverPhone}
+                    onChange={e => setTrDriverPhone(e.target.value)}
+                    className="w-full px-4 py-3 bg-white border border-purple-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">E-Way Bill Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trEWayBill}
+                    onChange={e => setTrEWayBill(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Security Seal Tag Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={trSeal}
+                    onChange={e => setTrSeal(e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-black text-purple-700 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsNewTransferModalOpen(false)}
+                  className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingTransfer}
+                  className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {isSubmittingTransfer ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                  Dispatch Inter-Warehouse Transfer
                 </button>
               </div>
             </form>
