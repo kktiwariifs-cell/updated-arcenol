@@ -35,6 +35,10 @@ const INITIAL_DB = {
     { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26001060", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
   ],
   productionHistory: [] as any[],
+  stockAudits: [] as any[],
+  gateEntries: [] as any[],
+  warehouseTransfers: [] as any[],
+  purchaseOrders: [] as any[],
   warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
   notifications: [] as any[],
   leads: [
@@ -2966,8 +2970,11 @@ function getLocalDB() {
       const parsed = JSON.parse(stored);
       if (!parsed.wipStages) {
         parsed.wipStages = ["WELDING", "BMS_MOUNTING", "TESTING", "CASING", "GRADING", "QUALITY_CHECK"];
-        localStorage.setItem('arcenol_db_clean', JSON.stringify(parsed));
       }
+      if (!Array.isArray(parsed.stockAudits)) parsed.stockAudits = [];
+      if (!Array.isArray(parsed.gateEntries)) parsed.gateEntries = [];
+      if (!Array.isArray(parsed.warehouseTransfers)) parsed.warehouseTransfers = [];
+      if (!Array.isArray(parsed.purchaseOrders)) parsed.purchaseOrders = [];
       return parsed;
     } catch (e) {
       console.error("Error reading arcenol_db_clean from localstorage, resetting:", e);
@@ -3287,6 +3294,182 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         });
         saveLocalDB(db);
         responseData = { success: true, updatedItemsCount: updatedCount, isStoreKeeperRaised: isSk };
+      }
+    } else if (urlStr.includes('/api/inventory/gate-entries')) {
+      if (!db.gateEntries) db.gateEntries = [];
+      if (method === 'GET') {
+        responseData = db.gateEntries;
+      } else if (method === 'POST') {
+        const entry = body || {};
+        const gross = Number(entry.grossWeight || 0);
+        const tare = Number(entry.tareWeight || 0);
+        const net = gross > tare ? gross - tare : Number(entry.netWeight || 0);
+        const baseAmt = Number(entry.baseAmount || 0);
+        const cgst = Number(entry.cgstPct || 0);
+        const sgst = Number(entry.sgstPct || 0);
+        const igst = Number(entry.igstPct || 0);
+        const taxAmt = entry.taxType === 'IGST' 
+          ? baseAmt * (igst / 100) 
+          : baseAmt * ((cgst + sgst) / 100);
+        const totalVal = baseAmt + taxAmt;
+
+        const newGateEntry = {
+          id: `GATE-2026-${Math.floor(100 + Math.random() * 900)}`,
+          gatePassNo: entry.gatePassNo || `GP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+          poNumber: entry.poNumber || "DIRECT-GATE-INWARD",
+          supplier: entry.supplier || "Vendor Inward",
+          materialName: entry.materialName || "Raw Inward Lot",
+          challanNo: entry.challanNo || "CH-PENDING",
+          invoiceNo: entry.invoiceNo || "INV-PENDING",
+          vehicleNo: entry.vehicleNo || "N/A",
+          driverName: entry.driverName || "Driver Unspecified",
+          driverLicense: entry.driverLicense || "N/A",
+          grossWeight: gross,
+          tareWeight: tare,
+          netWeight: net,
+          weighbridgeSlipNo: entry.weighbridgeSlipNo || "WB-PENDING",
+          weighbridgeSlipImg: entry.weighbridgeSlipImg || null,
+          mtcCertificateNo: entry.mtcCertificateNo || "MTC-PENDING",
+          mtcAttachment: entry.mtcAttachment || null,
+          baseAmount: baseAmt,
+          taxType: entry.taxType || "CGST_SGST",
+          cgstPct: cgst,
+          sgstPct: sgst,
+          igstPct: igst,
+          taxAmount: taxAmt,
+          totalInvoiceVal: totalVal,
+          status: entry.status || "QC_PENDING",
+          entryTimestamp: new Date().toLocaleString(),
+          receivedBy: entry.receivedBy || "Store Keeper"
+        };
+        db.gateEntries.unshift(newGateEntry);
+        saveLocalDB(db);
+        responseData = { success: true, gateEntry: newGateEntry };
+      } else if (method === 'PATCH') {
+        const id = urlStr.split('/api/inventory/gate-entries/')[1]?.split('/')[0];
+        const gate = db.gateEntries.find((g: any) => g.id === id);
+        if (gate) {
+          if (body?.status) gate.status = body.status;
+          if (body?.remarks) gate.remarks = body.remarks;
+          saveLocalDB(db);
+          responseData = { success: true, gateEntry: gate };
+        } else {
+          status = 404;
+          responseData = { error: "Gate Entry not found" };
+        }
+      }
+    } else if (urlStr.includes('/api/inventory/stock-audits')) {
+      if (!db.stockAudits) db.stockAudits = [];
+      if (method === 'GET') {
+        responseData = db.stockAudits;
+      } else if (method === 'POST') {
+        const auditData = body || {};
+        const newAudit = {
+          id: `AUDIT-2026-${Math.floor(100 + Math.random() * 900)}`,
+          auditDate: auditData.auditDate || new Date().toISOString().split('T')[0],
+          warehouse: auditData.warehouse || "Raw Hub",
+          auditorName: auditData.auditorName || "Store Auditor",
+          auditorRole: auditData.auditorRole || "Inventory Auditor",
+          auditorSignature: auditData.auditorSignature || `${auditData.auditorName || "Auditor"} (Verified)`,
+          status: "PENDING_ADMIN_APPROVAL",
+          items: (auditData.items || []).map((it: any) => {
+            const sys = Number(it.systemQty || 0);
+            const cnt = Number(it.countedQty || 0);
+            const vari = cnt - sys;
+            const pr = Number(it.price || 100);
+            return {
+              itemId: it.itemId,
+              name: it.name,
+              unit: it.unit || 'Pcs',
+              price: pr,
+              systemQty: sys,
+              countedQty: cnt,
+              variance: vari,
+              varianceValue: vari * pr,
+              reason: it.reason || (vari === 0 ? "Exact Match" : "Stock Count Variance")
+            };
+          })
+        };
+        db.stockAudits.unshift(newAudit);
+        if (!db.notifications) db.notifications = [];
+        db.notifications.unshift({
+          id: `n-${Date.now()}`,
+          type: "STOCK_AUDIT",
+          title: `Stock Audit ${newAudit.id} Submitted for Admin Approval`,
+          message: `Auditor ${newAudit.auditorName} logged physical stock audit for ${newAudit.warehouse}. Awaiting Admin ledger adjustment.`,
+          date: new Date().toISOString(),
+          status: "UNREAD",
+          channel: "SYSTEM"
+        });
+        saveLocalDB(db);
+        responseData = { success: true, audit: newAudit };
+      } else if (method === 'PATCH') {
+        const parts = urlStr.split('/api/inventory/stock-audits/')[1]?.split('/');
+        const id = parts ? parts[0] : '';
+        const audit = db.stockAudits.find((a: any) => a.id === id);
+        if (!audit) {
+          status = 404;
+          responseData = { error: "Stock audit record not found" };
+        } else {
+          const { action, adminNotes } = body || {};
+          if (action === 'REJECT') {
+            audit.status = 'REJECTED';
+            audit.adminNotes = adminNotes || 'Rejected by Admin';
+          } else {
+            audit.status = 'APPROVED_&_ADJUSTED';
+            audit.adminNotes = adminNotes || 'Approved by Admin & Ledger Auto-Adjusted';
+            audit.approvedAt = new Date().toLocaleString();
+            if (Array.isArray(audit.items)) {
+              audit.items.forEach((it: any) => {
+                const invItem = db.inventory.find((i: any) => i.id === it.itemId);
+                if (invItem) {
+                  invItem.qty = Number(it.countedQty);
+                }
+              });
+            }
+          }
+          saveLocalDB(db);
+          responseData = { success: true, audit };
+        }
+      }
+    } else if (urlStr.includes('/api/inventory/transfers')) {
+      if (!db.warehouseTransfers) db.warehouseTransfers = [];
+      if (method === 'GET') {
+        responseData = db.warehouseTransfers;
+      } else if (method === 'POST') {
+        const trn = body || {};
+        const newTransfer = {
+          id: `TRN-2026-${Math.floor(100 + Math.random() * 900)}`,
+          transferDate: trn.transferDate || new Date().toISOString().split('T')[0],
+          sourceWarehouse: trn.sourceWarehouse || "Raw Hub",
+          destWarehouse: trn.destWarehouse || "Ahmedabad Warehouse",
+          itemId: trn.itemId,
+          itemName: trn.itemName || "Raw Material",
+          qtyTransferred: Number(trn.qtyTransferred || 0),
+          unit: trn.unit || "Pcs",
+          transporterName: trn.transporterName || "Internal Logistics",
+          driverPhone: trn.driverPhone || "+91 98765 00000",
+          vehicleRegNo: trn.vehicleRegNo || "GJ-01-XX-0000",
+          eWayBillNo: trn.eWayBillNo || "EWB-PENDING",
+          sealNumber: trn.sealNumber || `SEAL-${Math.floor(100000 + Math.random() * 900000)}`,
+          status: "DISPATCHED_IN_TRANSIT",
+          dispatchedBy: trn.dispatchedBy || "Store Keeper"
+        };
+        db.warehouseTransfers.unshift(newTransfer);
+        saveLocalDB(db);
+        responseData = { success: true, transfer: newTransfer };
+      } else if (method === 'PATCH') {
+        const id = urlStr.split('/api/inventory/transfers/')[1]?.split('/')[0];
+        const trn = db.warehouseTransfers.find((t: any) => t.id === id);
+        if (trn) {
+          if (body?.status) trn.status = body.status;
+          if (body?.receivedNotes) trn.receivedNotes = body.receivedNotes;
+          saveLocalDB(db);
+          responseData = { success: true, transfer: trn };
+        } else {
+          status = 404;
+          responseData = { error: "Transfer record not found" };
+        }
       }
     } else if (urlStr.includes('/api/inventory/')) {
       const id = urlStr.split('/api/inventory/')[1];

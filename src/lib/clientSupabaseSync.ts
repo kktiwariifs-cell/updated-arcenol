@@ -383,6 +383,54 @@ export async function hydrateDbFromSupabase(db: any) {
     } catch (procsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating procurement_entries:', procsCatchErr);
     }
+
+    // 12b. Physical Stock Audits
+    try {
+      const { data: audits, error: auditErr } = await supabase.from('stock_audits').select('*');
+      if (!auditErr && Array.isArray(audits) && audits.length > 0) {
+        db.stockAudits = audits.map((a: any) => ({
+          id: String(a.id),
+          auditDate: a.audit_date || a.auditDate || new Date().toISOString().split('T')[0],
+          warehouse: a.warehouse || 'Raw Hub',
+          auditorName: a.auditor_name || a.auditorName || 'Store Auditor',
+          auditorRole: a.auditor_role || a.auditorRole || 'Inventory Auditor',
+          auditorSignature: a.auditor_signature || a.auditorSignature || 'Verified',
+          status: a.status || 'PENDING_ADMIN_APPROVAL',
+          items: a.items || [],
+          approvedAt: a.approved_at || a.approvedAt || null,
+          adminNotes: a.admin_notes || a.adminNotes || ''
+        }));
+      }
+    } catch (auditCatchErr) {
+      // Ignore if table not created
+    }
+
+    // 12c. Warehouse Transfers
+    try {
+      const { data: transfers, error: trErr } = await supabase.from('warehouse_transfers').select('*');
+      if (!trErr && Array.isArray(transfers) && transfers.length > 0) {
+        db.warehouseTransfers = transfers.map((t: any) => ({
+          id: String(t.id),
+          transferDate: t.transfer_date || t.transferDate || new Date().toISOString().split('T')[0],
+          sourceWarehouse: t.source_warehouse || t.sourceWarehouse || 'Raw Hub',
+          destWarehouse: t.dest_warehouse || t.destWarehouse || 'Ahmedabad Warehouse',
+          itemId: t.item_id || t.itemId || '',
+          itemName: t.item_name || t.itemName || 'Raw Material',
+          qtyTransferred: Number(t.qty_transferred || t.qtyTransferred || 0),
+          unit: t.unit || 'Pcs',
+          transporterName: t.transporter_name || t.transporterName || 'Internal Logistics',
+          driverPhone: t.driver_phone || t.driverPhone || '',
+          vehicleRegNo: t.vehicle_reg_no || t.vehicleRegNo || '',
+          eWayBillNo: t.eway_bill_no || t.eWayBillNo || '',
+          sealNumber: t.seal_number || t.sealNumber || '',
+          status: t.status || 'DISPATCHED_IN_TRANSIT',
+          dispatchedBy: t.dispatched_by || t.dispatchedBy || 'Store Keeper',
+          receivedNotes: t.received_notes || t.receivedNotes || ''
+        }));
+      }
+    } catch (trCatchErr) {
+      // Ignore if table not created
+    }
     // 17. Operator User Accounts
     try {
       const { data: users } = await supabase.from('arcenol_users').select('*');

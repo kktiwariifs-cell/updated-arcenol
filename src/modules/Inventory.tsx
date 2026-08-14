@@ -23,11 +23,28 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
   const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN;
   const { data, loading, refetch } = useERPData();
   type InventoryTab = 'dashboard' | 'gate_entries' | 'stock_audit' | 'pos' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories';
-  const [activeTab, setActiveTab] = useState<InventoryTab>((initialTab as InventoryTab) || 'dashboard');
+  
+  const normalizeTab = (tab?: string): InventoryTab => {
+    if (!tab) return 'dashboard';
+    const clean = tab.toLowerCase().trim().replace(/[-_]/g, '');
+    if (clean.includes('audit') || clean === 'stockaudit' || clean === 'physicalaudit') return 'stock_audit';
+    if (clean.includes('gate') || clean.includes('grn') || clean.includes('inward')) return 'gate_entries';
+    if (clean.includes('po') || clean.includes('purchase') || clean.includes('vendor')) return 'pos';
+    if (clean === 'raw' || clean === 'materials' || clean === 'rawmaterials') return 'raw';
+    if (clean.includes('grade') || clean.includes('cell') || clean === 'qc') return 'graded';
+    if (clean === 'mrp' || clean === 'bom') return 'mrp';
+    if (clean === 'wip' || clean.includes('wip')) return 'wip';
+    if (clean.includes('warehouse') || clean.includes('transfer')) return 'warehouse';
+    if (clean.includes('categor')) return 'categories';
+    if (clean === 'dashboard' || clean === 'overview') return 'dashboard';
+    return 'dashboard';
+  };
+
+  const [activeTab, setActiveTab] = useState<InventoryTab>(normalizeTab(initialTab));
 
   useEffect(() => {
     if (initialTab) {
-      setActiveTab(initialTab as InventoryTab);
+      setActiveTab(normalizeTab(initialTab));
     }
   }, [initialTab]);
   const [search, setSearch] = useState('');
@@ -413,9 +430,18 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
         fetch('/api/inventory/stock-audits'),
         fetch('/api/inventory/transfers')
       ]);
-      if (gateRes.ok) setGateEntriesList(await gateRes.json());
-      if (auditRes.ok) setStockAuditsList(await auditRes.json());
-      if (trRes.ok) setTransfersList(await trRes.json());
+      if (gateRes.ok) {
+        const gData = await gateRes.json();
+        setGateEntriesList(Array.isArray(gData) ? gData : []);
+      }
+      if (auditRes.ok) {
+        const aData = await auditRes.json();
+        setStockAuditsList(Array.isArray(aData) ? aData : []);
+      }
+      if (trRes.ok) {
+        const tData = await trRes.json();
+        setTransfersList(Array.isArray(tData) ? tData : []);
+      }
     } catch (e) {
       console.error("Error fetching Phase 1 data", e);
     }
@@ -424,6 +450,20 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
   useEffect(() => {
     fetchPhase1Data();
   }, []);
+
+  useEffect(() => {
+    if (data) {
+      if (Array.isArray(data.stockAudits) && data.stockAudits.length > 0 && stockAuditsList.length === 0) {
+        setStockAuditsList(data.stockAudits);
+      }
+      if (Array.isArray(data.gateEntries) && data.gateEntries.length > 0 && gateEntriesList.length === 0) {
+        setGateEntriesList(data.gateEntries);
+      }
+      if (Array.isArray(data.warehouseTransfers) && data.warehouseTransfers.length > 0 && transfersList.length === 0) {
+        setTransfersList(data.warehouseTransfers);
+      }
+    }
+  }, [data]);
 
   // --- PHASE 1 HANDLERS ---
   const handleCreateGateEntry = async (e: React.FormEvent) => {
@@ -1977,6 +2017,10 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
     { title: "RMA SERVICE RETURN", desc: "Defective disassembly reprocessing line", metric: `${data?.complaints?.length || 0} Incidents Logs`, icon: RefreshCw, color: "text-pink-500", bg: "bg-pink-50", action: () => { setIsRmaModalOpen(true); } },
   ];
 
+  const safeStockAudits = Array.isArray(stockAuditsList) ? stockAuditsList : (Array.isArray(data?.stockAudits) ? data.stockAudits : []);
+  const safeGateEntries = Array.isArray(gateEntriesList) ? gateEntriesList : (Array.isArray(data?.gateEntries) ? data.gateEntries : []);
+  const safeTransfers = Array.isArray(transfersList) ? transfersList : (Array.isArray(data?.warehouseTransfers) ? data.warehouseTransfers : []);
+
   return (
     <div className={cn("space-y-8 pb-20 transition-all duration-300", isSyncing && "opacity-60 blur-[1px]")}>
       
@@ -2049,7 +2093,7 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
           <button
             key={tab.id}
             id={`tab_${tab.id}`}
-            onClick={() => handleAction(`Log switch to ${tab.label}`, () => setActiveTab(tab.id as any))}
+            onClick={() => setActiveTab(tab.id as any)}
             className={cn(
               "flex items-center px-5 py-2.5 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest transition-all duration-300 border cursor-pointer",
               activeTab === tab.id 
@@ -2317,27 +2361,27 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Total Gate Passes Logged</span>
-              <span className="text-2xl font-extrabold text-slate-900 block mt-1">{gateEntriesList.length}</span>
+              <span className="text-2xl font-extrabold text-slate-900 block mt-1">{safeGateEntries.length}</span>
               <span className="text-[10px] font-bold text-cyan-600 mt-1 block">Inward Materials Received</span>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Weighbridge Total Net Weight</span>
               <span className="text-2xl font-extrabold text-slate-900 block mt-1">
-                {gateEntriesList.reduce((acc, g) => acc + (Number(g.netWeight) || 0), 0).toLocaleString()} <span className="text-xs text-slate-500 font-bold">Kg</span>
+                {safeGateEntries.reduce((acc, g) => acc + (Number(g.netWeight) || 0), 0).toLocaleString()} <span className="text-xs text-slate-500 font-bold">Kg</span>
               </span>
               <span className="text-[10px] font-bold text-emerald-600 mt-1 block">Verified Gross - Tare</span>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Pending QC Inspection</span>
               <span className="text-2xl font-extrabold text-amber-600 block mt-1">
-                {gateEntriesList.filter(g => g.status === 'QC_PENDING').length}
+                {safeGateEntries.filter(g => g.status === 'QC_PENDING').length}
               </span>
               <span className="text-[10px] font-bold text-amber-600 mt-1 block">Awaiting Quality Clearance</span>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-200/80 shadow-sm">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Total Inward Invoice Value</span>
               <span className="text-2xl font-extrabold text-slate-900 block mt-1">
-                {formatCurrency(gateEntriesList.reduce((acc, g) => acc + (Number(g.totalInvoiceVal) || 0), 0))}
+                {formatCurrency(safeGateEntries.reduce((acc, g) => acc + (Number(g.totalInvoiceVal) || 0), 0))}
               </span>
               <span className="text-[10px] font-bold text-indigo-600 mt-1 block">Base + GST Tax Split</span>
             </div>
@@ -2372,14 +2416,14 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {gateEntriesList.length === 0 ? (
+                  {safeGateEntries.length === 0 ? (
                     <tr>
                       <td colSpan={8} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
                         No Inward Gate Entries recorded yet. Click "Log Inward Gate Pass" to record new vehicle entry.
                       </td>
                     </tr>
                   ) : (
-                    gateEntriesList.map((entry: any) => (
+                    safeGateEntries.map((entry: any) => (
                       <tr key={entry.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-4 px-6 font-mono font-bold text-slate-900">
                           <span className="block text-cyan-700 font-extrabold">{entry.id}</span>
@@ -2520,14 +2564,14 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {stockAuditsList.length === 0 ? (
+                  {safeStockAudits.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
                         No Physical Stock Audits logged yet. Click "Conduct Physical Stock Audit" to log physical stock counts.
                       </td>
                     </tr>
                   ) : (
-                    stockAuditsList.map((audit: any) => {
+                    safeStockAudits.map((audit: any) => {
                       const totalVarianceVal = (audit.items || []).reduce((acc: number, it: any) => acc + (Number(it.varianceValue) || 0), 0);
                       return (
                         <tr key={audit.id} className="hover:bg-slate-50/80 transition-colors">
@@ -4005,14 +4049,14 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {transfersList.length === 0 ? (
+                  {safeTransfers.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="py-12 text-center text-slate-400 font-bold uppercase tracking-wider">
                         No Inter-Warehouse Transfer Manifests dispatched yet. Click "Dispatch Transfer Manifest" to create a new movement order.
                       </td>
                     </tr>
                   ) : (
-                    transfersList.map((tr: any) => (
+                    safeTransfers.map((tr: any) => (
                       <tr key={tr.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="py-4 px-6 font-mono font-bold text-slate-900">
                           <span className="block text-purple-700 font-extrabold">{tr.id}</span>
