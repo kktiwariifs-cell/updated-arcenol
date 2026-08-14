@@ -7,6 +7,7 @@ import {
   hydrateFromSupabase, 
   batchUpsert, 
   deleteRecord, 
+  deleteRecordsBatch,
   mapInventory, 
   mapLead, 
   mapCustomer, 
@@ -6214,6 +6215,389 @@ async function startServer() {
   app.post("/api/users/reset", (req, res) => {
     (db as any).users = req.body;
     res.json((db as any).users);
+  });
+
+  // ==========================================
+  // ADMIN DATA RETENTION & RECORD PURGE ENGINE
+  // ==========================================
+
+  const SECTION_TO_SUPABASE_TABLE: Record<string, string> = {
+    invoices: 'invoices',
+    leads: 'lead_inquiries',
+    dealers: 'customers',
+    customers: 'customers',
+    warehouses: 'warehouses',
+    gradedInventory: 'graded_cells',
+    wipInventory: 'wip_inventory',
+    vouchers: 'accounting_vouchers',
+    vyaparRecords: 'accounting_vouchers',
+    complaints: 'complaints',
+    subsidiaries: 'arcenol_corporate_units',
+    categories: 'categories',
+    purchaseOrders: 'purchase_orders',
+    gateEntries: 'procurement_entries',
+    procurementEntries: 'procurement_entries',
+    stockAudits: 'stock_audits',
+    warehouseTransfers: 'warehouse_transfers',
+    scrapLogs: 'scrap_logs',
+    eolCertificates: 'eol_certificates',
+    cellGradingBatches: 'cell_grading_batches',
+    inventory: 'inventory'
+  };
+
+  const SECTION_LABELS: Record<string, string> = {
+    leads: 'CRM Inquiries & Sales Leads',
+    invoices: 'Sales & Commercial Invoices',
+    vyaparRecords: 'Financial Vouchers & Payments',
+    vouchers: 'Financial Vouchers & Accounting',
+    purchaseOrders: 'Purchase Orders & Supplier Inward',
+    gateEntries: 'Security Gate Passes & Materials',
+    stockAudits: 'Physical Stock Audits & Discrepancies',
+    warehouseTransfers: 'Inter-Warehouse Transfers & Dispatch',
+    productionHistory: 'Production Work Orders & Manufacturing Logs',
+    wipInventory: 'WIP Assembly Batches & Sub-Assemblies',
+    cellGradingBatches: 'Cell Grading & Batch Telemetry',
+    gradedInventory: 'Individual Graded Cells Registry',
+    eolCertificates: 'End-of-Line (EOL) Quality Certificates',
+    scrapLogs: 'Scrap & Defect Recovery Logs',
+    complaints: 'RMA Customer Complaints & Service Tickets',
+    diagnosticLogs: 'RMA Diagnostic History Logs',
+    warrantyChecks: 'Public Warranty Verification History',
+    loyaltyClaims: 'Customer Loyalty Reward Claims',
+    notifications: 'Operational Alerts & Notifications',
+    finishedGoods: 'Finished Battery Inventory',
+    inventory: 'Raw Materials Inventory Items'
+  };
+
+  function extractDateFromRecord(item: any): Date | null {
+    if (!item || typeof item !== 'object') return null;
+    const candidateKeys = [
+      'date', 'orderDate', 'order_date', 'entryTimestamp', 'entry_timestamp', 
+      'auditDate', 'audit_date', 'transferDate', 'transfer_date', 'inspectionDate', 
+      'inspection_date', 'testTimestamp', 'test_timestamp', 'logDate', 'log_date', 
+      'createdAt', 'created_at', 'followUpDate', 'followup_date', 'startDate', 
+      'start_date', 'timestamp', 'lastUpdate', 'resolvedDate', 'joinDate'
+    ];
+    for (const k of candidateKeys) {
+      if (item[k]) {
+        const parsed = new Date(item[k]);
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Get Purge Statistics / Overview across all sections
+  app.get("/api/admin/purge-stats", (req, res) => {
+    const stats: Record<string, any> = {};
+    const now = Date.now();
+    const days30 = 30 * 24 * 60 * 60 * 1000;
+    const days90 = 90 * 24 * 60 * 60 * 1000;
+    const days180 = 180 * 24 * 60 * 60 * 1000;
+    const days365 = 365 * 24 * 60 * 60 * 1000;
+
+    Object.keys(SECTION_LABELS).forEach(secKey => {
+      const arr = (db as any)[secKey];
+      if (Array.isArray(arr)) {
+        let oldestDate: string | null = null;
+        let newestDate: string | null = null;
+        let countOlder30 = 0;
+        let countOlder90 = 0;
+        let countOlder180 = 0;
+        let countOlder365 = 0;
+
+        arr.forEach(item => {
+          const d = extractDateFromRecord(item);
+          if (d) {
+            const time = d.getTime();
+            if (!oldestDate || time < new Date(oldestDate).getTime()) {
+              oldestDate = d.toISOString().split('T')[0];
+            }
+            if (!newestDate || time > new Date(newestDate).getTime()) {
+              newestDate = d.toISOString().split('T')[0];
+            }
+            const diff = now - time;
+            if (diff > days30) countOlder30++;
+            if (diff > days90) countOlder90++;
+            if (diff > days180) countOlder180++;
+            if (diff > days365) countOlder365++;
+          }
+        });
+
+        stats[secKey] = {
+          sectionKey: secKey,
+          label: SECTION_LABELS[secKey],
+          totalRecords: arr.length,
+          oldestDate,
+          newestDate,
+          countOlder30,
+          countOlder90,
+          countOlder180,
+          countOlder365
+        };
+      }
+    });
+
+    res.json({
+      sections: stats,
+      totalSections: Object.keys(stats).length,
+      purgeLogs: (db as any).purgeLogs || []
+    });
+  });
+
+  // Purge records from one or multiple sections
+  app.post("/api/admin/purge-records", async (req, res) => {
+    try {
+      const { 
+        section, 
+        sections: targetSections, 
+        mode = 'BEFORE_DATE', 
+        beforeDate, 
+        olderThanDays, 
+        statusFilter, 
+        selectedIds, 
+        performedBy = 'Super Admin', 
+        adminRole = 'SUPER_ADMIN', 
+        notes = '' 
+      } = req.body;
+
+      const sectionsToProcess = targetSections && Array.isArray(targetSections) && targetSections.length > 0
+        ? targetSections
+        : (section ? [section] : []);
+
+      if (sectionsToProcess.length === 0) {
+        return res.status(400).json({ error: 'No target section specified for purge' });
+      }
+
+      let totalDeletedCount = 0;
+      const results: Record<string, { deletedCount: number; remainingCount: number; deletedIds: string[] }> = {};
+      const deletedIdsBySection: Record<string, string[]> = {};
+
+      const now = Date.now();
+      let cutOffTime: number | null = null;
+      let criteriaSummary = '';
+
+      if (mode === 'BEFORE_DATE' && beforeDate) {
+        cutOffTime = new Date(beforeDate).getTime();
+        criteriaSummary = `Older than cut-off date: ${beforeDate}`;
+      } else if (mode === 'OLDER_THAN_DAYS' && olderThanDays) {
+        cutOffTime = now - (Number(olderThanDays) * 24 * 60 * 60 * 1000);
+        criteriaSummary = `Older than ${olderThanDays} days (Before ${new Date(cutOffTime).toISOString().split('T')[0]})`;
+      } else if (mode === 'SELECTED_IDS' && Array.isArray(selectedIds)) {
+        criteriaSummary = `Selected ${selectedIds.length} specific records`;
+      } else if (mode === 'STATUS_ONLY' && statusFilter) {
+        criteriaSummary = `Status matched: ${statusFilter}`;
+      } else if (mode === 'ALL') {
+        criteriaSummary = `Complete section purge (All records)`;
+      } else if (beforeDate) {
+        cutOffTime = new Date(beforeDate).getTime();
+        criteriaSummary = `Records logged prior to ${beforeDate}`;
+      } else {
+        criteriaSummary = `Manual purge filter`;
+      }
+
+      if (statusFilter && statusFilter !== 'ALL' && mode !== 'STATUS_ONLY') {
+        criteriaSummary += ` [Status: ${statusFilter}]`;
+      }
+
+      for (const secKey of sectionsToProcess) {
+        const arr = (db as any)[secKey];
+        if (!Array.isArray(arr)) continue;
+
+        const idsToDelete: string[] = [];
+        const keptItems: any[] = [];
+
+        arr.forEach(item => {
+          let shouldDelete = false;
+
+          if (mode === 'ALL') {
+            shouldDelete = true;
+          } else if (mode === 'SELECTED_IDS' && Array.isArray(selectedIds)) {
+            const itemId = String(item.id || item.serial || item.code || '');
+            if (selectedIds.includes(itemId) || selectedIds.includes(String(item.id))) {
+              shouldDelete = true;
+            }
+          } else {
+            let matchesDate = false;
+            let matchesStatus = true;
+
+            if (cutOffTime !== null) {
+              const d = extractDateFromRecord(item);
+              if (d && d.getTime() <= cutOffTime) {
+                matchesDate = true;
+              }
+            } else {
+              matchesDate = true;
+            }
+
+            if (statusFilter && statusFilter !== 'ALL') {
+              const itemStatus = String(item.status || item.stage || item.qcStatus || item.qc_status || '').toUpperCase();
+              if (itemStatus !== String(statusFilter).toUpperCase()) {
+                matchesStatus = false;
+              }
+            }
+
+            if (matchesDate && matchesStatus) {
+              shouldDelete = true;
+            }
+          }
+
+          if (shouldDelete) {
+            const itemId = String(item.id || item.serial || item.code || '');
+            if (itemId) idsToDelete.push(itemId);
+          } else {
+            keptItems.push(item);
+          }
+        });
+
+        // Mutate in-memory db array
+        (db as any)[secKey] = keptItems;
+        totalDeletedCount += idsToDelete.length;
+        deletedIdsBySection[secKey] = idsToDelete;
+
+        results[secKey] = {
+          deletedCount: idsToDelete.length,
+          remainingCount: keptItems.length,
+          deletedIds: idsToDelete
+        };
+
+        // Batch delete from Supabase if table mapping exists
+        const sbTable = SECTION_TO_SUPABASE_TABLE[secKey];
+        if (sbTable && idsToDelete.length > 0) {
+          deleteRecordsBatch(sbTable, idsToDelete).catch(err => {
+            console.warn(`[AdminPurge] Supabase purge warning on ${sbTable}:`, err);
+          });
+        }
+      }
+
+      // Log the purge action to db.purgeLogs
+      const newLog = {
+        id: `PURGE-${Date.now()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+        timestamp: new Date().toISOString(),
+        performedBy,
+        adminRole,
+        section: sectionsToProcess.join(', '),
+        sectionLabel: sectionsToProcess.map(s => SECTION_LABELS[s] || s).join(', '),
+        recordsDeletedCount: totalDeletedCount,
+        criteriaDescription: criteriaSummary,
+        notes: notes || 'Admin executed record cleanup.',
+        status: 'COMPLETED',
+        details: results
+      };
+
+      (db as any).purgeLogs = (db as any).purgeLogs || [];
+      (db as any).purgeLogs.unshift(newLog);
+
+      // Keep only last 100 purge logs to avoid bloat
+      if ((db as any).purgeLogs.length > 100) {
+        (db as any).purgeLogs = (db as any).purgeLogs.slice(0, 100);
+      }
+
+      saveDb();
+
+      res.json({
+        success: true,
+        totalDeletedCount,
+        results,
+        purgeLog: newLog,
+        message: `Successfully purged ${totalDeletedCount} record(s) across ${sectionsToProcess.length} section(s).`
+      });
+    } catch (err: any) {
+      console.error("[AdminPurge] Error executing purge:", err);
+      res.status(500).json({ error: err.message || 'Failed to purge records' });
+    }
+  });
+
+  // Single Item Direct Delete
+  app.post("/api/admin/delete-record-item", async (req, res) => {
+    try {
+      const { section, id, performedBy = 'Super Admin', adminRole = 'SUPER_ADMIN' } = req.body;
+      if (!section || !id) {
+        return res.status(400).json({ error: 'Section and ID are required' });
+      }
+
+      const arr = (db as any)[section];
+      if (!Array.isArray(arr)) {
+        return res.status(404).json({ error: `Section ${section} not found or is not an array` });
+      }
+
+      const beforeLen = arr.length;
+      (db as any)[section] = arr.filter((item: any) => String(item.id || item.serial || item.code) !== String(id));
+      const afterLen = (db as any)[section].length;
+      const deleted = beforeLen > afterLen;
+
+      if (deleted) {
+        const sbTable = SECTION_TO_SUPABASE_TABLE[section];
+        if (sbTable) {
+          deleteRecord(sbTable, String(id)).catch(() => {});
+        }
+
+        (db as any).purgeLogs = (db as any).purgeLogs || [];
+        (db as any).purgeLogs.unshift({
+          id: `PURGE-ITEM-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          performedBy,
+          adminRole,
+          section,
+          sectionLabel: SECTION_LABELS[section] || section,
+          recordsDeletedCount: 1,
+          criteriaDescription: `Single record deletion (ID: ${id})`,
+          notes: `Admin purged single item record.`,
+          status: 'COMPLETED'
+        });
+
+        saveDb();
+      }
+
+      res.json({ success: true, deleted, id, section, remainingCount: (db as any)[section].length });
+    } catch (err: any) {
+      console.error("[AdminPurge] Error deleting single record:", err);
+      res.status(500).json({ error: err.message || 'Failed to delete record' });
+    }
+  });
+
+  // Get Admin Purge Audit Logs
+  app.get("/api/admin/purge-logs", (req, res) => {
+    res.json((db as any).purgeLogs || []);
+  });
+
+  // Clear Purge Logs History
+  app.post("/api/admin/purge-logs/clear", (req, res) => {
+    (db as any).purgeLogs = [];
+    saveDb();
+    res.json({ success: true, message: 'Purge audit log history reset successfully.' });
+  });
+
+  // Restore Starter Records for a Section
+  app.post("/api/admin/restore-starter-records", (req, res) => {
+    const { section } = req.body;
+    if (!section) return res.status(400).json({ error: 'Section is required' });
+
+    // Seed defaults for common sections
+    if (section === 'leads') {
+      (db as any).leads = [
+        { id: "L-101", company: "Metro Auto EV Ltd", category: "Tier 1 Dealer", source: "IndiaMART", contactPerson: "Rajesh Sharma", phone: "9876543210", location: "New Delhi", followUpDate: new Date().toISOString().split('T')[0], followUpTime: "11:30", requirement: "100 Units 72V30A", status: "CONTACTED", notes: "Negotiating wholesale discounts.", assignedExecutive: "Suresh Raina (North CRM Executive)" },
+        { id: "L-102", company: "Surat Sun Power", category: "Solar Installer", source: "Website Direct", contactPerson: "Nilesh Patel", phone: "9825012345", location: "Surat, Gujarat", followUpDate: new Date(Date.now() + 86400000).toISOString().split('T')[0], followUpTime: "15:00", requirement: "50 Units 24V150Ah Tubular", status: "QUOTATION_SENT", notes: "Commercial invoice quotation submitted.", assignedExecutive: "Aravind Swamy (Head of Sales)" }
+      ];
+    } else if (section === 'complaints') {
+      (db as any).complaints = [
+        { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P." },
+        { id: "C-1002", serial: "AESPL  EV  28G26001045", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: new Date().toISOString().split('T')[0], resolvedDate: "", notes: "Unit awaiting technician assignment.", engineer: "Unassigned" }
+      ];
+    } else if (section === 'stockAudits') {
+      (db as any).stockAudits = [
+        { id: "AUD-1001", auditDate: new Date().toISOString().split('T')[0], auditor: "Baldev Singh", warehouse: "Raw Hub", totalAudited: 45, discrepanciesFound: 2, status: "VERIFIED", notes: "Regular cycle count conducted." }
+      ];
+    } else if (section === 'scrapLogs') {
+      (db as any).scrapLogs = [
+        { id: "SCRAP-101", logDate: new Date().toISOString().split('T')[0], materialName: "Prismatic Cell 3.2V", qty: 4, unit: "Pcs", reason: "Internal Short / Voltage Drop", loggedBy: "Vikram Patel", status: "RECORDED" }
+      ];
+    }
+
+    saveDb();
+    res.json({ success: true, count: ((db as any)[section] || []).length, data: (db as any)[section] });
   });
 
   // Supabase Global Sync Endpoint

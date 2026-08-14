@@ -17,7 +17,9 @@ import {
   ChevronRight,
   Sparkles,
   Command,
-  Settings
+  Settings,
+  CheckCircle2,
+  Trash2
 } from "lucide-react";
 import { useAuthStore, UserRole } from "../store/authStore";
 import { cn } from "../lib/utils";
@@ -47,12 +49,14 @@ export const CommandMenu: React.FC<CommandMenuProps> = ({ isOpen, onClose, setAc
     { id: "dashboard", label: "Overview Monitoring & Matrix", desc: "System stats, latency counters, and alert previews", icon: Activity, group: "Overview", roles: Object.values(UserRole) },
     { id: "user-manual", label: "Operations Manual PDF", desc: "Detailed ISO-approved system guide & standard SOP walkthroughs", icon: BookOpen, group: "Overview", roles: Object.values(UserRole) },
     { id: "inventory-hub", label: "Stores & Raw Materials Hub", desc: "Dynamic storage bin maps, materials ledger, and stock reports", icon: Layers, group: "Operations", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
+    { id: "physical-audit", label: "Physical Stock Audit & Variance", desc: "Physical inventory counts, stock variance ledger & auto-reconciliation", icon: CheckCircle2, group: "Operations", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
     { id: "production-hub", label: "Manufacturing Assembly Floor", desc: "WIP trackers, capacity calculators, and cell grading QC controls", icon: Factory, group: "Operations", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER] },
     { id: "crm", label: "CRM & Distributor Accounts", desc: "Lead pipeline, client onboarding, and regional maps", icon: Users, group: "Commercial", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON] },
     { id: "billing", label: "Billing Accounts & Invoicing", desc: "State GST split calculators, payment logs, and dynamic rates scaling", icon: ReceiptIndianRupee, group: "Commercial", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.BILLER] },
     { id: "warranty", label: "Warranty Coverage Registry", desc: "TAMPER-proof serial activations and replacement claim tests", icon: ShieldCheck, group: "Post-Sales", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.WARRANTY_TEAM] },
     { id: "service", label: "RMA Service Center Panel", desc: "Returned goods check, technical diagnoses, and recovery weights", icon: Wrench, group: "Post-Sales", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SERVICE_TEAM, UserRole.PLANT_SERVICE_ENGINEER] },
-    { id: "super-admin", label: "Super Admin Database Console", desc: "Manage ERP credentials, simulation variables, and override policies", icon: Settings, group: "Administration", roles: [UserRole.SUPER_ADMIN] }
+    { id: "super-admin", label: "Super Admin Database Console", desc: "Manage ERP credentials, simulation variables, and override policies", icon: Settings, group: "Administration", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
+    { id: "data-retention", label: "Data Retention & Record Purge", desc: "Purge old records, inquiries, invoices, and physical audits with retention policies", icon: Trash2, group: "Administration", roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] }
   ];
 
   // Simulator Swapping Profiles

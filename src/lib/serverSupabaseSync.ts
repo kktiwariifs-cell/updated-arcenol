@@ -370,6 +370,31 @@ export async function deleteRecord(tableName: string, id: string) {
 }
 
 /**
+ * Delete batch of items from Supabase by IDs
+ */
+export async function deleteRecordsBatch(tableName: string, ids: string[]) {
+  if (!ids || ids.length === 0) return;
+  try {
+    const chunkSize = 100;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const { error } = await supabaseServerClient
+        .from(tableName)
+        .delete()
+        .in('id', chunk);
+      if (error && !error.message?.includes('fetch failed')) {
+        console.warn(`[SupabaseSync] Warning batch deleting from ${tableName}:`, error.message);
+      }
+    }
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {
+      console.warn(`[SupabaseSync] Warning batch deleting from ${tableName}:`, msg);
+    }
+  }
+}
+
+/**
  * Sync ALL ERP tables in memory to Supabase
  */
 export async function syncAllERPToSupabase(db: any) {

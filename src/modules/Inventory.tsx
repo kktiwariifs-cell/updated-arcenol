@@ -18,11 +18,18 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar, Legend 
 } from 'recharts';
 
-export const Inventory: React.FC = () => {
+export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => {
   const { user } = useAuthStore();
   const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.ADMIN;
   const { data, loading, refetch } = useERPData();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'pos' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories'>('dashboard');
+  type InventoryTab = 'dashboard' | 'gate_entries' | 'stock_audit' | 'pos' | 'raw' | 'graded' | 'wip' | 'mrp' | 'warehouse' | 'categories';
+  const [activeTab, setActiveTab] = useState<InventoryTab>((initialTab as InventoryTab) || 'dashboard');
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab as InventoryTab);
+    }
+  }, [initialTab]);
   const [search, setSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState('ALL');
   const [isSyncing, setIsSyncing] = useState(false);

@@ -6,15 +6,20 @@ import {
   Briefcase, Calendar, AlertTriangle, X, Check, Copy, 
   ExternalLink, Terminal, Wifi, WifiOff, Code, Play,
   UserPlus, Trash2, Edit, Eye, EyeOff, UserCheck, ChevronRight,
-  Image as ImageIcon, RotateCcw, UploadCloud
+  Image as ImageIcon, RotateCcw, UploadCloud, ShieldAlert
 } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { useAuthStore, UserRole, User } from '../store/authStore';
 import { supabase, SupabaseBridge } from '../lib/supabase';
 import { syncBusinessProfileToSupabase } from '../lib/clientSupabaseSync';
+import { DataRetentionPurge } from '../components/admin/DataRetentionPurge';
 
-export const SuperAdmin: React.FC = () => {
+interface SuperAdminProps {
+  initialTab?: 'profile' | 'users' | 'retention';
+}
+
+export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }) => {
   const { data, refetch } = useERPData();
   
   // Supabase Database Integration & Status States
@@ -234,7 +239,7 @@ export const SuperAdmin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [activeTab, setActiveTab] = useState<'profile' | 'users'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'users' | 'retention'>(initialTab);
 
   // User credentials management states and hooks
   const { usersList, addUser, updateUser, deleteUser, resetDefaultUsers, loginWithCredentials, fetchUsersFromServer } = useAuthStore();
@@ -684,7 +689,7 @@ export const SuperAdmin: React.FC = () => {
         </div>
 
         {/* Core Administrative Control Switcher */}
-        <div className="flex space-x-2 bg-slate-100 p-1 rounded-2xl border border-slate-200/60 max-w-xl shrink-0 select-none">
+        <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/60 max-w-2xl shrink-0 select-none">
           <button
             onClick={() => setActiveTab('profile')}
             className={cn(
@@ -707,6 +712,19 @@ export const SuperAdmin: React.FC = () => {
             id="super-admin-users-tab-btn"
           >
             User Accounts
+          </button>
+          <button
+            onClick={() => setActiveTab('retention')}
+            className={cn(
+              "px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5",
+              activeTab === 'retention' 
+                ? "bg-rose-600 text-white shadow-md border border-rose-500" 
+                : "text-slate-500 hover:text-slate-900"
+            )}
+            id="super-admin-retention-tab-btn"
+          >
+            <Trash2 size={13} className={activeTab === 'retention' ? 'text-white' : 'text-rose-500'} />
+            Data Retention &amp; Purge
           </button>
         </div>
       </div>
@@ -2672,6 +2690,11 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
             </form>
           </div>
         </div>
+      )}
+
+      {/* Data Retention & Record Purge Center Tab */}
+      {activeTab === 'retention' && (
+        <DataRetentionPurge />
       )}
     </div>
   );

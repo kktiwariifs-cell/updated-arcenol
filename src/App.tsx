@@ -237,6 +237,11 @@ export default function App() {
         'alerts': Object.values(UserRole),
         'inventory': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
         'inventory-hub': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'physical-audit': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'stock-audit': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'physical_audit': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'stock_audit': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
+        'audit': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM],
         'production': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
         'production-hub': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
         'mrp': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER],
@@ -248,7 +253,9 @@ export default function App() {
         'engagement': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SALES_PERSON],
         'service': [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.SERVICE_TEAM, UserRole.PLANT_SERVICE_ENGINEER],
         'analytics': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
-        'super-admin': [UserRole.SUPER_ADMIN]
+        'super-admin': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+        'data-retention': [UserRole.SUPER_ADMIN, UserRole.ADMIN],
+        'purge-records': [UserRole.SUPER_ADMIN, UserRole.ADMIN]
       };
 
       const allowedRoles = TAB_ALLOWED_ROLES[activeTab];
@@ -786,7 +793,9 @@ export default function App() {
           {activeTab === 'dealer-performance' && <DealerPerformance />}
           {activeTab === 'regional-sales' && <RegionalSales />}
           {activeTab === 'alerts' && <Alerts />}
-          {(activeTab === 'inventory-hub' || activeTab === 'inventory') && <InventoryHub />}
+          {(activeTab === 'inventory-hub' || activeTab === 'inventory' || activeTab === 'physical-audit' || activeTab === 'stock-audit' || activeTab === 'physical_audit' || activeTab === 'stock_audit' || activeTab === 'audit') && (
+            <InventoryHub initialSubTab={activeTab === 'physical-audit' || activeTab === 'stock-audit' || activeTab === 'physical_audit' || activeTab === 'stock_audit' || activeTab === 'audit' ? 'stock_audit' : undefined} />
+          )}
           {(activeTab === 'production-hub' || activeTab === 'production') && <ManufacturingHub />}
           {activeTab === 'mrp' && <MRP />}
           {activeTab === 'finished-goods' && <FinishedGoods />}
@@ -798,6 +807,7 @@ export default function App() {
           {activeTab === 'service' && <Service />}
           {activeTab === 'analytics' && <Analytics />}
           {activeTab === 'super-admin' && <SuperAdmin />}
+          {(activeTab === 'data-retention' || activeTab === 'purge-records') && <SuperAdmin initialTab="retention" />}
         </div>
       </main>
 

@@ -1,19 +1,38 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Database, 
   Package, 
   Factory, 
   ShieldCheck, 
   Zap, 
-  Layers 
+  Layers,
+  CheckCircle2
 } from "lucide-react";
 import { StoreKeeperDashboard } from "./StoreKeeperDashboard";
 import { Inventory } from "./Inventory";
 import { FinishedGoods } from "./FinishedGoods";
 import { cn } from "../lib/utils";
 
-export const InventoryHub: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState<"stores" | "materials" | "finished">("stores");
+export const InventoryHub: React.FC<{ initialSubTab?: string }> = ({ initialSubTab }) => {
+  const getSubTabFromProp = (tabProp?: string): "stores" | "materials" | "stock_audit" | "finished" => {
+    if (!tabProp) return "stores";
+    if (["stock_audit", "stock-audit", "physical-audit", "physical_audit", "audit"].includes(tabProp)) {
+      return "stock_audit";
+    }
+    if (tabProp === "materials" || tabProp === "raw") return "materials";
+    if (tabProp === "finished") return "finished";
+    return "stores";
+  };
+
+  const [activeSubTab, setActiveSubTab] = useState<"stores" | "materials" | "stock_audit" | "finished">(
+    getSubTabFromProp(initialSubTab)
+  );
+
+  useEffect(() => {
+    if (initialSubTab) {
+      setActiveSubTab(getSubTabFromProp(initialSubTab));
+    }
+  }, [initialSubTab]);
 
   return (
     <div className="space-y-6">
@@ -40,6 +59,7 @@ export const InventoryHub: React.FC = () => {
           {[
             { id: "stores", label: "Stores Overview", icon: Database },
             { id: "materials", label: "Raw Materials Ledger", icon: Package },
+            { id: "stock_audit", label: "Physical Stock Audit", icon: CheckCircle2 },
             { id: "finished", label: "Finished Battery Vault", icon: Factory }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -70,6 +90,9 @@ export const InventoryHub: React.FC = () => {
         )}
         {activeSubTab === "materials" && (
           <Inventory />
+        )}
+        {activeSubTab === "stock_audit" && (
+          <Inventory initialTab="stock_audit" />
         )}
         {activeSubTab === "finished" && (
           <FinishedGoods />
