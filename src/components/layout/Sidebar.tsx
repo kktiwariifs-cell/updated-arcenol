@@ -40,7 +40,6 @@ const navigation = [
     accentColor: 'bg-amber-400',
     items: [
       { id: 'super-admin', label: 'SUPER ADMIN PANEL', icon: Settings, itemColor: 'bg-amber-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
-      { id: 'data-retention', label: 'DATA RETENTION & PURGE', icon: Trash2, itemColor: 'bg-rose-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN] },
     ]
   },
   {
@@ -59,7 +58,6 @@ const navigation = [
     accentColor: 'bg-emerald-400',
     items: [
       { id: 'inventory-hub', label: 'STORES & INVENTORY HUB', icon: Layers, itemColor: 'bg-amber-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
-      { id: 'physical-audit', label: 'PHYSICAL STOCK AUDIT', icon: CheckCircle2, itemColor: 'bg-sky-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.STORE_KEEPER, UserRole.PRODUCTION_TEAM] },
       { id: 'production-hub', label: 'MANUFACTURING FLOOR', icon: Factory, itemColor: 'bg-purple-400', roles: [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.PRODUCTION_TEAM, UserRole.STORE_KEEPER] },
     ]
   },
