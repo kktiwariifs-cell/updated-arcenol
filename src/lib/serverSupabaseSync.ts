@@ -457,9 +457,9 @@ export async function hydrateFromSupabase(db: any) {
   try {
     // 1. Inventory
     try {
-      const { data: inv } = await supabaseServerClient.from('inventory').select('*');
-      if (inv && inv.length > 0) {
-        const remoteItems = inv.map(i => ({
+      const { data: inv, error: invErr } = await supabaseServerClient.from('inventory').select('*');
+      if (!invErr && Array.isArray(inv)) {
+        db.inventory = inv.map(i => ({
           id: String(i.id),
           name: i.name,
           code: i.code || i.id,
@@ -479,32 +479,21 @@ export async function hydrateFromSupabase(db: any) {
           reservedQty: Number(i.reserved_qty ?? i.reservedQty ?? 0),
           date: i.date || (i.created_at ? i.created_at.split('T')[0] : new Date().toISOString().split('T')[0])
         }));
-
-        const remoteMap = new Map(remoteItems.map(item => [item.id, item]));
-        const updatedDbList = [...remoteItems];
-        if (Array.isArray(db.inventory)) {
-          db.inventory.forEach((localItem: any) => {
-            if (!remoteMap.has(localItem.id)) {
-              updatedDbList.push(localItem);
-            }
-          });
-        }
-        db.inventory = updatedDbList;
       }
     } catch (e) {}
 
     // 2. Warehouses
     try {
-      const { data: whs } = await supabaseServerClient.from('warehouses').select('*');
-      if (whs && whs.length > 0) {
+      const { data: whs, error: whsErr } = await supabaseServerClient.from('warehouses').select('*');
+      if (!whsErr && Array.isArray(whs)) {
         db.warehouses = Array.from(new Set(whs.map(w => (typeof w === 'string' ? w : (w.name || String(w.id)))).filter(Boolean)));
       }
     } catch (e) {}
 
     // 3. Graded Cells
     try {
-      const { data: cells } = await supabaseServerClient.from('graded_cells').select('*');
-      if (cells && cells.length > 0) {
+      const { data: cells, error: cellsErr } = await supabaseServerClient.from('graded_cells').select('*');
+      if (!cellsErr && Array.isArray(cells)) {
         db.gradedInventory = cells.map(c => ({
           id: String(c.id),
           serial: c.serial,
@@ -525,8 +514,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 4. WIP Inventory
     try {
-      const { data: wips } = await supabaseServerClient.from('wip_inventory').select('*');
-      if (wips && wips.length > 0) {
+      const { data: wips, error: wipsErr } = await supabaseServerClient.from('wip_inventory').select('*');
+      if (!wipsErr && Array.isArray(wips)) {
         db.wipInventory = wips.map(w => ({
           id: String(w.id),
           name: w.name,
@@ -541,40 +530,31 @@ export async function hydrateFromSupabase(db: any) {
 
     // 5. Lead Inquiries
     try {
-      const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
-      const { data: leads } = await supabaseServerClient.from('lead_inquiries').select('*');
-      if (leads && leads.length > 0) {
-        const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
-        const mappedLeads = leads.map(l => {
-          const idStr = String(l.id);
-          const existing = existingLeadsMap.get(idStr) as any;
-          return {
-            id: idStr,
-            company: l.company || existing?.company || 'Unnamed Lead',
-            category: l.category || existing?.category || 'Dealer',
-            leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
-            source: l.source || l.leadSource || existing?.source || 'Website',
-            contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
-            phone: l.mobile || l.phone || existing?.phone || '',
-            location: l.location || existing?.location || '',
-            followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
-            followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
-            requirement: l.requirement || existing?.requirement || '',
-            status: String(l.status || existing?.status || 'NEW').toUpperCase(),
-            notes: l.notes || existing?.notes || '',
-            remarksLog: Array.isArray(l.remarks_log) ? l.remarks_log : (Array.isArray(l.remarksLog) ? l.remarksLog : (existing?.remarksLog || []))
-          };
-        });
-        const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-        db.leads = [...mappedLeads, ...localOnly];
+      const { data: leads, error: leadsErr } = await supabaseServerClient.from('lead_inquiries').select('*');
+      if (!leadsErr && Array.isArray(leads)) {
+        db.leads = leads.map(l => ({
+          id: String(l.id),
+          company: l.company || 'Unnamed Lead',
+          category: l.category || 'Dealer',
+          leadSource: l.source || l.leadSource || 'Website',
+          source: l.source || l.leadSource || 'Website',
+          contactPerson: l.contact_person || l.contactPerson || '',
+          phone: l.mobile || l.phone || '',
+          location: l.location || '',
+          followUpDate: l.followup_date || l.followUpDate || new Date().toISOString().split('T')[0],
+          followUpTime: l.followup_time || l.followUpTime || '10:00',
+          requirement: l.requirement || '',
+          status: String(l.status || 'NEW').toUpperCase(),
+          notes: l.notes || '',
+          remarksLog: Array.isArray(l.remarks_log) ? l.remarks_log : (Array.isArray(l.remarksLog) ? l.remarksLog : [])
+        }));
       }
     } catch (e) {}
 
     // 6. Customers
     try {
-      const { data: custs } = await supabaseServerClient.from('customers').select('*');
-      if (custs && custs.length > 0) {
-        const fetchedIds = new Set(custs.map(c => String(c.id)));
+      const { data: custs, error: custsErr } = await supabaseServerClient.from('customers').select('*');
+      if (!custsErr && Array.isArray(custs)) {
         const mappedCusts = custs.map(c => ({
           id: String(c.id),
           company: c.company || c.name || 'Dealer',
@@ -590,19 +570,16 @@ export async function hydrateFromSupabase(db: any) {
           contactPerson: c.contact_person || c.contactPerson || 'N/A',
           status: 'ACTIVE'
         }));
-        const localDealersOnly = (db.dealers || []).filter((d: any) => !fetchedIds.has(String(d.id)));
-        const localCustomersOnly = (db.customers || []).filter((c: any) => !fetchedIds.has(String(c.id)));
-        db.dealers = [...mappedCusts, ...localDealersOnly];
-        db.customers = [...mappedCusts, ...localCustomersOnly];
+        db.dealers = mappedCusts;
+        db.customers = mappedCusts;
       }
     } catch (e) {}
 
     // 7. Invoices
     try {
-      const { data: invs } = await supabaseServerClient.from('invoices').select('*');
-      if (invs && invs.length > 0) {
-        const fetchedIds = new Set(invs.map(i => String(i.id)));
-        const mappedInvoices = invs.map(inv => {
+      const { data: invs, error: invsErr } = await supabaseServerClient.from('invoices').select('*');
+      if (!invsErr && Array.isArray(invs)) {
+        db.invoices = invs.map(inv => {
           const customerId = inv.customer_id || inv.customerId || inv.dealerId || 'cust-001';
           const cust = (db.customers || []).find((c: any) => c.id === customerId) || (db.dealers || []).find((d: any) => d.id === customerId || d.company === customerId);
           const partyName = inv.party_name || inv.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
@@ -650,15 +627,13 @@ export async function hydrateFromSupabase(db: any) {
             created_at: inv.created_at || invoiceDate
           };
         });
-        const localOnly = (db.invoices || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-        db.invoices = [...mappedInvoices, ...localOnly];
       }
     } catch (e) {}
 
     // 8. Complaints
     try {
-      const { data: cmps } = await supabaseServerClient.from('complaints').select('*');
-      if (cmps && cmps.length > 0) {
+      const { data: cmps, error: cmpsErr } = await supabaseServerClient.from('complaints').select('*');
+      if (!cmpsErr && Array.isArray(cmps)) {
         db.complaints = cmps.map(c => ({
           id: String(c.id),
           serial: c.serial,
@@ -678,8 +653,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 8.5 Warranty
     try {
-      const { data: warr } = await supabaseServerClient.from('warranty').select('*');
-      if (warr && warr.length > 0) {
+      const { data: warr, error: warrErr } = await supabaseServerClient.from('warranty').select('*');
+      if (!warrErr && Array.isArray(warr)) {
         db.warranty = warr.map((w: any) => ({
           id: String(w.id),
           serial: w.serial,
@@ -694,8 +669,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 9. Subsidiaries
     try {
-      const { data: subs } = await supabaseServerClient.from('arcenol_corporate_units').select('*');
-      if (subs && subs.length > 0) {
+      const { data: subs, error: subsErr } = await supabaseServerClient.from('arcenol_corporate_units').select('*');
+      if (!subsErr && Array.isArray(subs)) {
         db.subsidiaries = subs.map(s => ({
           id: String(s.id),
           name: s.name,
@@ -716,8 +691,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 10. Categories
     try {
-      const { data: cats } = await supabaseServerClient.from('categories').select('*');
-      if (cats && cats.length > 0) {
+      const { data: cats, error: catsErr } = await supabaseServerClient.from('categories').select('*');
+      if (!catsErr && Array.isArray(cats)) {
         db.categories = cats.map((c: any) => ({
           id: String(c.id),
           name: c.name,
@@ -730,8 +705,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 11. BOMs
     try {
-      const { data: boms } = await supabaseServerClient.from('bom_blueprints').select('*');
-      if (boms && boms.length > 0) {
+      const { data: boms, error: bomsErr } = await supabaseServerClient.from('bom_blueprints').select('*');
+      if (!bomsErr && Array.isArray(boms)) {
         const fetchedProducts = boms.map((b: any) => ({
           id: String(b.model_id || b.id),
           model_id: String(b.model_id || b.id),
@@ -775,9 +750,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 12. Vouchers
     try {
-      const { data: vouchers } = await supabaseServerClient.from('accounting_vouchers').select('*');
-      if (vouchers && vouchers.length > 0) {
-        const fetchedIds = new Set(vouchers.map((v: any) => String(v.id)));
+      const { data: vouchers, error: vouchersErr } = await supabaseServerClient.from('accounting_vouchers').select('*');
+      if (!vouchersErr && Array.isArray(vouchers)) {
         const mappedVouchers = vouchers.map((v: any) => ({
           id: String(v.id),
           voucher_no: v.voucher_no || v.voucherNo || v.id,
@@ -805,18 +779,15 @@ export async function hydrateFromSupabase(db: any) {
           category: v.category || 'General'
         }));
 
-        const localVouchers = (db.vouchers || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-        const localVyapar = (db.vyaparRecords || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-
-        db.vouchers = [...mappedVouchers, ...localVouchers];
-        db.vyaparRecords = [...mappedVyapar, ...localVyapar];
+        db.vouchers = mappedVouchers;
+        db.vyaparRecords = mappedVyapar;
       }
     } catch (e) {}
 
     // 13. Marketing
     try {
-      const { data: camps } = await supabaseServerClient.from('marketing_campaigns').select('*');
-      if (camps && camps.length > 0 && db.engagement) {
+      const { data: camps, error: campsErr } = await supabaseServerClient.from('marketing_campaigns').select('*');
+      if (!campsErr && Array.isArray(camps) && db.engagement) {
         db.engagement.campaigns = camps.map((m: any) => ({
           id: String(m.id),
           title: m.title,
@@ -829,8 +800,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 14. Business Profile
     try {
-      const { data: bp } = await supabaseServerClient.from('arcenol_business_profile').select('*').eq('id', 'PRIMARY').maybeSingle();
-      if (bp) {
+      const { data: bp, error: bpErr } = await supabaseServerClient.from('arcenol_business_profile').select('*').eq('id', 'PRIMARY').maybeSingle();
+      if (!bpErr && bp) {
         db.businessProfile = {
           companyName: bp.companyName || db.businessProfile?.companyName || 'Arcenol Energy Private Limited',
           shortName: bp.shortName || db.businessProfile?.shortName || 'ARCENOL',
@@ -856,8 +827,8 @@ export async function hydrateFromSupabase(db: any) {
 
     // 15. Purchase Orders
     try {
-      const { data: pos } = await supabaseServerClient.from('purchase_orders').select('*');
-      if (pos && pos.length > 0) {
+      const { data: pos, error: posErr } = await supabaseServerClient.from('purchase_orders').select('*');
+      if (!posErr && Array.isArray(pos)) {
         db.purchaseOrders = pos.map((p: any) => ({
           id: String(p.id),
           materialId: p.material_id || p.materialId || 'RM-GENERIC',
@@ -878,11 +849,11 @@ export async function hydrateFromSupabase(db: any) {
       }
     } catch (e) {}
 
-    // 16. Procurement Entries
+    // 16. Procurement Entries & Gate Entries
     try {
-      const { data: procs } = await supabaseServerClient.from('procurement_entries').select('*');
-      if (procs && procs.length > 0) {
-        db.procurementEntries = procs.map((p: any) => ({
+      const { data: procs, error: procsErr } = await supabaseServerClient.from('procurement_entries').select('*');
+      if (!procsErr && Array.isArray(procs)) {
+        const mappedProcs = procs.map((p: any) => ({
           id: String(p.id),
           procurementMode: p.procurement_mode || p.procurementMode || 'RESTOCK EXISTING ITEM',
           matcherSku: p.matcher_sku || p.matcherSku || '',
@@ -904,15 +875,18 @@ export async function hydrateFromSupabase(db: any) {
           minStock: Number(p.min_stock || p.minStock || 100),
           reorderLevel: Number(p.reorder_level || p.reorderLevel || 250),
           allocatedInflow: Number(p.allocated_inflow || p.allocatedInflow || 0),
-          status: p.status || 'COMPLETED'
+          status: p.status || 'COMPLETED',
+          entryTimestamp: p.created_at || new Date().toISOString()
         }));
+        db.procurementEntries = mappedProcs;
+        db.gateEntries = mappedProcs;
       }
     } catch (e) {}
 
     // 17. Operator User Accounts
     try {
-      const { data: users } = await supabaseServerClient.from('arcenol_users').select('*');
-      if (users && users.length > 0) {
+      const { data: users, error: usersErr } = await supabaseServerClient.from('arcenol_users').select('*');
+      if (!usersErr && Array.isArray(users) && users.length > 0) {
         db.users = users.map((u: any) => ({
           id: String(u.id),
           name: u.name,

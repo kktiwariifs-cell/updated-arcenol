@@ -39,10 +39,7 @@ export async function hydrateDbFromSupabase(db: any) {
     // 1. Inventory
     try {
       const { data: inv, error: invErr } = await supabase.from('inventory').select('*');
-      if (invErr) {
-        console.warn('[Client Supabase Sync] Inventory query notice:', invErr);
-      }
-      if (inv && inv.length > 0) {
+      if (!invErr && Array.isArray(inv)) {
         db.inventory = inv.map((i: any) => ({
           id: String(i.id || i.code || `RM-${Math.random()}`),
           name: i.name || i.material_name || i.title || 'Material Item',
@@ -70,8 +67,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 2. Graded Cells
     try {
-      const { data: graded } = await supabase.from('graded_cells').select('*');
-      if (graded && graded.length > 0) {
+      const { data: graded, error: gradedErr } = await supabase.from('graded_cells').select('*');
+      if (!gradedErr && Array.isArray(graded)) {
         db.gradedInventory = graded.map((c: any) => ({
           id: String(c.id),
           serial: c.serial,
@@ -93,8 +90,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 3. WIP Inventory
     try {
-      const { data: wip } = await supabase.from('wip_inventory').select('*');
-      if (wip && wip.length > 0) {
+      const { data: wip, error: wipErr } = await supabase.from('wip_inventory').select('*');
+      if (!wipErr && Array.isArray(wip)) {
         db.wipInventory = wip.map((w: any) => ({
           id: String(w.id),
           name: w.name,
@@ -110,8 +107,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 4. Warehouses
     try {
-      const { data: whs } = await supabase.from('warehouses').select('*');
-      if (whs && whs.length > 0) {
+      const { data: whs, error: whsErr } = await supabase.from('warehouses').select('*');
+      if (!whsErr && Array.isArray(whs)) {
         db.warehouses = whs.map((w: any) => w.name || w.location || String(w));
       }
     } catch (whCatchErr) {
@@ -120,9 +117,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 5. Customers / Dealers
     try {
-      const { data: custs } = await supabase.from('customers').select('*');
-      if (custs && custs.length > 0) {
-        const fetchedIds = new Set(custs.map((c: any) => String(c.id)));
+      const { data: custs, error: custsErr } = await supabase.from('customers').select('*');
+      if (!custsErr && Array.isArray(custs)) {
         const mappedCusts = custs.map((c: any) => ({
           id: String(c.id),
           company: c.company || c.name || c.company_name || 'Dealer',
@@ -142,10 +138,8 @@ export async function hydrateDbFromSupabase(db: any) {
           outstandingBalance: Number(c.outstanding_balance || c.outstandingBalance || 0),
           status: c.status || 'ACTIVE'
         }));
-        const localDealersOnly = (db.dealers || []).filter((d: any) => !fetchedIds.has(String(d.id)));
-        const localCustomersOnly = (db.customers || []).filter((c: any) => !fetchedIds.has(String(c.id)));
-        db.dealers = [...mappedCusts, ...localDealersOnly];
-        db.customers = [...mappedCusts, ...localCustomersOnly];
+        db.dealers = mappedCusts;
+        db.customers = mappedCusts;
       }
     } catch (custCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating customers:', custCatchErr);
@@ -153,10 +147,9 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 6. Invoices
     try {
-      const { data: invs } = await supabase.from('invoices').select('*');
-      if (invs && invs.length > 0) {
-        const fetchedIds = new Set(invs.map((i: any) => String(i.id)));
-        const mappedInvoices = invs.map((i: any) => {
+      const { data: invs, error: invsErr } = await supabase.from('invoices').select('*');
+      if (!invsErr && Array.isArray(invs)) {
+        db.invoices = invs.map((i: any) => {
           const customerId = i.customer_id || i.customerId || i.dealerId || i.party_id || 'cust-001';
           const cust = (db.customers || []).find((c: any) => String(c.id) === String(customerId)) || (db.dealers || []).find((d: any) => String(d.id) === String(customerId) || d.company === customerId);
           const partyName = i.party_name || i.partyName || cust?.company || cust?.name || (customerId === 'cust-001' ? 'Electra Transit Pvt Ltd' : 'Walk-In Customer');
@@ -200,8 +193,6 @@ export async function hydrateDbFromSupabase(db: any) {
             status: i.status || 'UNPAID'
           };
         });
-        const localOnly = (db.invoices || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-        db.invoices = [...mappedInvoices, ...localOnly];
       }
     } catch (invsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating invoices:', invsCatchErr);
@@ -209,8 +200,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 7. Complaints
     try {
-      const { data: comps } = await supabase.from('complaints').select('*');
-      if (comps && comps.length > 0) {
+      const { data: comps, error: compsErr } = await supabase.from('complaints').select('*');
+      if (!compsErr && Array.isArray(comps)) {
         db.complaints = comps.map((c: any) => ({
           id: String(c.id),
           serial: c.serial,
@@ -232,8 +223,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 7.5 Warranty
     try {
-      const { data: warr } = await supabase.from('warranty').select('*');
-      if (warr && warr.length > 0) {
+      const { data: warr, error: warrErr } = await supabase.from('warranty').select('*');
+      if (!warrErr && Array.isArray(warr)) {
         db.warranty = warr.map((w: any) => ({
           id: String(w.id),
           serial: w.serial,
@@ -250,33 +241,25 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 8. Lead Inquiries
     try {
-      const existingLeadsMap = new Map((db.leads || []).map((item: any) => [String(item.id), item]));
-      const { data: leads } = await supabase.from('lead_inquiries').select('*');
-      if (leads && leads.length > 0) {
-        const fetchedIds = new Set(leads.map((l: any) => String(l.id)));
-        const mappedLeads = leads.map((l: any) => {
-          const idStr = String(l.id);
-          const existing = existingLeadsMap.get(idStr) as any;
-          return {
-            id: idStr,
-            company: l.company || existing?.company || 'Unnamed Lead',
-            category: l.category || existing?.category || 'Dealer',
-            leadSource: l.source || l.leadSource || existing?.leadSource || 'Website',
-            source: l.source || l.leadSource || existing?.source || 'Website',
-            contactPerson: l.contact_person || l.contactPerson || existing?.contactPerson || '',
-            phone: l.mobile || l.phone || existing?.phone || '',
-            location: l.location || existing?.location || '',
-            followUpDate: l.followup_date || l.followUpDate || existing?.followUpDate || new Date().toISOString().split('T')[0],
-            followUpTime: l.followup_time || l.followUpTime || existing?.followUpTime || '10:00',
-            requirement: l.requirement || existing?.requirement || '',
-            status: l.status || existing?.status || 'NEW',
-            notes: l.notes || existing?.notes || '',
-            assignedExecutive: l.assigned_executive || l.assignedExecutive || existing?.assignedExecutive || 'Suresh Raina (North CRM Executive)',
-            remarksLog: l.remarks_log || l.remarksLog || existing?.remarksLog || []
-          };
-        });
-        const localOnly = (db.leads || []).filter((item: any) => !fetchedIds.has(String(item.id)));
-        db.leads = [...mappedLeads, ...localOnly];
+      const { data: leads, error: leadsErr } = await supabase.from('lead_inquiries').select('*');
+      if (!leadsErr && Array.isArray(leads)) {
+        db.leads = leads.map((l: any) => ({
+          id: String(l.id),
+          company: l.company || 'Unnamed Lead',
+          category: l.category || 'Dealer',
+          leadSource: l.source || l.leadSource || 'Website',
+          source: l.source || l.leadSource || 'Website',
+          contactPerson: l.contact_person || l.contactPerson || '',
+          phone: l.mobile || l.phone || '',
+          location: l.location || '',
+          followUpDate: l.followup_date || l.followUpDate || new Date().toISOString().split('T')[0],
+          followUpTime: l.followup_time || l.followUpTime || '10:00',
+          requirement: l.requirement || '',
+          status: l.status || 'NEW',
+          notes: l.notes || '',
+          assignedExecutive: l.assigned_executive || l.assignedExecutive || 'Suresh Raina (North CRM Executive)',
+          remarksLog: l.remarks_log || l.remarksLog || []
+        }));
       }
     } catch (leadsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating lead inquiries:', leadsCatchErr);
@@ -284,8 +267,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 9. Categories
     try {
-      const { data: cats } = await supabase.from('categories').select('*');
-      if (cats && cats.length > 0) {
+      const { data: cats, error: catsErr } = await supabase.from('categories').select('*');
+      if (!catsErr && Array.isArray(cats)) {
         db.categories = cats.map((c: any) => c.name || c.title || String(c));
       }
     } catch (catsCatchErr) {
@@ -294,8 +277,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 10. BOM Blueprints
     try {
-      const { data: boms } = await supabase.from('bom_blueprints').select('*');
-      if (boms && boms.length > 0) {
+      const { data: boms, error: bomsErr } = await supabase.from('bom_blueprints').select('*');
+      if (!bomsErr && Array.isArray(boms)) {
         const fetchedProducts = boms.map((b: any) => ({
           id: String(b.model_id || b.id),
           model_id: String(b.model_id || b.id),
@@ -341,8 +324,8 @@ export async function hydrateDbFromSupabase(db: any) {
 
     // 11. Purchase Orders
     try {
-      const { data: pos } = await supabase.from('purchase_orders').select('*');
-      if (pos && pos.length > 0) {
+      const { data: pos, error: posErr } = await supabase.from('purchase_orders').select('*');
+      if (!posErr && Array.isArray(pos)) {
         db.purchaseOrders = pos.map((p: any) => ({
           id: String(p.id),
           materialId: p.material_id || p.materialId || 'RM-GENERIC',
@@ -365,11 +348,11 @@ export async function hydrateDbFromSupabase(db: any) {
       console.warn('[Client Supabase Sync] Error hydrating purchase_orders:', posCatchErr);
     }
 
-    // 12. Procurement Entries
+    // 12. Procurement Entries & Gate Entries
     try {
-      const { data: procs } = await supabase.from('procurement_entries').select('*');
-      if (procs && procs.length > 0) {
-        db.procurementEntries = procs.map((p: any) => ({
+      const { data: procs, error: procsErr } = await supabase.from('procurement_entries').select('*');
+      if (!procsErr && Array.isArray(procs)) {
+        const mappedProcs = procs.map((p: any) => ({
           id: String(p.id),
           procurementMode: p.procurement_mode || p.procurementMode || 'RESTOCK EXISTING ITEM',
           matcherSku: p.matcher_sku || p.matcherSku || '',
@@ -391,8 +374,11 @@ export async function hydrateDbFromSupabase(db: any) {
           minStock: Number(p.min_stock || p.minStock || 100),
           reorderLevel: Number(p.reorder_level || p.reorderLevel || 250),
           allocatedInflow: Number(p.allocated_inflow || p.allocatedInflow || 0),
-          status: p.status || 'COMPLETED'
+          status: p.status || 'COMPLETED',
+          entryTimestamp: p.created_at || new Date().toISOString()
         }));
+        db.procurementEntries = mappedProcs;
+        db.gateEntries = mappedProcs;
       }
     } catch (procsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating procurement_entries:', procsCatchErr);
