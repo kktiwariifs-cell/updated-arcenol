@@ -122,47 +122,6 @@ const DEFAULT_USERS: User[] = [
 import { syncUserToSupabase, syncUsersToSupabase, deleteUserFromSupabase } from '../lib/clientSupabaseSync';
 
 // Helper to load users list from local storage or set defaults
-const getSavedUsers = (): User[] => {
-  const data = localStorage.getItem('arcenol_users_storage');
-  if (data) {
-    try {
-      const parsed = JSON.parse(data);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    } catch {
-      return DEFAULT_USERS;
-    }
-  }
-  
-  // Fallback check in arcenol_db_clean
-  try {
-    const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
-    if (dbCleanRaw) {
-      const dbClean = JSON.parse(dbCleanRaw);
-      if (Array.isArray(dbClean.users) && dbClean.users.length > 0) {
-        localStorage.setItem('arcenol_users_storage', JSON.stringify(dbClean.users));
-        return dbClean.users;
-      }
-    }
-  } catch (e) {}
-
-  localStorage.setItem('arcenol_users_storage', JSON.stringify(DEFAULT_USERS));
-  return DEFAULT_USERS;
-};
-
-const saveUsers = (users: User[]) => {
-  localStorage.setItem('arcenol_users_storage', JSON.stringify(users));
-  try {
-    const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
-    if (dbCleanRaw) {
-      const dbClean = JSON.parse(dbCleanRaw);
-      dbClean.users = users;
-      localStorage.setItem('arcenol_db_clean', JSON.stringify(dbClean));
-    }
-  } catch (e) {}
-};
-
 const getSavedUser = (): User | null => {
   const data = localStorage.getItem('arcenol_active_user');
   if (data) {
@@ -183,13 +142,143 @@ const saveActiveUser = (user: User | null) => {
   }
 };
 
+const getSavedUsers = (): User[] => {
+  const activeUser = getSavedUser();
+  let list: User[] = DEFAULT_USERS;
+  const data = localStorage.getItem('arcenol_users_storage');
+  if (data) {
+    try {
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        list = parsed;
+      }
+    } catch {}
+  } else {
+    // Fallback check in arcenol_db_clean
+    try {
+      const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
+      if (dbCleanRaw) {
+        const dbClean = JSON.parse(dbCleanRaw);
+        if (Array.isArray(dbClean.users) && dbClean.users.length > 0) {
+          list = dbClean.users;
+        }
+      }
+    } catch (e) {}
+  }
+
+  // If there's an active session with a customized name/details, ensure the usersList entry matches it
+  if (activeUser && activeUser.name) {
+    const matchIdx = list.findIndex(u => u.id === activeUser.id || u.role === activeUser.role);
+    if (matchIdx !== -1) {
+      if (list[matchIdx].name !== activeUser.name || list[matchIdx].email !== activeUser.email) {
+        list[matchIdx] = {
+          ...list[matchIdx],
+          ...activeUser
+        };
+      }
+    }
+  }
+
+  localStorage.setItem('arcenol_users_storage', JSON.stringify(list));
+  return list;
+};
+
+const saveUsers = (users: User[]) => {
+  localStorage.setItem('arcenol_users_storage', JSON.stringify(users));
+  try {
+    const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
+    if (dbCleanRaw) {
+      const dbClean = JSON.parse(dbCleanRaw);
+      dbClean.users = users;
+      localStorage.setItem('arcenol_db_clean', JSON.stringify(dbClean));
+    }
+  } catch (e) {}
+};
+
+// Smart merge helper to prevent server defaults from wiping local edits
+function smartMergeUsers(localUsers: User[], incomingUsers: User[], activeUser: User | null): { merged: User[]; hasLocalEdits: boolean } {
+  if (!Array.isArray(incomingUsers) || incomingUsers.length === 0) {
+    return { merged: localUsers, hasLocalEdits: false };
+  }
+
+  let hasLocalEdits = false;
+  const merged: User[] = [];
+
+  // Start with incoming users, but preserve local non-default custom attributes
+  for (const inc of incomingUsers) {
+    const localMatch = localUsers.find(l => l.id === inc.id || l.role === inc.role || l.email.toLowerCase() === inc.email.toLowerCase());
+    if (localMatch) {
+      // Check if local has a custom non-default name or active session match
+      const defaultMatch = DEFAULT_USERS.find(d => d.role === inc.role || d.id === inc.id);
+      const isIncomingDefault = defaultMatch && inc.name === defaultMatch.name;
+      const isLocalCustom = defaultMatch && localMatch.name !== defaultMatch.name;
+      const isActiveMatch = activeUser && (activeUser.id === localMatch.id || activeUser.role === localMatch.role);
+
+      if ((isLocalCustom && isIncomingDefault) || (isActiveMatch && activeUser.name && inc.name !== activeUser.name)) {
+        // Keep local custom name & credentials
+        merged.push({
+          ...inc,
+          ...localMatch,
+          name: isActiveMatch && activeUser?.name ? activeUser.name : localMatch.name
+        });
+        hasLocalEdits = true;
+      } else {
+        merged.push({
+          ...localMatch,
+          ...inc
+        });
+      }
+    } else {
+      merged.push(inc);
+    }
+  }
+
+  // Also include any purely local created users not on server
+  for (const loc of localUsers) {
+    if (!merged.some(m => m.id === loc.id || m.email.toLowerCase() === loc.email.toLowerCase())) {
+      merged.push(loc);
+      hasLocalEdits = true;
+    }
+  }
+
+  // Ensure active session is consistently reflected in the final list
+  if (activeUser && activeUser.name) {
+    const activeIdx = merged.findIndex(m => m.id === activeUser.id || m.role === activeUser.role);
+    if (activeIdx !== -1 && merged[activeIdx].name !== activeUser.name) {
+      merged[activeIdx] = {
+        ...merged[activeIdx],
+        name: activeUser.name,
+        email: activeUser.email || merged[activeIdx].email,
+        department: activeUser.department || merged[activeIdx].department
+      };
+      hasLocalEdits = true;
+    }
+  }
+
+  return { merged, hasLocalEdits };
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: getSavedUser(),
   usersList: getSavedUsers(),
   setUsersList: (list) => {
     if (!Array.isArray(list) || list.length === 0) return;
-    set({ usersList: list });
-    saveUsers(list);
+    const current = get().usersList;
+    const currentUser = get().user;
+    const { merged, hasLocalEdits } = smartMergeUsers(current, list, currentUser);
+
+    if (JSON.stringify(merged) !== JSON.stringify(current)) {
+      set({ usersList: merged });
+      saveUsers(merged);
+      if (hasLocalEdits) {
+        fetch('/api/users/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(merged)
+        }).catch(() => {});
+        syncUsersToSupabase(merged).catch(() => {});
+      }
+    }
   },
 
   fetchUsersFromServer: async () => {
@@ -199,10 +288,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         const serverUsers = await res.json();
         if (Array.isArray(serverUsers) && serverUsers.length > 0) {
           const currentLocal = get().usersList;
-          // If server users have more records or custom entries, adopt them; otherwise sync local to server
-          if (JSON.stringify(serverUsers) !== JSON.stringify(currentLocal)) {
-            set({ usersList: serverUsers });
-            saveUsers(serverUsers);
+          const currentUser = get().user;
+          const { merged, hasLocalEdits } = smartMergeUsers(currentLocal, serverUsers, currentUser);
+
+          set({ usersList: merged });
+          saveUsers(merged);
+
+          if (hasLocalEdits || JSON.stringify(merged) !== JSON.stringify(serverUsers)) {
+            // Push merged state back to server
+            fetch('/api/users/reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(merged)
+            }).catch(() => {});
+            syncUsersToSupabase(merged).catch(() => {});
           }
         } else {
           // If server is empty, push local users
@@ -213,6 +312,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(currentLocal)
             }).catch(() => {});
+            syncUsersToSupabase(currentLocal).catch(() => {});
           }
         }
       }
@@ -301,22 +401,29 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ usersList: updated });
 
     // Sync to Express
-    fetch(`/api/users/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedFields)
-    }).catch(err => console.warn('Express user update notice:', err));
-
-    // Sync to Supabase
     const target = updated.find(u => u.id === id);
     if (target) {
+      fetch(`/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(target)
+      }).catch(err => console.warn('Express user update notice:', err));
+
+      // Also reset full list in server to avoid race conditions with /api/data
+      fetch('/api/users/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated)
+      }).catch(() => {});
+
+      // Sync to Supabase
       syncUserToSupabase(target).catch(() => {});
     }
 
     // If the currently logged-in user is updated, sink changes
     const currentUser = get().user;
-    if (currentUser && currentUser.id === id) {
-      const activeMatch = updated.find(u => u.id === id);
+    if (currentUser && (currentUser.id === id || currentUser.role === target?.role)) {
+      const activeMatch = target || updated.find(u => u.id === id);
       if (activeMatch) {
         set({ user: activeMatch });
         saveActiveUser(activeMatch);
