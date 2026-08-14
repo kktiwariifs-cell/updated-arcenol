@@ -1,26 +1,19 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Trash2, 
-  Calendar, 
   AlertTriangle, 
   ShieldAlert, 
   Download, 
-  Filter, 
   Clock, 
-  Database, 
   CheckCircle2, 
   Search, 
   FileSpreadsheet, 
-  ChevronRight, 
   RotateCcw, 
-  Info, 
-  ArrowUpDown, 
-  Eye, 
-  Layers, 
-  SlidersHorizontal,
   X,
+  Layers,
   FileText,
-  Building,
+  Eye,
+  Filter,
   Check
 } from 'lucide-react';
 import { useAuthStore, UserRole } from '../../store/authStore';
@@ -32,7 +25,6 @@ interface SectionMeta {
   category: string;
   description: string;
   dateKey: string;
-  iconName?: string;
 }
 
 const SECTION_CONFIGS: SectionMeta[] = [
@@ -89,17 +81,37 @@ export const DataRetentionPurge: React.FC = () => {
   // Selected row IDs for selective purge
   const [selectedRowIds, setSelectedRowIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [selectedRowDetail, setSelectedRowDetail] = useState<any | null>(null);
 
   // Modals & Feedback
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [confirmInputText, setConfirmInputText] = useState<string>('');
   const [isPurging, setIsPurging] = useState<boolean>(false);
   const [purgeResult, setPurgeResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [selectedRowDetail, setSelectedRowDetail] = useState<any | null>(null);
 
   // Purge Audit Logs from server
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState<boolean>(false);
+  const [auditSearchQuery, setAuditSearchQuery] = useState<string>('');
+
+  // Safe date formatter
+  const formatLogDate = (val: any): string => {
+    if (!val) return 'N/A';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return String(val);
+      return d.toLocaleString();
+    } catch {
+      return String(val);
+    }
+  };
+
+  // Safe text helper
+  const formatSafeText = (val: any): string => {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'object') return JSON.stringify(val);
+    return String(val);
+  };
 
   // Fetch Audit Logs
   const fetchAuditLogs = async () => {
@@ -107,17 +119,25 @@ export const DataRetentionPurge: React.FC = () => {
     try {
       const res = await fetch('/api/admin/purge-logs');
       if (res.ok) {
-        const logs = await res.json();
-        setAuditLogs(logs || []);
+        const json = await res.json();
+        const list = Array.isArray(json) ? json : (Array.isArray(json?.purgeLogs) ? json.purgeLogs : []);
+        setAuditLogs(list);
+      } else {
+        setAuditLogs([]);
       }
     } catch (e) {
       console.warn('Failed to load audit logs:', e);
+      setAuditLogs([]);
     } finally {
       setIsLoadingLogs(false);
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
+    fetchAuditLogs();
+  }, []);
+
+  useEffect(() => {
     if (activeSubTab === 'audit_logs') {
       fetchAuditLogs();
     }
@@ -255,6 +275,17 @@ export const DataRetentionPurge: React.FC = () => {
     });
   }, [currentRawItems, searchQuery]);
 
+  // Filtered Audit Logs
+  const filteredAuditLogs = useMemo(() => {
+    if (!Array.isArray(auditLogs)) return [];
+    if (!auditSearchQuery.trim()) return auditLogs;
+    const q = auditSearchQuery.toLowerCase();
+    return auditLogs.filter(log => {
+      const text = `${formatSafeText(log.id)} ${formatSafeText(log.performedBy)} ${formatSafeText(log.sectionLabel)} ${formatSafeText(log.section)} ${formatSafeText(log.criteriaDescription)} ${formatSafeText(log.notes)}`.toLowerCase();
+      return text.includes(q);
+    });
+  }, [auditLogs, auditSearchQuery]);
+
   // Available unique status list for current section
   const availableStatuses = useMemo(() => {
     const s = new Set<string>();
@@ -324,6 +355,10 @@ export const DataRetentionPurge: React.FC = () => {
   const handleExecuteSelectivePurge = async () => {
     if (selectedRowIds.length === 0) return;
 
+    if (!window.confirm(`Are you sure you want to permanently delete ${selectedRowIds.length} selected record(s) from ${currentSectionMeta.name}?`)) {
+      return;
+    }
+
     setIsPurging(true);
     setPurgeResult(null);
 
@@ -390,11 +425,29 @@ export const DataRetentionPurge: React.FC = () => {
           message: `Record ${itemId} deleted successfully.`
         });
         await refetch();
+        fetchAuditLogs();
       } else {
         alert(json.error || 'Failed to delete record.');
       }
     } catch (err: any) {
       alert('Error deleting record: ' + err.message);
+    }
+  };
+
+  // Clear Audit Logs
+  const handleClearAuditLogs = async () => {
+    if (!window.confirm('Are you sure you want to clear the purge audit log history? This action is logged.')) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/admin/purge-logs/clear', { method: 'POST' });
+      if (res.ok) {
+        setAuditLogs([]);
+        setPurgeResult({ success: true, message: 'Purge audit log history reset successfully.' });
+      }
+    } catch (e) {
+      alert('Failed to clear audit logs.');
     }
   };
 
@@ -426,6 +479,32 @@ export const DataRetentionPurge: React.FC = () => {
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", csvContent);
     downloadAnchor.setAttribute("download", `arcenol_records_${selectedSectionKey}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Export Audit Logs as CSV
+  const handleExportAuditLogsCSV = () => {
+    if (auditLogs.length === 0) return;
+    const csvRows = [
+      'Audit ID,Timestamp,Administrator,Role,Target Section,Records Purged,Criteria,Notes,Status',
+      ...auditLogs.map(l => [
+        `"${formatSafeText(l.id)}"`,
+        `"${formatLogDate(l.timestamp)}"`,
+        `"${formatSafeText(l.performedBy)}"`,
+        `"${formatSafeText(l.adminRole)}"`,
+        `"${formatSafeText(l.sectionLabel || l.section)}"`,
+        `"${formatSafeText(l.recordsDeletedCount)}"`,
+        `"${formatSafeText(l.criteriaDescription).replace(/"/g, '""')}"`,
+        `"${formatSafeText(l.notes).replace(/"/g, '""')}"`,
+        `"${formatSafeText(l.status || 'COMPLETED')}"`
+      ].join(','))
+    ];
+    const csvContent = "data:text/csv;charset=utf-8," + encodeURIComponent(csvRows.join('\n'));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", csvContent);
+    downloadAnchor.setAttribute("download", `arcenol_purge_audit_logs_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
@@ -468,7 +547,7 @@ export const DataRetentionPurge: React.FC = () => {
               Administrative Data Governance
             </div>
             <h2 className="text-2xl lg:text-3xl font-black italic tracking-tight uppercase">
-              Data Retention & Record Purge Center
+              Data Retention &amp; Record Purge Center
             </h2>
             <p className="text-xs text-slate-300 max-w-2xl font-medium leading-relaxed">
               Maintain optimal ERP performance and regulatory compliance. Securely purge obsolete records, cold sales inquiries, completed work orders, and historical audit logs with automated retention policies and cryptographic audit trails.
@@ -501,6 +580,7 @@ export const DataRetentionPurge: React.FC = () => {
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
         <div className="flex space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
           <button
+            type="button"
             onClick={() => setActiveSubTab('sections')}
             className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'sections'
@@ -512,6 +592,7 @@ export const DataRetentionPurge: React.FC = () => {
             Modules &amp; Purge Engine
           </button>
           <button
+            type="button"
             onClick={() => setActiveSubTab('explorer')}
             className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'explorer'
@@ -523,6 +604,7 @@ export const DataRetentionPurge: React.FC = () => {
             Records Explorer ({currentRawItems.length})
           </button>
           <button
+            type="button"
             onClick={() => setActiveSubTab('audit_logs')}
             className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
               activeSubTab === 'audit_logs'
@@ -531,7 +613,7 @@ export const DataRetentionPurge: React.FC = () => {
             }`}
           >
             <Clock size={15} className={activeSubTab === 'audit_logs' ? 'text-rose-600' : 'text-slate-400'} />
-            Purge Audit Log
+            Purge Audit Log ({Array.isArray(auditLogs) ? auditLogs.length : 0})
           </button>
         </div>
 
@@ -544,7 +626,7 @@ export const DataRetentionPurge: React.FC = () => {
           }`}>
             {purgeResult.success ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" /> : <AlertTriangle size={16} className="text-rose-600 shrink-0" />}
             <span>{purgeResult.message}</span>
-            <button onClick={() => setPurgeResult(null)} className="ml-2 text-slate-400 hover:text-slate-600 cursor-pointer">
+            <button type="button" onClick={() => setPurgeResult(null)} className="ml-2 text-slate-400 hover:text-slate-600 cursor-pointer">
               <X size={14} />
             </button>
           </div>
@@ -563,6 +645,7 @@ export const DataRetentionPurge: React.FC = () => {
               {categoriesList.map(cat => (
                 <button
                   key={cat}
+                  type="button"
                   onClick={() => setSelectedCategoryFilter(cat)}
                   className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider whitespace-nowrap cursor-pointer transition-all ${
                     selectedCategoryFilter === cat
@@ -654,6 +737,7 @@ export const DataRetentionPurge: React.FC = () => {
 
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={handleRestoreDefaults}
                     title="Restore Starter Samples"
                     className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-600 text-xs font-bold cursor-pointer transition-all flex items-center gap-1.5"
@@ -1046,25 +1130,61 @@ export const DataRetentionPurge: React.FC = () => {
       {activeSubTab === 'audit_logs' && (
         <div className="space-y-6">
           <div className="bg-white rounded-[2.5rem] border border-slate-200/80 shadow-xl overflow-hidden">
-            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between gap-4">
+            <div className="p-8 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic flex items-center gap-2">
                   <Clock className="text-rose-600" size={20} />
                   Purge &amp; Data Cleansing Audit Trail
                 </h3>
                 <p className="text-xs text-slate-500 font-medium mt-1">
-                  Immutable record of all purge operations performed by administrators with timestamps and criteria.
+                  Cryptographic compliance record of all purge operations performed by administrators.
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative w-64">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search logs by admin, module..."
+                    value={auditSearchQuery}
+                    onChange={(e) => setAuditSearchQuery(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 outline-none focus:ring-2 focus:ring-rose-500/20 shadow-xs"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExportAuditLogsCSV}
+                  disabled={!Array.isArray(auditLogs) || auditLogs.length === 0}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 cursor-pointer shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50"
+                  title="Export Audit CSV"
+                >
+                  <FileSpreadsheet size={14} className="text-slate-500" />
+                  <span>CSV</span>
+                </button>
+
                 <button
                   type="button"
                   onClick={fetchAuditLogs}
-                  className="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 cursor-pointer shadow-sm transition-all"
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-bold border border-slate-200 cursor-pointer shadow-xs transition-all flex items-center gap-1.5"
+                  title="Refresh Audit Logs"
                 >
-                  Refresh Logs
+                  <RotateCcw size={14} className={isLoadingLogs ? 'animate-spin' : ''} />
+                  <span>Refresh</span>
                 </button>
+
+                {auditLogs && auditLogs.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAuditLogs}
+                    className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 cursor-pointer transition-all flex items-center gap-1.5"
+                    title="Clear Audit History"
+                  >
+                    <Trash2 size={14} />
+                    <span>Clear History</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1081,37 +1201,45 @@ export const DataRetentionPurge: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-                  {auditLogs.length === 0 ? (
+                  {filteredAuditLogs.length === 0 ? (
                     <tr>
                       <td colSpan={6} className="p-12 text-center text-slate-400">
-                        {isLoadingLogs ? 'Loading audit trail logs...' : 'No historical purge operations recorded yet.'}
+                        <div className="max-w-sm mx-auto space-y-2">
+                          <Clock size={32} className="mx-auto text-slate-300 stroke-1" />
+                          <p className="font-bold text-slate-600">
+                            {isLoadingLogs ? 'Loading audit trail logs...' : (auditSearchQuery ? 'No audit records match your search filter.' : 'No historical purge operations recorded yet.')}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            When administrators execute batch purges or single item deletions, complete immutable audit trails appear here.
+                          </p>
+                        </div>
                       </td>
                     </tr>
                   ) : (
-                    auditLogs.map((log: any, idx: number) => (
-                      <tr key={log.id || idx} className="hover:bg-slate-50/80 transition-colors">
+                    filteredAuditLogs.map((log: any, idx: number) => (
+                      <tr key={log.id || `audit-${idx}`} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-4 font-mono text-slate-500 whitespace-nowrap">
-                          {log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A'}
+                          {formatLogDate(log.timestamp)}
                         </td>
                         <td className="p-4">
-                          <div className="font-bold text-slate-900">{log.performedBy}</div>
-                          <div className="text-[10px] text-slate-400 font-mono">{log.adminRole}</div>
+                          <div className="font-bold text-slate-900">{formatSafeText(log.performedBy) || 'Administrator'}</div>
+                          <div className="text-[10px] text-slate-400 font-mono">{formatSafeText(log.adminRole) || 'SUPER_ADMIN'}</div>
                         </td>
                         <td className="p-4 font-bold text-slate-800">
-                          {log.sectionLabel || log.section}
+                          {formatSafeText(log.sectionLabel || log.section) || 'ERP Modules'}
                         </td>
                         <td className="p-4 text-slate-600 max-w-sm">
-                          <div>{log.criteriaDescription}</div>
-                          {log.notes && <div className="text-[10px] text-slate-400 italic mt-0.5">{log.notes}</div>}
+                          <div>{formatSafeText(log.criteriaDescription) || 'Administrative Purge'}</div>
+                          {log.notes && <div className="text-[10px] text-slate-400 italic mt-0.5">{formatSafeText(log.notes)}</div>}
                         </td>
                         <td className="p-4 text-center">
                           <span className="px-3 py-1 rounded-full text-xs font-black font-mono bg-rose-50 text-rose-700 border border-rose-200">
-                            -{log.recordsDeletedCount}
+                            -{log.recordsDeletedCount ?? 0}
                           </span>
                         </td>
                         <td className="p-4">
                           <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase font-mono bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            {log.status || 'COMPLETED'}
+                            {formatSafeText(log.status) || 'COMPLETED'}
                           </span>
                         </td>
                       </tr>
@@ -1210,6 +1338,7 @@ export const DataRetentionPurge: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedRowDetail(null)}
                 className="p-2 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 cursor-pointer"
               >
@@ -1223,8 +1352,9 @@ export const DataRetentionPurge: React.FC = () => {
 
             <div className="flex justify-end">
               <button
+                type="button"
                 onClick={() => setSelectedRowDetail(null)}
-                className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl"
+                className="px-5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
               >
                 Close Inspector
               </button>
