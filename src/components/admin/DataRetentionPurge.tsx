@@ -17,7 +17,8 @@ import {
   Check
 } from 'lucide-react';
 import { useAuthStore, UserRole } from '../../store/authStore';
-import { useERPData } from '../../hooks/useERPData';
+import { useERPData, setERPLocalData } from '../../hooks/useERPData';
+import { deleteClientRecord, deleteClientRecordBatch } from '../../lib/clientSupabaseSync';
 
 interface SectionMeta {
   key: string;
@@ -25,31 +26,32 @@ interface SectionMeta {
   category: string;
   description: string;
   dateKey: string;
+  supabaseTable?: string;
 }
 
 const SECTION_CONFIGS: SectionMeta[] = [
   // Sales & CRM
-  { key: 'leads', name: 'CRM Inquiries & Sales Leads', category: 'Sales & CRM', description: 'Prospective clients, inquiries, follow-up logs, and quotations', dateKey: 'followUpDate' },
-  { key: 'invoices', name: 'Sales & Commercial Invoices', category: 'Sales & CRM', description: 'Tax invoices, billing slips, and dealer dispatch invoices', dateKey: 'date' },
-  { key: 'vyaparRecords', name: 'Financial Vouchers & Payments', category: 'Sales & CRM', description: 'Bank receipts, voucher logs, vendor payouts, and expenses', dateKey: 'date' },
+  { key: 'leads', name: 'CRM Inquiries & Sales Leads', category: 'Sales & CRM', description: 'Prospective clients, inquiries, follow-up logs, and quotations', dateKey: 'followUpDate', supabaseTable: 'lead_inquiries' },
+  { key: 'invoices', name: 'Sales & Commercial Invoices', category: 'Sales & CRM', description: 'Tax invoices, billing slips, and dealer dispatch invoices', dateKey: 'date', supabaseTable: 'invoices' },
+  { key: 'vyaparRecords', name: 'Financial Vouchers & Payments', category: 'Sales & CRM', description: 'Bank receipts, voucher logs, vendor payouts, and expenses', dateKey: 'date', supabaseTable: 'accounting_vouchers' },
   
   // Stores & Logistics
-  { key: 'purchaseOrders', name: 'Purchase Orders & Supplier Inward', category: 'Stores & Logistics', description: 'Procurement PO requests, supplier orders, and inward delivery schedules', dateKey: 'orderDate' },
-  { key: 'gateEntries', name: 'Security Gate Passes & Materials', category: 'Stores & Logistics', description: 'Security gate check-in passes, supplier challan notes, and material inward records', dateKey: 'entryTimestamp' },
-  { key: 'stockAudits', name: 'Physical Stock Audits & Discrepancies', category: 'Stores & Logistics', description: 'Stock verification cycle counts, variance logs, and reconciliation records', dateKey: 'auditDate' },
-  { key: 'warehouseTransfers', name: 'Warehouse Transfers & Dispatch', category: 'Stores & Logistics', description: 'Inter-warehouse transfers, gate transfers, and logistics movements', dateKey: 'transferDate' },
-  { key: 'inventory', name: 'Raw Material Inventory Items', category: 'Stores & Logistics', description: 'Raw material SKU components, batches, and lead plate stock records', dateKey: 'date' },
+  { key: 'purchaseOrders', name: 'Purchase Orders & Supplier Inward', category: 'Stores & Logistics', description: 'Procurement PO requests, supplier orders, and inward delivery schedules', dateKey: 'orderDate', supabaseTable: 'purchase_orders' },
+  { key: 'gateEntries', name: 'Security Gate Passes & Materials', category: 'Stores & Logistics', description: 'Security gate check-in passes, supplier challan notes, and material inward records', dateKey: 'entryTimestamp', supabaseTable: 'procurement_entries' },
+  { key: 'stockAudits', name: 'Physical Stock Audits & Discrepancies', category: 'Stores & Logistics', description: 'Stock verification cycle counts, variance logs, and reconciliation records', dateKey: 'auditDate', supabaseTable: 'stock_audits' },
+  { key: 'warehouseTransfers', name: 'Warehouse Transfers & Dispatch', category: 'Stores & Logistics', description: 'Inter-warehouse transfers, gate transfers, and logistics movements', dateKey: 'transferDate', supabaseTable: 'warehouse_transfers' },
+  { key: 'inventory', name: 'Raw Material Inventory Items', category: 'Stores & Logistics', description: 'Raw material SKU components, batches, and lead plate stock records', dateKey: 'date', supabaseTable: 'inventory' },
   
   // Manufacturing & Quality
   { key: 'productionHistory', name: 'Production Work Orders & Manufacturing Logs', category: 'Manufacturing & Quality', description: 'Completed manufacturing runs, assembly work orders, and pack build logs', dateKey: 'date' },
-  { key: 'wipInventory', name: 'WIP Assembly Batches', category: 'Manufacturing & Quality', description: 'Work-in-progress floor batches, stage transitions, and assembly progress', dateKey: 'lastUpdate' },
-  { key: 'cellGradingBatches', name: 'Cell Grading & Batch Telemetry', category: 'Manufacturing & Quality', description: 'Battery cell grading sessions, voltage/IR test runs, and grading batches', dateKey: 'inspectionDate' },
-  { key: 'gradedInventory', name: 'Individual Graded Cell Records', category: 'Manufacturing & Quality', description: 'Individual cell serial test logs, internal resistance metrics, and grades', dateKey: 'date' },
-  { key: 'eolCertificates', name: 'End-of-Line (EOL) Quality Certificates', category: 'Manufacturing & Quality', description: 'Final pack EOL automated test records and compliance certificates', dateKey: 'testTimestamp' },
-  { key: 'scrapLogs', name: 'Production Scrap & Defect Logs', category: 'Manufacturing & Quality', description: 'Rejected cells, assembly scrap logs, and defect analysis records', dateKey: 'logDate' },
+  { key: 'wipInventory', name: 'WIP Assembly Batches', category: 'Manufacturing & Quality', description: 'Work-in-progress floor batches, stage transitions, and assembly progress', dateKey: 'lastUpdate', supabaseTable: 'wip_inventory' },
+  { key: 'cellGradingBatches', name: 'Cell Grading & Batch Telemetry', category: 'Manufacturing & Quality', description: 'Battery cell grading sessions, voltage/IR test runs, and grading batches', dateKey: 'inspectionDate', supabaseTable: 'cell_grading_batches' },
+  { key: 'gradedInventory', name: 'Individual Graded Cell Records', category: 'Manufacturing & Quality', description: 'Individual cell serial test logs, internal resistance metrics, and grades', dateKey: 'date', supabaseTable: 'graded_cells' },
+  { key: 'eolCertificates', name: 'End-of-Line (EOL) Quality Certificates', category: 'Manufacturing & Quality', description: 'Final pack EOL automated test records and compliance certificates', dateKey: 'testTimestamp', supabaseTable: 'eol_certificates' },
+  { key: 'scrapLogs', name: 'Production Scrap & Defect Logs', category: 'Manufacturing & Quality', description: 'Rejected cells, assembly scrap logs, and defect analysis records', dateKey: 'logDate', supabaseTable: 'scrap_logs' },
   
   // Customer Service & RMA
-  { key: 'complaints', name: 'RMA Customer Complaints & Service Tickets', category: 'Customer Service & RMA', description: 'Service RMA requests, customer warranty claims, and ticket updates', dateKey: 'date' },
+  { key: 'complaints', name: 'RMA Customer Complaints & Service Tickets', category: 'Customer Service & RMA', description: 'Service RMA requests, customer warranty claims, and ticket updates', dateKey: 'date', supabaseTable: 'complaints' },
   { key: 'diagnosticLogs', name: 'RMA Diagnostic History Logs', category: 'Customer Service & RMA', description: 'Depot technician diagnostic logs, root cause analysis, and repair traces', dateKey: 'timestamp' },
   { key: 'warrantyChecks', name: 'Public Warranty Verification History', category: 'Customer Service & RMA', description: 'Customer portal QR code lookups and serial verification logs', dateKey: 'date' },
   { key: 'loyaltyClaims', name: 'Customer Loyalty Reward Claims', category: 'Customer Service & RMA', description: 'Customer portal loyalty reward redemptions and coupon claims', dateKey: 'date' },
@@ -147,11 +149,14 @@ export const DataRetentionPurge: React.FC = () => {
   const getRecordDate = (item: any): Date | null => {
     if (!item || typeof item !== 'object') return null;
     const candidateKeys = [
-      'date', 'orderDate', 'order_date', 'entryTimestamp', 'entry_timestamp', 
-      'auditDate', 'audit_date', 'transferDate', 'transfer_date', 'inspectionDate', 
-      'inspection_date', 'testTimestamp', 'test_timestamp', 'logDate', 'log_date', 
-      'createdAt', 'created_at', 'followUpDate', 'followup_date', 'startDate', 
-      'start_date', 'timestamp', 'lastUpdate', 'resolvedDate', 'joinDate'
+      'date', 'billedDate', 'billed_date', 'invoiceDate', 'invoice_date',
+      'orderDate', 'order_date', 'entryTimestamp', 'entry_timestamp', 
+      'entryDate', 'entry_date', 'auditDate', 'audit_date', 
+      'transferDate', 'transfer_date', 'inspectionDate', 'inspection_date', 
+      'testTimestamp', 'test_timestamp', 'logDate', 'log_date', 
+      'createdAt', 'created_at', 'updatedAt', 'updated_at',
+      'followUpDate', 'followup_date', 'startDate', 'start_date', 
+      'timestamp', 'lastUpdate', 'last_update', 'resolvedDate', 'resolved_date', 'joinDate', 'join_date'
     ];
     for (const k of candidateKeys) {
       if (item[k]) {
@@ -236,7 +241,11 @@ export const DataRetentionPurge: React.FC = () => {
     if (purgeMode === 'OLDER_THAN_DAYS') {
       cutOffTime = now - (olderThanDays * 24 * 60 * 60 * 1000);
     } else if (purgeMode === 'BEFORE_DATE' && customBeforeDate) {
-      cutOffTime = new Date(customBeforeDate).getTime();
+      if (customBeforeDate.length === 10) {
+        cutOffTime = new Date(`${customBeforeDate}T23:59:59.999Z`).getTime();
+      } else {
+        cutOffTime = new Date(customBeforeDate).getTime();
+      }
     }
 
     return currentRawItems.filter(item => {
@@ -306,16 +315,40 @@ export const DataRetentionPurge: React.FC = () => {
     setIsPurging(true);
     setPurgeResult(null);
 
+    const idsToDelete = matchedPurgeItems.map(i => String(i.id || i.serial || i.code)).filter(Boolean);
+    const targetSectionKey = selectedSectionKey;
+    const targetSectionConfig = currentSectionMeta;
+
+    // Immediately update local client state for instant UI update
+    setERPLocalData((prev: any) => {
+      if (!prev) return prev;
+      const cur = prev[targetSectionKey];
+      if (!Array.isArray(cur)) return prev;
+      if (purgeMode === 'ALL') {
+        return { ...prev, [targetSectionKey]: [] };
+      }
+      const delSet = new Set(idsToDelete);
+      return {
+        ...prev,
+        [targetSectionKey]: cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)))
+      };
+    });
+
+    // Also trigger direct Supabase client batch delete if table mapping is configured
+    if (targetSectionConfig.supabaseTable && idsToDelete.length > 0) {
+      deleteClientRecordBatch(targetSectionConfig.supabaseTable, idsToDelete).catch(() => {});
+    }
+
     try {
       const payload = {
-        section: selectedSectionKey,
+        section: targetSectionKey,
         mode: purgeMode,
         beforeDate: purgeMode === 'BEFORE_DATE' ? customBeforeDate : undefined,
         olderThanDays: purgeMode === 'OLDER_THAN_DAYS' ? olderThanDays : undefined,
         statusFilter: statusFilter !== 'ALL' ? statusFilter : undefined,
         performedBy: user?.name ? `${user.name} (${user.email})` : 'Super Admin',
         adminRole: user?.role || 'SUPER_ADMIN',
-        notes: purgeNotes || `Retention purge executed for ${currentSectionMeta.name}`
+        notes: purgeNotes || `Retention purge executed for ${targetSectionConfig.name}`
       };
 
       const res = await fetch('/api/admin/purge-records', {
@@ -328,7 +361,7 @@ export const DataRetentionPurge: React.FC = () => {
       if (res.ok && json.success) {
         setPurgeResult({
           success: true,
-          message: `Purge completed: Permanently removed ${json.totalDeletedCount} record(s) from ${currentSectionMeta.name}.`
+          message: `Purge completed: Permanently removed ${json.totalDeletedCount} record(s) from ${targetSectionConfig.name}.`
         });
         setShowConfirmModal(false);
         setConfirmInputText('');
@@ -362,14 +395,34 @@ export const DataRetentionPurge: React.FC = () => {
     setIsPurging(true);
     setPurgeResult(null);
 
+    const idsToDelete = [...selectedRowIds];
+    const targetSectionKey = selectedSectionKey;
+    const targetSectionConfig = currentSectionMeta;
+
+    // Instantly update local client state
+    setERPLocalData((prev: any) => {
+      if (!prev) return prev;
+      const cur = prev[targetSectionKey];
+      if (!Array.isArray(cur)) return prev;
+      const delSet = new Set(idsToDelete);
+      return {
+        ...prev,
+        [targetSectionKey]: cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)))
+      };
+    });
+
+    if (targetSectionConfig.supabaseTable && idsToDelete.length > 0) {
+      deleteClientRecordBatch(targetSectionConfig.supabaseTable, idsToDelete).catch(() => {});
+    }
+
     try {
       const payload = {
-        section: selectedSectionKey,
+        section: targetSectionKey,
         mode: 'SELECTED_IDS',
-        selectedIds: selectedRowIds,
+        selectedIds: idsToDelete,
         performedBy: user?.name ? `${user.name} (${user.email})` : 'Super Admin',
         adminRole: user?.role || 'SUPER_ADMIN',
-        notes: `Selective purge of ${selectedRowIds.length} specific records from ${currentSectionMeta.name}`
+        notes: `Selective purge of ${idsToDelete.length} specific records from ${targetSectionConfig.name}`
       };
 
       const res = await fetch('/api/admin/purge-records', {
@@ -406,12 +459,30 @@ export const DataRetentionPurge: React.FC = () => {
       return;
     }
 
+    const targetSectionKey = selectedSectionKey;
+    const targetSectionConfig = currentSectionMeta;
+
+    // Instantly mutate local client state
+    setERPLocalData((prev: any) => {
+      if (!prev) return prev;
+      const cur = prev[targetSectionKey];
+      if (!Array.isArray(cur)) return prev;
+      return {
+        ...prev,
+        [targetSectionKey]: cur.filter((item: any) => String(item.id || item.serial || item.code) !== String(itemId))
+      };
+    });
+
+    if (targetSectionConfig.supabaseTable) {
+      deleteClientRecord(targetSectionConfig.supabaseTable, String(itemId)).catch(() => {});
+    }
+
     try {
       const res = await fetch('/api/admin/delete-record-item', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          section: selectedSectionKey,
+          section: targetSectionKey,
           id: itemId,
           performedBy: user?.name ? `${user.name} (${user.email})` : 'Super Admin',
           adminRole: user?.role || 'SUPER_ADMIN'
@@ -1305,7 +1376,8 @@ export const DataRetentionPurge: React.FC = () => {
                   setShowConfirmModal(false);
                   setConfirmInputText('');
                 }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-all"
+                disabled={isPurging}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 cursor-pointer transition-all disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -1313,10 +1385,20 @@ export const DataRetentionPurge: React.FC = () => {
               <button
                 type="button"
                 onClick={handleExecutePurge}
-                disabled={isPurging || (matchedPurgeItems.length > 5 && confirmInputText !== 'DELETE')}
+                disabled={isPurging || (matchedPurgeItems.length > 5 && confirmInputText.trim().toUpperCase() !== 'DELETE')}
                 className="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-rose-600/20 cursor-pointer transition-all flex items-center gap-2"
               >
-                {isPurging ? 'Purging Records...' : `Confirm & Delete (${matchedPurgeItems.length})`}
+                {isPurging ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Purging Records...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    Confirm & Delete ({matchedPurgeItems.length})
+                  </>
+                )}
               </button>
             </div>
 

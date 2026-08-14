@@ -30,6 +30,19 @@ export function notifyCrossTabSync(reason?: string) {
   }
 }
 
+export function setERPLocalData(updater: (prev: any) => any) {
+  if (cachedData) {
+    cachedData = updater({ ...cachedData });
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('arcenol_db_clean', JSON.stringify(cachedData));
+    }
+    dataSubscribers.forEach((cb) => {
+      try { cb(cachedData); } catch (e) {}
+    });
+    notifyCrossTabSync();
+  }
+}
+
 // Attempt to load from storage on startup
 if (typeof window !== 'undefined') {
   const saved = localStorage.getItem('arcenol_db_clean');

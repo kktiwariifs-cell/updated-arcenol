@@ -597,3 +597,26 @@ export async function syncProcurementEntryToSupabase(proc: any) {
     }
   }
 }
+
+export async function deleteClientRecord(tableName: string, id: string) {
+  if (!tableName || !id) return;
+  try {
+    await supabase.from(tableName).delete().eq('id', id);
+  } catch (err) {
+    console.warn(`[Client Supabase Sync] Warning deleting from ${tableName}:`, err);
+  }
+}
+
+export async function deleteClientRecordBatch(tableName: string, ids: string[]) {
+  if (!tableName || !ids || ids.length === 0) return;
+  try {
+    const chunkSize = 100;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      await supabase.from(tableName).delete().in('id', chunk);
+    }
+  } catch (err) {
+    console.warn(`[Client Supabase Sync] Warning batch deleting from ${tableName}:`, err);
+  }
+}
+

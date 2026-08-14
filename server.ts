@@ -6272,11 +6272,14 @@ async function startServer() {
   function extractDateFromRecord(item: any): Date | null {
     if (!item || typeof item !== 'object') return null;
     const candidateKeys = [
-      'date', 'orderDate', 'order_date', 'entryTimestamp', 'entry_timestamp', 
-      'auditDate', 'audit_date', 'transferDate', 'transfer_date', 'inspectionDate', 
-      'inspection_date', 'testTimestamp', 'test_timestamp', 'logDate', 'log_date', 
-      'createdAt', 'created_at', 'followUpDate', 'followup_date', 'startDate', 
-      'start_date', 'timestamp', 'lastUpdate', 'resolvedDate', 'joinDate'
+      'date', 'billedDate', 'billed_date', 'invoiceDate', 'invoice_date',
+      'orderDate', 'order_date', 'entryTimestamp', 'entry_timestamp', 
+      'entryDate', 'entry_date', 'auditDate', 'audit_date', 
+      'transferDate', 'transfer_date', 'inspectionDate', 'inspection_date', 
+      'testTimestamp', 'test_timestamp', 'logDate', 'log_date', 
+      'createdAt', 'created_at', 'updatedAt', 'updated_at',
+      'followUpDate', 'followup_date', 'startDate', 'start_date', 
+      'timestamp', 'lastUpdate', 'last_update', 'resolvedDate', 'resolved_date', 'joinDate', 'join_date'
     ];
     for (const k of candidateKeys) {
       if (item[k]) {
@@ -6380,7 +6383,11 @@ async function startServer() {
       let criteriaSummary = '';
 
       if (mode === 'BEFORE_DATE' && beforeDate) {
-        cutOffTime = new Date(beforeDate).getTime();
+        if (String(beforeDate).length === 10) {
+          cutOffTime = new Date(`${beforeDate}T23:59:59.999Z`).getTime();
+        } else {
+          cutOffTime = new Date(beforeDate).getTime();
+        }
         criteriaSummary = `Older than cut-off date: ${beforeDate}`;
       } else if (mode === 'OLDER_THAN_DAYS' && olderThanDays) {
         cutOffTime = now - (Number(olderThanDays) * 24 * 60 * 60 * 1000);
@@ -6392,7 +6399,11 @@ async function startServer() {
       } else if (mode === 'ALL') {
         criteriaSummary = `Complete section purge (All records)`;
       } else if (beforeDate) {
-        cutOffTime = new Date(beforeDate).getTime();
+        if (String(beforeDate).length === 10) {
+          cutOffTime = new Date(`${beforeDate}T23:59:59.999Z`).getTime();
+        } else {
+          cutOffTime = new Date(beforeDate).getTime();
+        }
         criteriaSummary = `Records logged prior to ${beforeDate}`;
       } else {
         criteriaSummary = `Manual purge filter`;
@@ -6463,12 +6474,14 @@ async function startServer() {
           deletedIds: idsToDelete
         };
 
-        // Batch delete from Supabase if table mapping exists
+        // Batch delete from Supabase if table mapping exists (awaited to ensure persistence sync)
         const sbTable = SECTION_TO_SUPABASE_TABLE[secKey];
         if (sbTable && idsToDelete.length > 0) {
-          deleteRecordsBatch(sbTable, idsToDelete).catch(err => {
+          try {
+            await deleteRecordsBatch(sbTable, idsToDelete);
+          } catch (err) {
             console.warn(`[AdminPurge] Supabase purge warning on ${sbTable}:`, err);
-          });
+          }
         }
       }
 
@@ -6531,7 +6544,9 @@ async function startServer() {
       if (deleted) {
         const sbTable = SECTION_TO_SUPABASE_TABLE[section];
         if (sbTable) {
-          deleteRecord(sbTable, String(id)).catch(() => {});
+          try {
+            await deleteRecord(sbTable, String(id));
+          } catch (err) {}
         }
 
         (db as any).purgeLogs = (db as any).purgeLogs || [];
