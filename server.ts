@@ -260,9 +260,7 @@ async function startServer() {
         remarks: "Received and verified into Raw Hub Rack A1 under GRN-R-03"
       }
     ],
-    productionHistory: [
-      { id: "ph1", model: "72V30A", qty: 2, serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045"], date: "2024-05-10", status: "COMPLETED" }
-    ],
+    productionHistory: [] as any[],
     warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
     gateEntries: [
       {

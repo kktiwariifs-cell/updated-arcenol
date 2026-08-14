@@ -34,40 +34,7 @@ const INITIAL_DB = {
     { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26001059", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
     { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26001060", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
   ],
-  productionHistory: [
-    {
-      id: "ph-101",
-      model: "E-Rikshaw Batteries [72V30A]",
-      qty: 10,
-      serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045", "AESPL  EV  28G26001046"],
-      date: "2026-07-29",
-      status: "COMPLETED"
-    },
-    {
-      id: "ph-102",
-      model: "High-Efficiency Inverter Battery [BAT-NEXT-200]",
-      qty: 5,
-      serials: ["AESPL  INV  28G26001054", "AESPL  INV  28G26001055"],
-      date: "2026-07-28",
-      status: "COMPLETED"
-    },
-    {
-      id: "ph-103",
-      model: "Lithium Power Module 48V [LIT-200]",
-      qty: 8,
-      serials: ["AESPL  INV  28G26001059", "AESPL  INV  28G26001060"],
-      date: "2026-07-26",
-      status: "COMPLETED"
-    },
-    {
-      id: "ph-104",
-      model: "Heavy Duty VRLA Solar 100Ah",
-      qty: 12,
-      serials: ["AESPL  VRLA  28G26001051"],
-      date: "2026-07-24",
-      status: "COMPLETED"
-    }
-  ],
+  productionHistory: [] as any[],
   warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
   notifications: [] as any[],
   leads: [
@@ -3780,6 +3747,60 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
           responseData = plan;
         }
       }
+    } else if (urlStr.includes('/api/admin/purge-records') && method === 'POST') {
+      const { section, sections, mode, beforeDate, olderThanDays, statusFilter, selectedIds, performedBy, adminRole, notes } = body || {};
+      const sectionsToProcess = Array.isArray(sections) && sections.length > 0 ? sections : (section ? [section] : []);
+      let totalDeleted = 0;
+      let cutOffTime: number | null = null;
+      if (mode === 'OLDER_THAN_DAYS' && olderThanDays !== undefined) {
+        const d = new Date();
+        d.setDate(d.getDate() - Number(olderThanDays));
+        cutOffTime = d.getTime();
+      } else if (beforeDate) {
+        cutOffTime = new Date(beforeDate).getTime();
+      }
+
+      sectionsToProcess.forEach((sec: string) => {
+        const arr = (db as any)[sec];
+        if (Array.isArray(arr)) {
+          if (mode === 'ALL') {
+            totalDeleted += arr.length;
+            (db as any)[sec] = [];
+          } else if (mode === 'SELECTED_IDS' && Array.isArray(selectedIds)) {
+            const delSet = new Set(selectedIds.map(String));
+            const kept = arr.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code || '')));
+            totalDeleted += (arr.length - kept.length);
+            (db as any)[sec] = kept;
+          } else {
+            const kept = arr.filter((item: any) => {
+              let shouldDelete = false;
+              let matchesDate = cutOffTime === null;
+              if (cutOffTime !== null) {
+                const dateVal = item.date || item.orderDate || item.followUpDate || item.auditDate || item.transferDate || item.lastUpdate || item.inspectionDate || item.testTimestamp || item.logDate || item.timestamp || item.entryTimestamp || item.createdAt || item.created_at;
+                if (dateVal && new Date(dateVal).getTime() <= cutOffTime) matchesDate = true;
+              }
+              let matchesStatus = true;
+              if (statusFilter && statusFilter !== 'ALL') {
+                const st = String(item.status || item.stage || item.qcStatus || '').toUpperCase();
+                matchesStatus = st === String(statusFilter).toUpperCase();
+              }
+              shouldDelete = matchesDate && matchesStatus;
+              if (shouldDelete) totalDeleted++;
+              return !shouldDelete;
+            });
+            (db as any)[sec] = kept;
+          }
+        }
+      });
+      saveLocalDB(db);
+      responseData = { success: true, totalDeletedCount: totalDeleted };
+    } else if (urlStr.includes('/api/admin/purge-record') && method === 'POST') {
+      const { section, id } = body || {};
+      if (section && (db as any)[section]) {
+        (db as any)[section] = ((db as any)[section] || []).filter((i: any) => String(i.id || i.serial || i.code) !== String(id));
+        saveLocalDB(db);
+      }
+      responseData = { success: true };
     }
   } catch (error) {
     console.error("Local mock server error handling request:", error);
