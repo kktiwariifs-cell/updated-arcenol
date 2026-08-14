@@ -119,22 +119,48 @@ const DEFAULT_USERS: User[] = [
   }
 ];
 
+import { syncUserToSupabase, syncUsersToSupabase, deleteUserFromSupabase } from '../lib/clientSupabaseSync';
+
 // Helper to load users list from local storage or set defaults
 const getSavedUsers = (): User[] => {
   const data = localStorage.getItem('arcenol_users_storage');
   if (data) {
     try {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
     } catch {
       return DEFAULT_USERS;
     }
   }
+  
+  // Fallback check in arcenol_db_clean
+  try {
+    const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
+    if (dbCleanRaw) {
+      const dbClean = JSON.parse(dbCleanRaw);
+      if (Array.isArray(dbClean.users) && dbClean.users.length > 0) {
+        localStorage.setItem('arcenol_users_storage', JSON.stringify(dbClean.users));
+        return dbClean.users;
+      }
+    }
+  } catch (e) {}
+
   localStorage.setItem('arcenol_users_storage', JSON.stringify(DEFAULT_USERS));
   return DEFAULT_USERS;
 };
 
 const saveUsers = (users: User[]) => {
   localStorage.setItem('arcenol_users_storage', JSON.stringify(users));
+  try {
+    const dbCleanRaw = localStorage.getItem('arcenol_db_clean');
+    if (dbCleanRaw) {
+      const dbClean = JSON.parse(dbCleanRaw);
+      dbClean.users = users;
+      localStorage.setItem('arcenol_db_clean', JSON.stringify(dbClean));
+    }
+  } catch (e) {}
 };
 
 const getSavedUser = (): User | null => {
@@ -161,6 +187,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: getSavedUser(),
   usersList: getSavedUsers(),
   setUsersList: (list) => {
+    if (!Array.isArray(list) || list.length === 0) return;
     set({ usersList: list });
     saveUsers(list);
   },
@@ -171,12 +198,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (res.ok) {
         const serverUsers = await res.json();
         if (Array.isArray(serverUsers) && serverUsers.length > 0) {
-          set({ usersList: serverUsers });
-          saveUsers(serverUsers);
+          const currentLocal = get().usersList;
+          // If server users have more records or custom entries, adopt them; otherwise sync local to server
+          if (JSON.stringify(serverUsers) !== JSON.stringify(currentLocal)) {
+            set({ usersList: serverUsers });
+            saveUsers(serverUsers);
+          }
+        } else {
+          // If server is empty, push local users
+          const currentLocal = get().usersList;
+          if (currentLocal && currentLocal.length > 0) {
+            fetch('/api/users/reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(currentLocal)
+            }).catch(() => {});
+          }
         }
       }
     } catch (e) {
-      console.error("Failed to fetch users from server:", e);
+      console.warn("Failed to fetch users from server:", e);
     }
   },
   
@@ -225,7 +266,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   addUser: (newUser) => {
     const list = [...get().usersList];
-    if (list.some(u => u.email.toLowerCase() === newUser.email.toLowerCase())) {
+    if (list.some(u => u.email.trim().toLowerCase() === newUser.email.trim().toLowerCase())) {
       return { success: false, error: 'User account with this email already exists.' };
     }
     const created: User = {
@@ -241,15 +282,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(created)
-    });
+    }).catch(err => console.warn('Express user add notice:', err));
+
+    // Sync to Supabase
+    syncUserToSupabase(created).catch(() => {});
 
     return { success: true };
   },
 
   updateUser: (id, updatedFields) => {
     const list = get().usersList;
-    const emailToCheck = updatedFields.email?.toLowerCase();
-    if (emailToCheck && list.some(u => u.id !== id && u.email.toLowerCase() === emailToCheck)) {
+    const emailToCheck = updatedFields.email?.trim().toLowerCase();
+    if (emailToCheck && list.some(u => u.id !== id && u.email.trim().toLowerCase() === emailToCheck)) {
       return { success: false, error: 'Conflict: Another account is using this email address.' };
     }
     const updated = list.map(u => u.id === id ? { ...u, ...updatedFields } : u);
@@ -261,7 +305,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedFields)
-    });
+    }).catch(err => console.warn('Express user update notice:', err));
+
+    // Sync to Supabase
+    const target = updated.find(u => u.id === id);
+    if (target) {
+      syncUserToSupabase(target).catch(() => {});
+    }
 
     // If the currently logged-in user is updated, sink changes
     const currentUser = get().user;
@@ -287,7 +337,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Sync to Express
     fetch(`/api/users/${id}`, {
       method: 'DELETE'
-    });
+    }).catch(err => console.warn('Express user delete notice:', err));
+
+    // Sync to Supabase
+    deleteUserFromSupabase(id).catch(() => {});
 
     // If deleted logged-in user, force logout
     const currentUser = get().user;
@@ -307,7 +360,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(DEFAULT_USERS)
-    });
+    }).catch(err => console.warn('Express user reset notice:', err));
+
+    // Sync to Supabase
+    syncUsersToSupabase(DEFAULT_USERS).catch(() => {});
 
     const currentUser = get().user;
     if (currentUser) {

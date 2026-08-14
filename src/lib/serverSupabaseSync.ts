@@ -323,6 +323,18 @@ export function mapProcurementEntry(proc: any) {
   };
 }
 
+export function mapUser(u: any) {
+  return {
+    id: String(u.id),
+    name: u.name || 'Operator',
+    role: u.role || 'QUALITY_TEAM',
+    department: u.department || '',
+    email: u.email || '',
+    password: u.password || 'password123',
+    updated_at: new Date().toISOString()
+  };
+}
+
 /**
  * Upsert items in batch into Supabase
  */
@@ -414,7 +426,8 @@ export async function syncAllERPToSupabase(db: any) {
     { name: 'categories', rows: () => Array.isArray(db.categories) ? db.categories.map(mapCategory) : [] },
     { name: 'arcenol_business_profile', rows: () => db.businessProfile ? [mapBusinessProfile(db.businessProfile)] : [] },
     { name: 'purchase_orders', rows: () => Array.isArray(db.purchaseOrders) ? db.purchaseOrders.map(mapPurchaseOrder) : [] },
-    { name: 'procurement_entries', rows: () => Array.isArray(db.procurementEntries) ? db.procurementEntries.map(mapProcurementEntry) : [] }
+    { name: 'procurement_entries', rows: () => Array.isArray(db.procurementEntries) ? db.procurementEntries.map(mapProcurementEntry) : [] },
+    { name: 'arcenol_users', rows: () => Array.isArray(db.users) ? db.users.map(mapUser) : [] }
   ];
 
   try {
@@ -892,6 +905,21 @@ export async function hydrateFromSupabase(db: any) {
           reorderLevel: Number(p.reorder_level || p.reorderLevel || 250),
           allocatedInflow: Number(p.allocated_inflow || p.allocatedInflow || 0),
           status: p.status || 'COMPLETED'
+        }));
+      }
+    } catch (e) {}
+
+    // 17. Operator User Accounts
+    try {
+      const { data: users } = await supabaseServerClient.from('arcenol_users').select('*');
+      if (users && users.length > 0) {
+        db.users = users.map((u: any) => ({
+          id: String(u.id),
+          name: u.name,
+          role: u.role,
+          department: u.department || '',
+          email: u.email,
+          password: u.password || 'password123'
         }));
       }
     } catch (e) {}

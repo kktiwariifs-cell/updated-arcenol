@@ -397,6 +397,26 @@ export async function hydrateDbFromSupabase(db: any) {
     } catch (procsCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating procurement_entries:', procsCatchErr);
     }
+    // 17. Operator User Accounts
+    try {
+      const { data: users } = await supabase.from('arcenol_users').select('*');
+      if (users && users.length > 0) {
+        db.users = users.map((u: any) => ({
+          id: String(u.id),
+          name: u.name,
+          role: u.role,
+          department: u.department || '',
+          email: u.email,
+          password: u.password || 'password123'
+        }));
+        // Keep auth store local storage in sync
+        try {
+          localStorage.setItem('arcenol_users_storage', JSON.stringify(db.users));
+        } catch (e) {}
+      }
+    } catch (usersCatchErr) {
+      console.warn('[Client Supabase Sync] Error hydrating arcenol_users:', usersCatchErr);
+    }
   } catch (err) {
     console.warn('[Client Supabase Sync Warning]:', err);
   }
@@ -619,4 +639,56 @@ export async function deleteClientRecordBatch(tableName: string, ids: string[]) 
     console.warn(`[Client Supabase Sync] Warning batch deleting from ${tableName}:`, err);
   }
 }
+
+export async function syncUserToSupabase(user: any) {
+  if (!user || !user.id) return;
+  try {
+    const payload = {
+      id: String(user.id),
+      name: user.name || 'Operator',
+      role: user.role || 'QUALITY_TEAM',
+      department: user.department || '',
+      email: user.email || '',
+      password: user.password || 'password123',
+      updated_at: new Date().toISOString()
+    };
+    await supabase.from('arcenol_users').upsert([payload], { onConflict: 'id' });
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync user to Supabase:', err);
+    }
+  }
+}
+
+export async function syncUsersToSupabase(users: any[]) {
+  if (!Array.isArray(users) || users.length === 0) return;
+  try {
+    const payloads = users.map(u => ({
+      id: String(u.id),
+      name: u.name || 'Operator',
+      role: u.role || 'QUALITY_TEAM',
+      department: u.department || '',
+      email: u.email || '',
+      password: u.password || 'password123',
+      updated_at: new Date().toISOString()
+    }));
+    await supabase.from('arcenol_users').upsert(payloads, { onConflict: 'id' });
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to sync users to Supabase:', err);
+    }
+  }
+}
+
+export async function deleteUserFromSupabase(id: string) {
+  if (!id) return;
+  try {
+    await supabase.from('arcenol_users').delete().eq('id', id);
+  } catch (err: any) {
+    if (!String(err?.message || err).includes('fetch failed')) {
+      console.warn('Failed to delete user from Supabase:', err);
+    }
+  }
+}
+
 

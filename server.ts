@@ -20,7 +20,8 @@ import {
   mapBusinessProfile,
   mapCategory,
   mapVoucher,
-  mapBomBlueprint
+  mapBomBlueprint,
+  mapUser
 } from "./src/lib/serverSupabaseSync";
 
 function normalizeToRevisedSerial(serial: string): string {
@@ -6188,8 +6189,10 @@ async function startServer() {
 
   app.post("/api/users", (req, res) => {
     (db as any).users = (db as any).users || [];
-    (db as any).users.push(req.body);
-    res.json(req.body);
+    const newUser = req.body;
+    (db as any).users.push(newUser);
+    batchUpsert('arcenol_users', [mapUser(newUser)]).catch(err => console.warn("Supabase user sync warning:", err));
+    res.json(newUser);
   });
 
   app.put("/api/users/:id", (req, res) => {
@@ -6201,19 +6204,22 @@ async function startServer() {
     } else {
       (db as any).users.push({ id, ...req.body });
     }
-    const target = (db as any).users.find((u: any) => u.id === id);
-    res.json(target || { id, ...req.body });
+    const target = (db as any).users.find((u: any) => u.id === id) || { id, ...req.body };
+    batchUpsert('arcenol_users', [mapUser(target)]).catch(err => console.warn("Supabase user update sync warning:", err));
+    res.json(target);
   });
 
   app.delete("/api/users/:id", (req, res) => {
     const { id } = req.params;
     (db as any).users = (db as any).users || [];
     (db as any).users = (db as any).users.filter((u: any) => u.id !== id);
+    deleteRecord('arcenol_users', id).catch(err => console.warn("Supabase user delete warning:", err));
     res.json({ success: true });
   });
 
   app.post("/api/users/reset", (req, res) => {
     (db as any).users = req.body;
+    batchUpsert('arcenol_users', ((db as any).users || []).map(mapUser)).catch(err => console.warn("Supabase user reset sync warning:", err));
     res.json((db as any).users);
   });
 

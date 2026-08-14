@@ -475,6 +475,26 @@ ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS remarks text;
 ALTER TABLE public.purchase_orders ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
 
 -- -------------------------------------------------------------------------
+-- TABLE 21: OPERATOR USER ACCOUNTS / SYSTEM CREDENTIAL REGISTRY
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.arcenol_users (
+  id text PRIMARY KEY,
+  name text NOT NULL,
+  role text NOT NULL DEFAULT 'QUALITY_TEAM',
+  department text DEFAULT '',
+  email text NOT NULL,
+  password text DEFAULT 'password123',
+  updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS role text;
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS department text DEFAULT '';
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS password text DEFAULT 'password123';
+ALTER TABLE public.arcenol_users ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
+-- -------------------------------------------------------------------------
 -- TABLE 20: PROCUREMENT ENTRIES (INVENTORY PROCUREMENT REGISTER & GATE ENTRIES)
 -- -------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.procurement_entries (
@@ -555,6 +575,7 @@ ALTER TABLE public.diagnostic_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.arcenol_business_profile ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.procurement_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.arcenol_users ENABLE ROW LEVEL SECURITY;
 
 -- Drop existing policies if any to prevent collision
 DROP POLICY IF EXISTS "Allow public access to all records" ON public.arcenol_corporate_units;
@@ -844,6 +865,18 @@ CREATE POLICY "Allow public select" ON public.mrp_calculations FOR SELECT USING 
 CREATE POLICY "Allow public insert" ON public.mrp_calculations FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public update" ON public.mrp_calculations FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public delete" ON public.mrp_calculations FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 24. arcenol_users
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.arcenol_users;
+DROP POLICY IF EXISTS "Allow public select" ON public.arcenol_users;
+DROP POLICY IF EXISTS "Allow public insert" ON public.arcenol_users;
+DROP POLICY IF EXISTS "Allow public update" ON public.arcenol_users;
+DROP POLICY IF EXISTS "Allow public delete" ON public.arcenol_users;
+
+CREATE POLICY "Allow public select" ON public.arcenol_users FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.arcenol_users FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.arcenol_users FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.arcenol_users FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
 
 -- -------------------------------------------------------------------------
 -- SECURITY HARDENING: SECURE EXISTING FUNCTIONS
