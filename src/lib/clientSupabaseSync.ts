@@ -387,7 +387,7 @@ export async function hydrateDbFromSupabase(db: any) {
     // 12b. Physical Stock Audits
     try {
       const { data: audits, error: auditErr } = await supabase.from('stock_audits').select('*');
-      if (!auditErr && Array.isArray(audits) && audits.length > 0) {
+      if (!auditErr && Array.isArray(audits)) {
         db.stockAudits = audits.map((a: any) => ({
           id: String(a.id),
           auditDate: a.audit_date || a.auditDate || new Date().toISOString().split('T')[0],
@@ -408,7 +408,7 @@ export async function hydrateDbFromSupabase(db: any) {
     // 12c. Warehouse Transfers
     try {
       const { data: transfers, error: trErr } = await supabase.from('warehouse_transfers').select('*');
-      if (!trErr && Array.isArray(transfers) && transfers.length > 0) {
+      if (!trErr && Array.isArray(transfers)) {
         db.warehouseTransfers = transfers.map((t: any) => ({
           id: String(t.id),
           transferDate: t.transfer_date || t.transferDate || new Date().toISOString().split('T')[0],
@@ -671,6 +671,15 @@ export async function deleteClientRecordBatch(tableName: string, ids: string[]) 
     }
   } catch (err) {
     console.warn(`[Client Supabase Sync] Warning batch deleting from ${tableName}:`, err);
+  }
+}
+
+export async function clearClientTable(tableName: string) {
+  if (!tableName) return;
+  try {
+    await supabase.from(tableName).delete().neq('id', '___PURGE_ALL_NON_MATCHING___');
+  } catch (err) {
+    console.warn(`[Client Supabase Sync] Warning clearing table ${tableName}:`, err);
   }
 }
 

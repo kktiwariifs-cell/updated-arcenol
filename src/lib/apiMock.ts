@@ -1,4 +1,15 @@
-import { hydrateDbFromSupabase, syncInventoryRecordToSupabase, syncBulkInventoryToSupabase, deleteInventoryRecordFromSupabase, syncLeadRecordToSupabase, deleteLeadRecordFromSupabase, syncBusinessProfileToSupabase } from './clientSupabaseSync';
+import { 
+  hydrateDbFromSupabase, 
+  syncInventoryRecordToSupabase, 
+  syncBulkInventoryToSupabase, 
+  deleteInventoryRecordFromSupabase, 
+  syncLeadRecordToSupabase, 
+  deleteLeadRecordFromSupabase, 
+  syncBusinessProfileToSupabase,
+  deleteClientRecordBatch,
+  clearClientTable,
+  deleteClientRecord
+} from './clientSupabaseSync';
 import { generateBatterySerial } from './serialUtils';
 
 const INITIAL_DB = {
@@ -3931,8 +3942,54 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         }
       }
     } else if (urlStr.includes('/api/admin/purge-records') && method === 'POST') {
-      const { section, sections, mode, beforeDate, olderThanDays, statusFilter, selectedIds, performedBy, adminRole, notes } = body || {};
-      const sectionsToProcess = Array.isArray(sections) && sections.length > 0 ? sections : (section ? [section] : []);
+      const { section, sections, targetSections, mode, beforeDate, olderThanDays, statusFilter, selectedIds, performedBy = 'Super Admin', adminRole = 'SUPER_ADMIN', notes = '' } = body || {};
+      
+      const SECTION_ALIASES: Record<string, string[]> = {
+        vyaparRecords: ['vyaparRecords', 'vouchers'],
+        vouchers: ['vyaparRecords', 'vouchers'],
+        gateEntries: ['gateEntries', 'procurementEntries'],
+        procurementEntries: ['gateEntries', 'procurementEntries'],
+        dealers: ['dealers', 'customers'],
+        customers: ['dealers', 'customers']
+      };
+
+      const SECTION_TO_SUPABASE_TABLE: Record<string, string> = {
+        invoices: 'invoices',
+        leads: 'lead_inquiries',
+        dealers: 'customers',
+        customers: 'customers',
+        warehouses: 'warehouses',
+        gradedInventory: 'graded_cells',
+        wipInventory: 'wip_inventory',
+        vouchers: 'accounting_vouchers',
+        vyaparRecords: 'accounting_vouchers',
+        complaints: 'complaints',
+        subsidiaries: 'arcenol_corporate_units',
+        categories: 'categories',
+        purchaseOrders: 'purchase_orders',
+        gateEntries: 'procurement_entries',
+        procurementEntries: 'procurement_entries',
+        stockAudits: 'stock_audits',
+        warehouseTransfers: 'warehouse_transfers',
+        scrapLogs: 'scrap_logs',
+        eolCertificates: 'eol_certificates',
+        cellGradingBatches: 'cell_grading_batches',
+        inventory: 'inventory'
+      };
+
+      const rawSections = Array.isArray(targetSections) && targetSections.length > 0
+        ? targetSections
+        : (Array.isArray(sections) && sections.length > 0 ? sections : (section ? [section] : []));
+
+      const expandedSectionsSet = new Set<string>();
+      rawSections.forEach((s: string) => {
+        expandedSectionsSet.add(s);
+        if (SECTION_ALIASES[s]) {
+          SECTION_ALIASES[s].forEach(aliasKey => expandedSectionsSet.add(aliasKey));
+        }
+      });
+
+      const sectionsToProcess = Array.from(expandedSectionsSet);
       let totalDeleted = 0;
       let cutOffTime: number | null = null;
       if (mode === 'OLDER_THAN_DAYS' && olderThanDays !== undefined) {
@@ -3946,14 +4003,28 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       sectionsToProcess.forEach((sec: string) => {
         const arr = (db as any)[sec];
         if (Array.isArray(arr)) {
+          const idsToDelete: string[] = [];
           if (mode === 'ALL') {
             totalDeleted += arr.length;
             (db as any)[sec] = [];
+            const sbTable = SECTION_TO_SUPABASE_TABLE[sec];
+            if (sbTable) {
+              clearClientTable(sbTable).catch(() => {});
+            }
           } else if (mode === 'SELECTED_IDS' && Array.isArray(selectedIds)) {
             const delSet = new Set(selectedIds.map(String));
-            const kept = arr.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code || '')));
+            const kept = arr.filter((item: any) => {
+              const itemId = String(item.id || item.serial || item.code || '');
+              const matches = delSet.has(itemId) || delSet.has(String(item.id)) || (item.serial && delSet.has(String(item.serial))) || (item.code && delSet.has(String(item.code)));
+              if (matches) idsToDelete.push(itemId || String(item.id));
+              return !matches;
+            });
             totalDeleted += (arr.length - kept.length);
             (db as any)[sec] = kept;
+            const sbTable = SECTION_TO_SUPABASE_TABLE[sec];
+            if (sbTable && idsToDelete.length > 0) {
+              deleteClientRecordBatch(sbTable, idsToDelete).catch(() => {});
+            }
           } else {
             const kept = arr.filter((item: any) => {
               let shouldDelete = false;
@@ -3968,16 +4039,47 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
                 matchesStatus = st === String(statusFilter).toUpperCase();
               }
               shouldDelete = matchesDate && matchesStatus;
-              if (shouldDelete) totalDeleted++;
+              if (shouldDelete) {
+                totalDeleted++;
+                idsToDelete.push(String(item.id || item.serial || item.code || ''));
+              }
               return !shouldDelete;
             });
             (db as any)[sec] = kept;
+            const sbTable = SECTION_TO_SUPABASE_TABLE[sec];
+            if (sbTable && idsToDelete.length > 0) {
+              deleteClientRecordBatch(sbTable, idsToDelete).catch(() => {});
+            }
           }
         }
       });
+
+      // Save audit log
+      const newLog = {
+        id: `PURGE-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        performedBy,
+        adminRole,
+        section: sectionsToProcess.join(', '),
+        sectionLabel: sectionsToProcess.join(', '),
+        recordsDeletedCount: totalDeleted,
+        criteriaDescription: mode === 'ALL' ? 'Complete section purge' : `Purge mode: ${mode}`,
+        notes: notes || 'Client mock executed cleanup',
+        status: 'COMPLETED'
+      };
+      (db as any).purgeLogs = (db as any).purgeLogs || [];
+      (db as any).purgeLogs.unshift(newLog);
+
       saveLocalDB(db);
-      responseData = { success: true, totalDeletedCount: totalDeleted };
+      responseData = { success: true, totalDeletedCount: totalDeleted, purgeLog: newLog };
     } else if (urlStr.includes('/api/admin/purge-record') && method === 'POST') {
+      const { section, id } = body || {};
+      if (section && (db as any)[section]) {
+        (db as any)[section] = ((db as any)[section] || []).filter((i: any) => String(i.id || i.serial || i.code) !== String(id));
+        saveLocalDB(db);
+      }
+      responseData = { success: true };
+    } else if (urlStr.includes('/api/admin/delete-record-item') && method === 'POST') {
       const { section, id } = body || {};
       if (section && (db as any)[section]) {
         (db as any)[section] = ((db as any)[section] || []).filter((i: any) => String(i.id || i.serial || i.code) !== String(id));

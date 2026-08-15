@@ -407,6 +407,27 @@ export async function deleteRecordsBatch(tableName: string, ids: string[]) {
 }
 
 /**
+ * Clear all rows from a Supabase table for purge all operation
+ */
+export async function clearRemoteTable(tableName: string) {
+  if (!tableName) return;
+  try {
+    const { error } = await supabaseServerClient
+      .from(tableName)
+      .delete()
+      .neq('id', '___PURGE_ALL_NON_MATCHING___');
+    if (error && !error.message?.includes('fetch failed')) {
+      console.warn(`[SupabaseSync] Notice clearing ${tableName}:`, error.message);
+    }
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {
+      console.warn(`[SupabaseSync] Warning clearing ${tableName}:`, msg);
+    }
+  }
+}
+
+/**
  * Sync ALL ERP tables in memory to Supabase
  */
 export async function syncAllERPToSupabase(db: any) {

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore, UserRole } from '../../store/authStore';
 import { useERPData, setERPLocalData } from '../../hooks/useERPData';
-import { deleteClientRecord, deleteClientRecordBatch } from '../../lib/clientSupabaseSync';
+import { deleteClientRecord, deleteClientRecordBatch, clearClientTable } from '../../lib/clientSupabaseSync';
 
 interface SectionMeta {
   key: string;
@@ -315,33 +315,51 @@ export const DataRetentionPurge: React.FC = () => {
     setIsPurging(true);
     setPurgeResult(null);
 
+    const SECTION_ALIASES: Record<string, string[]> = {
+      vyaparRecords: ['vyaparRecords', 'vouchers'],
+      vouchers: ['vyaparRecords', 'vouchers'],
+      gateEntries: ['gateEntries', 'procurementEntries'],
+      procurementEntries: ['gateEntries', 'procurementEntries'],
+      dealers: ['dealers', 'customers'],
+      customers: ['dealers', 'customers']
+    };
+
     const idsToDelete = matchedPurgeItems.map(i => String(i.id || i.serial || i.code)).filter(Boolean);
     const targetSectionKey = selectedSectionKey;
     const targetSectionConfig = currentSectionMeta;
+    const targetKeys = SECTION_ALIASES[targetSectionKey] || [targetSectionKey];
 
-    // Immediately update local client state for instant UI update
+    // Immediately update local client state for instant UI update across all aliases
     setERPLocalData((prev: any) => {
       if (!prev) return prev;
-      const cur = prev[targetSectionKey];
-      if (!Array.isArray(cur)) return prev;
-      if (purgeMode === 'ALL') {
-        return { ...prev, [targetSectionKey]: [] };
-      }
+      const next = { ...prev };
       const delSet = new Set(idsToDelete);
-      return {
-        ...prev,
-        [targetSectionKey]: cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)))
-      };
+      targetKeys.forEach(k => {
+        const cur = next[k];
+        if (Array.isArray(cur)) {
+          if (purgeMode === 'ALL') {
+            next[k] = [];
+          } else {
+            next[k] = cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)));
+          }
+        }
+      });
+      return next;
     });
 
-    // Also trigger direct Supabase client batch delete if table mapping is configured
-    if (targetSectionConfig.supabaseTable && idsToDelete.length > 0) {
-      deleteClientRecordBatch(targetSectionConfig.supabaseTable, idsToDelete).catch(() => {});
+    // Also trigger direct Supabase client batch delete or clear table
+    if (targetSectionConfig.supabaseTable) {
+      if (purgeMode === 'ALL') {
+        clearClientTable(targetSectionConfig.supabaseTable).catch(() => {});
+      } else if (idsToDelete.length > 0) {
+        deleteClientRecordBatch(targetSectionConfig.supabaseTable, idsToDelete).catch(() => {});
+      }
     }
 
     try {
       const payload = {
         section: targetSectionKey,
+        targetSections: targetKeys,
         mode: purgeMode,
         beforeDate: purgeMode === 'BEFORE_DATE' ? customBeforeDate : undefined,
         olderThanDays: purgeMode === 'OLDER_THAN_DAYS' ? olderThanDays : undefined,
@@ -395,20 +413,32 @@ export const DataRetentionPurge: React.FC = () => {
     setIsPurging(true);
     setPurgeResult(null);
 
+    const SECTION_ALIASES: Record<string, string[]> = {
+      vyaparRecords: ['vyaparRecords', 'vouchers'],
+      vouchers: ['vyaparRecords', 'vouchers'],
+      gateEntries: ['gateEntries', 'procurementEntries'],
+      procurementEntries: ['gateEntries', 'procurementEntries'],
+      dealers: ['dealers', 'customers'],
+      customers: ['dealers', 'customers']
+    };
+
     const idsToDelete = [...selectedRowIds];
     const targetSectionKey = selectedSectionKey;
     const targetSectionConfig = currentSectionMeta;
+    const targetKeys = SECTION_ALIASES[targetSectionKey] || [targetSectionKey];
 
-    // Instantly update local client state
+    // Instantly update local client state across all aliases
     setERPLocalData((prev: any) => {
       if (!prev) return prev;
-      const cur = prev[targetSectionKey];
-      if (!Array.isArray(cur)) return prev;
+      const next = { ...prev };
       const delSet = new Set(idsToDelete);
-      return {
-        ...prev,
-        [targetSectionKey]: cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)))
-      };
+      targetKeys.forEach(k => {
+        const cur = next[k];
+        if (Array.isArray(cur)) {
+          next[k] = cur.filter((item: any) => !delSet.has(String(item.id || item.serial || item.code)));
+        }
+      });
+      return next;
     });
 
     if (targetSectionConfig.supabaseTable && idsToDelete.length > 0) {
@@ -418,6 +448,7 @@ export const DataRetentionPurge: React.FC = () => {
     try {
       const payload = {
         section: targetSectionKey,
+        targetSections: targetKeys,
         mode: 'SELECTED_IDS',
         selectedIds: idsToDelete,
         performedBy: user?.name ? `${user.name} (${user.email})` : 'Super Admin',
@@ -459,18 +490,30 @@ export const DataRetentionPurge: React.FC = () => {
       return;
     }
 
+    const SECTION_ALIASES: Record<string, string[]> = {
+      vyaparRecords: ['vyaparRecords', 'vouchers'],
+      vouchers: ['vyaparRecords', 'vouchers'],
+      gateEntries: ['gateEntries', 'procurementEntries'],
+      procurementEntries: ['gateEntries', 'procurementEntries'],
+      dealers: ['dealers', 'customers'],
+      customers: ['dealers', 'customers']
+    };
+
     const targetSectionKey = selectedSectionKey;
     const targetSectionConfig = currentSectionMeta;
+    const targetKeys = SECTION_ALIASES[targetSectionKey] || [targetSectionKey];
 
-    // Instantly mutate local client state
+    // Instantly mutate local client state across all aliases
     setERPLocalData((prev: any) => {
       if (!prev) return prev;
-      const cur = prev[targetSectionKey];
-      if (!Array.isArray(cur)) return prev;
-      return {
-        ...prev,
-        [targetSectionKey]: cur.filter((item: any) => String(item.id || item.serial || item.code) !== String(itemId))
-      };
+      const next = { ...prev };
+      targetKeys.forEach(k => {
+        const cur = next[k];
+        if (Array.isArray(cur)) {
+          next[k] = cur.filter((item: any) => String(item.id || item.serial || item.code) !== String(itemId));
+        }
+      });
+      return next;
     });
 
     if (targetSectionConfig.supabaseTable) {

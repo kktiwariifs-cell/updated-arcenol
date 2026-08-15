@@ -8,6 +8,7 @@ import {
   batchUpsert, 
   deleteRecord, 
   deleteRecordsBatch,
+  clearRemoteTable,
   mapInventory, 
   mapLead, 
   mapCustomer, 
@@ -6370,9 +6371,29 @@ async function startServer() {
         notes = '' 
       } = req.body;
 
-      const sectionsToProcess = targetSections && Array.isArray(targetSections) && targetSections.length > 0
+      const SECTION_ALIASES: Record<string, string[]> = {
+        vyaparRecords: ['vyaparRecords', 'vouchers'],
+        vouchers: ['vyaparRecords', 'vouchers'],
+        gateEntries: ['gateEntries', 'procurementEntries'],
+        procurementEntries: ['gateEntries', 'procurementEntries'],
+        dealers: ['dealers', 'customers'],
+        customers: ['dealers', 'customers']
+      };
+
+      // Expand target sections to include linked alias arrays
+      const rawSections = targetSections && Array.isArray(targetSections) && targetSections.length > 0
         ? targetSections
         : (section ? [section] : []);
+
+      const expandedSectionsSet = new Set<string>();
+      rawSections.forEach((s: string) => {
+        expandedSectionsSet.add(s);
+        if (SECTION_ALIASES[s]) {
+          SECTION_ALIASES[s].forEach(aliasKey => expandedSectionsSet.add(aliasKey));
+        }
+      });
+
+      const sectionsToProcess = Array.from(expandedSectionsSet);
 
       if (sectionsToProcess.length === 0) {
         return res.status(400).json({ error: 'No target section specified for purge' });
@@ -6417,6 +6438,8 @@ async function startServer() {
         criteriaSummary += ` [Status: ${statusFilter}]`;
       }
 
+      const touchedSupabaseTables = new Set<string>();
+
       for (const secKey of sectionsToProcess) {
         const arr = (db as any)[secKey];
         if (!Array.isArray(arr)) continue;
@@ -6431,7 +6454,7 @@ async function startServer() {
             shouldDelete = true;
           } else if (mode === 'SELECTED_IDS' && Array.isArray(selectedIds)) {
             const itemId = String(item.id || item.serial || item.code || '');
-            if (selectedIds.includes(itemId) || selectedIds.includes(String(item.id))) {
+            if (selectedIds.includes(itemId) || selectedIds.includes(String(item.id)) || (item.serial && selectedIds.includes(String(item.serial))) || (item.code && selectedIds.includes(String(item.code)))) {
               shouldDelete = true;
             }
           } else {
@@ -6478,13 +6501,21 @@ async function startServer() {
           deletedIds: idsToDelete
         };
 
-        // Batch delete from Supabase if table mapping exists (awaited to ensure persistence sync)
         const sbTable = SECTION_TO_SUPABASE_TABLE[secKey];
-        if (sbTable && idsToDelete.length > 0) {
-          try {
-            await deleteRecordsBatch(sbTable, idsToDelete);
-          } catch (err) {
-            console.warn(`[AdminPurge] Supabase purge warning on ${sbTable}:`, err);
+        if (sbTable) {
+          touchedSupabaseTables.add(sbTable);
+          if (mode === 'ALL') {
+            try {
+              await clearRemoteTable(sbTable);
+            } catch (err) {
+              console.warn(`[AdminPurge] Supabase clear table warning on ${sbTable}:`, err);
+            }
+          } else if (idsToDelete.length > 0) {
+            try {
+              await deleteRecordsBatch(sbTable, idsToDelete);
+            } catch (err) {
+              console.warn(`[AdminPurge] Supabase purge warning on ${sbTable}:`, err);
+            }
           }
         }
       }
@@ -6535,15 +6566,28 @@ async function startServer() {
         return res.status(400).json({ error: 'Section and ID are required' });
       }
 
-      const arr = (db as any)[section];
-      if (!Array.isArray(arr)) {
-        return res.status(404).json({ error: `Section ${section} not found or is not an array` });
-      }
+      const SECTION_ALIASES: Record<string, string[]> = {
+        vyaparRecords: ['vyaparRecords', 'vouchers'],
+        vouchers: ['vyaparRecords', 'vouchers'],
+        gateEntries: ['gateEntries', 'procurementEntries'],
+        procurementEntries: ['gateEntries', 'procurementEntries'],
+        dealers: ['dealers', 'customers'],
+        customers: ['dealers', 'customers']
+      };
 
-      const beforeLen = arr.length;
-      (db as any)[section] = arr.filter((item: any) => String(item.id || item.serial || item.code) !== String(id));
-      const afterLen = (db as any)[section].length;
-      const deleted = beforeLen > afterLen;
+      const targetSections = SECTION_ALIASES[section] || [section];
+      let deleted = false;
+
+      targetSections.forEach(sec => {
+        const arr = (db as any)[sec];
+        if (Array.isArray(arr)) {
+          const beforeLen = arr.length;
+          (db as any)[sec] = arr.filter((item: any) => String(item.id || item.serial || item.code) !== String(id));
+          if (arr.length > (db as any)[sec].length) {
+            deleted = true;
+          }
+        }
+      });
 
       if (deleted) {
         const sbTable = SECTION_TO_SUPABASE_TABLE[section];
@@ -6570,7 +6614,7 @@ async function startServer() {
         saveDb();
       }
 
-      res.json({ success: true, deleted, id, section, remainingCount: (db as any)[section].length });
+      res.json({ success: true, deleted, id, section, remainingCount: Array.isArray((db as any)[section]) ? (db as any)[section].length : 0 });
     } catch (err: any) {
       console.error("[AdminPurge] Error deleting single record:", err);
       res.status(500).json({ error: err.message || 'Failed to delete record' });
