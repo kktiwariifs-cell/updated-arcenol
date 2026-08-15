@@ -3839,6 +3839,38 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         saveLocalDB(db);
         responseData = { success: true, categories: db.categories, productCategories: db.productCategories };
       }
+    } else if (urlStr.includes('/api/subsidiaries')) {
+      if (!db.subsidiaries) db.subsidiaries = [];
+      const parts = urlStr.split('/api/subsidiaries');
+      const subIdPath = parts[1] ? parts[1].replace(/^\//, '').split('?')[0] : '';
+
+      if (method === 'DELETE' && subIdPath) {
+        db.subsidiaries = db.subsidiaries.filter((s: any) => String(s.id) !== String(subIdPath));
+        saveLocalDB(db);
+        deleteClientRecord('arcenol_corporate_units', subIdPath).catch(() => {});
+        responseData = { success: true };
+      } else if (method === 'PUT' && subIdPath && body) {
+        const idx = db.subsidiaries.findIndex((s: any) => String(s.id) === String(subIdPath));
+        if (idx !== -1) {
+          db.subsidiaries[idx] = { ...db.subsidiaries[idx], ...body };
+        } else {
+          db.subsidiaries.push({ id: subIdPath, ...body });
+        }
+        saveLocalDB(db);
+        responseData = db.subsidiaries[idx] || { id: subIdPath, ...body };
+      } else if (method === 'POST' && body) {
+        if (Array.isArray(body)) {
+          db.subsidiaries = body;
+        } else {
+          const newSub = { id: body.id || `SUB-${Date.now()}`, ...body };
+          db.subsidiaries = db.subsidiaries.filter((s: any) => s.id !== newSub.id);
+          db.subsidiaries.push(newSub);
+        }
+        saveLocalDB(db);
+        responseData = { success: true, subsidiaries: db.subsidiaries };
+      } else {
+        responseData = db.subsidiaries;
+      }
     } else if (urlStr.includes('/api/categories')) {
       if (!db.productCategories) db.productCategories = [];
       if (!db.categories) db.categories = [];

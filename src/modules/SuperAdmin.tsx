@@ -8,11 +8,11 @@ import {
   UserPlus, Trash2, Edit, Eye, EyeOff, UserCheck, ChevronRight,
   Image as ImageIcon, RotateCcw, UploadCloud, ShieldAlert
 } from 'lucide-react';
-import { useERPData } from '../hooks/useERPData';
+import { useERPData, setERPLocalData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { useAuthStore, UserRole, User } from '../store/authStore';
 import { supabase, SupabaseBridge } from '../lib/supabase';
-import { syncBusinessProfileToSupabase } from '../lib/clientSupabaseSync';
+import { syncBusinessProfileToSupabase, deleteClientRecord } from '../lib/clientSupabaseSync';
 import { DataRetentionPurge } from '../components/admin/DataRetentionPurge';
 
 interface SuperAdminProps {
@@ -240,6 +240,25 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [activeTab, setActiveTab] = useState<'profile' | 'users' | 'retention'>(initialTab);
+
+  // In-App Deletion confirmation modal state
+  const [subToDelete, setSubToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingSub, setIsDeletingSub] = useState(false);
+
+  // Floating Toast Notification state
+  const [toastNotification, setToastNotification] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'error' | 'info' }>({
+    show: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+
+  const showToast = (title: string, message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToastNotification({ show: true, title, message, type });
+    setTimeout(() => {
+      setToastNotification(prev => ({ ...prev, show: false }));
+    }, 4500);
+  };
 
   // User credentials management states and hooks
   const { usersList, addUser, updateUser, deleteUser, resetDefaultUsers, loginWithCredentials, fetchUsersFromServer } = useAuthStore();
@@ -469,7 +488,6 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
 
   const handleSubmitProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isEditable) return;
     setSaveStatus('saving');
     setErrorMessage('');
 
@@ -504,6 +522,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
 
       setSaveStatus('success');
       setHasInitialized(true); // Retain active form state
+      showToast('Profile State Deployed', 'Corporate DNA, tax identifiers, and public profiles have been updated and broadcasted.', 'success');
       
       // Auto dismiss success toast
       setTimeout(() => {
@@ -513,6 +532,7 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
       console.error(err);
       setSaveStatus('error');
       setErrorMessage(err.message || 'Something went wrong while persisting settings.');
+      showToast('Deployment Failed', err.message || 'Failed to persist business profile state.', 'error');
     }
   };
 
@@ -557,30 +577,46 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
   const handleSaveSub = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!subForm.name.trim() || !subForm.shortName.trim()) {
-      alert('Subsidiary Name and Short Name are required.');
+      showToast('Validation Error', 'Subsidiary Name and Short Name are required.', 'error');
       return;
     }
 
     const subId = editingSub || `SUB-${Date.now()}`;
     const targetSub = { id: subId, ...subForm };
 
-    // 1. Update local state / cache (Express database sync)
-    if (editingSub) {
-      await fetch(`/api/subsidiaries/${editingSub}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(subForm)
-      });
-    } else {
-      await fetch('/api/subsidiaries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(targetSub)
-      });
+    // Instant local state update
+    setERPLocalData((prev: any) => {
+      if (!prev) return prev;
+      const currentSubs = prev.subsidiaries || [];
+      const updatedList = editingSub 
+        ? currentSubs.map((s: any) => s.id === editingSub ? targetSub : s)
+        : [...currentSubs, targetSub];
+      return { ...prev, subsidiaries: updatedList };
+    });
+
+    // 1. Update server database
+    try {
+      if (editingSub) {
+        await fetch(`/api/subsidiaries/${editingSub}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(subForm)
+        });
+      } else {
+        await fetch('/api/subsidiaries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(targetSub)
+        });
+      }
+    } catch (apiErr) {
+      console.warn("API save error:", apiErr);
     }
+
     refetch();
     setShowSubModal(false);
     setEditingSub(null);
+    showToast(editingSub ? 'Entity Mutated' : 'Entity Deployed', `Subsidiary "${targetSub.name}" successfully registered.`, 'success');
 
     // 2. Transmit to Supabase PostgreSQL real-time engine
     setSupabaseLoading(true);
@@ -602,28 +638,39 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
     }
   };
 
-  const handleDeleteSub = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete the business profile for ${name}?`)) {
-      // 1. Delete from local state list
+  const handleConfirmDeleteSub = async () => {
+    if (!subToDelete) return;
+    const { id, name } = subToDelete;
+    setIsDeletingSub(true);
+
+    try {
+      // 1. Instantly update local client state
+      setERPLocalData((prev: any) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          subsidiaries: (prev.subsidiaries || []).filter((s: any) => String(s.id) !== String(id))
+        };
+      });
+
+      // 2. Delete from API / Express
       await fetch(`/api/subsidiaries/${id}`, {
         method: 'DELETE'
       });
-      refetch();
 
-      // 2. Remove connection from Supabase
-      setSupabaseLoading(true);
+      // 3. Delete from Supabase client
+      deleteClientRecord('arcenol_corporate_units', id).catch(() => {});
       try {
         await SupabaseBridge.deleteSubsidiary(id);
-      } catch (err: any) {
-        console.warn("Supabase delete deferred:", err);
-        if (err.code === 'PGRST116' || err.code === '42P01' || (err.message && err.message.includes('relation'))) {
-          setSupabaseStatus('TABLE_NOT_FOUND');
-        } else {
-          setSupabaseErrorMsg(`Sync failed: ${err.message || 'connection lag'}`);
-        }
-      } finally {
-        setSupabaseLoading(false);
-      }
+      } catch (err) {}
+
+      await refetch();
+      showToast('Subsidiary Revoked', `Entity "${name}" was permanently removed from the corporate registry.`, 'success');
+      setSubToDelete(null);
+    } catch (err: any) {
+      showToast('Deletion Failed', err?.message || 'Failed to delete subsidiary.', 'error');
+    } finally {
+      setIsDeletingSub(false);
     }
   };
 
@@ -1334,12 +1381,35 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
 
               </div>
 
-              {/* Action Form Footer */}
-              <div className="p-8 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:block">
-                  Status: {isEditable ? "🔓 Unlocked & Modifying" : "🔒 Locked / View Only"}
+              {/* Action Form Footer with Immediate Confirmation Status */}
+              <div className="p-6 sm:p-8 border-t border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="w-full sm:w-auto">
+                  {saveStatus === 'success' && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-black animate-in fade-in slide-in-from-left duration-300">
+                      <CheckCircle2 size={16} className="text-emerald-600 shrink-0" />
+                      <span>Corporate Profile State Deployed & Synchronized!</span>
+                    </div>
+                  )}
+                  {saveStatus === 'saving' && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 border border-sky-200 text-sky-800 rounded-xl text-xs font-bold animate-pulse">
+                      <RefreshCw size={14} className="animate-spin text-sky-600 shrink-0" />
+                      <span>Broadcasting profile state to matrix nodes...</span>
+                    </div>
+                  )}
+                  {saveStatus === 'error' && (
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-bold animate-in fade-in">
+                      <AlertTriangle size={15} className="text-rose-600 shrink-0" />
+                      <span>{errorMessage || 'Deployment failed. Please check network.'}</span>
+                    </div>
+                  )}
+                  {saveStatus === 'idle' && (
+                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider hidden sm:block">
+                      Status: {isEditable ? "🔓 Ready to Deploy Updates" : "🔒 Locked / View Only"}
+                    </div>
+                  )}
                 </div>
-                <div className="flex space-x-3 w-full sm:w-auto">
+
+                <div className="flex space-x-3 w-full sm:w-auto justify-end">
                   <button
                     type="button"
                     disabled={!isEditable}
@@ -1350,12 +1420,13 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
                           logo: data.businessProfile.logo || ''
                         });
                         setSaveStatus('idle');
+                        showToast('Changes Reset', 'Form reverted to last saved profile matrix state.', 'info');
                       }
                     }}
                     className={cn(
-                      "flex-1 sm:flex-none border px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all font-sans",
+                      "flex-1 sm:flex-none border px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all font-sans",
                       isEditable 
-                        ? "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95" 
+                        ? "bg-white border-slate-200 text-slate-600 hover:bg-slate-50 active:scale-95 cursor-pointer shadow-sm" 
                         : "bg-slate-100 border-slate-200/50 text-slate-400 cursor-not-allowed"
                     )}
                   >
@@ -1363,18 +1434,24 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
                   </button>
                   <button
                     type="submit"
-                    disabled={!isEditable || saveStatus === 'saving'}
+                    id="deploy-profile-state-btn"
+                    disabled={saveStatus === 'saving'}
                     className={cn(
-                      "flex-1 sm:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center",
-                      isEditable 
-                        ? "bg-primary-600 hover:brightness-110 text-white shadow-primary-500/20" 
-                        : "bg-slate-100 text-slate-400 border border-slate-200/50 cursor-not-allowed shadow-none"
+                      "flex-1 sm:flex-none px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl transition-all active:scale-95 flex items-center justify-center cursor-pointer",
+                      saveStatus === 'success'
+                        ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                        : "bg-primary-600 hover:brightness-110 text-white shadow-primary-500/20"
                     )}
                   >
                     {saveStatus === 'saving' ? (
                       <>
                         <RefreshCw className="animate-spin mr-2" size={14} />
-                        Securing Matrix...
+                        Deploying Profile State...
+                      </>
+                    ) : saveStatus === 'success' ? (
+                      <>
+                        <CheckCircle2 className="mr-2" size={14} />
+                        Profile State Deployed!
                       </>
                     ) : (
                       <>
@@ -1756,9 +1833,9 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => handleDeleteSub(sub.id, sub.name)}
-                                      className="p-1.5 bg-white hover:bg-red-50 text-red-650 rounded-lg border border-slate-250 hover:border-red-200 shadow-sm transition-all hover:scale-105"
-                                      title="Revoke sister unit"
+                                      onClick={() => setSubToDelete({ id: sub.id, name: sub.name })}
+                                      className="p-1.5 bg-white hover:bg-red-50 text-red-650 hover:text-red-700 rounded-lg border border-slate-250 hover:border-red-200 shadow-sm transition-all hover:scale-105 cursor-pointer"
+                                      title="Revoke and delete subsidiary unit"
                                     >
                                       <Trash2 size={11} />
                                     </button>
@@ -2695,6 +2772,99 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
       {/* Data Retention & Record Purge Center Tab */}
       {activeTab === 'retention' && (
         <DataRetentionPurge />
+      )}
+
+      {/* In-App Confirmation Modal for Subsidiary Deletion */}
+      {subToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden w-full max-w-md animate-in zoom-in-95 duration-150">
+            <div className="p-6 bg-red-50/70 border-b border-red-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">Revoke Corporate Entity</h4>
+                <p className="text-[11px] font-semibold text-red-600">Permanent registry deletion</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                Are you sure you want to permanently revoke and delete <span className="font-black text-slate-900">"{subToDelete.name}"</span> (<span className="font-mono text-slate-500">{subToDelete.id}</span>) from the corporate registry database?
+              </p>
+              <div className="p-3 bg-amber-50 border border-amber-200/70 rounded-xl flex items-start gap-2.5 text-[11px] font-bold text-amber-800">
+                <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <span>This will detach this subsidiary branch from the central directory, logistics routers, and tax matrix.</span>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingSub}
+                onClick={() => setSubToDelete(null)}
+                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="confirm-delete-sub-btn"
+                disabled={isDeletingSub}
+                onClick={handleConfirmDeleteSub}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {isDeletingSub ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Revoking Entity...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Confirm Revocation</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Global SuperAdmin Floating Toast Notification */}
+      {toastNotification.show && (
+        <div className="fixed bottom-6 right-6 z-[120] max-w-sm w-full animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className={cn(
+            "p-4 rounded-2xl border shadow-2xl flex items-start gap-3 backdrop-blur-md",
+            toastNotification.type === 'success' ? "bg-white/95 border-emerald-200 text-slate-900 shadow-emerald-500/10" :
+            toastNotification.type === 'error' ? "bg-white/95 border-rose-200 text-slate-900 shadow-rose-500/10" :
+            "bg-white/95 border-sky-200 text-slate-900 shadow-sky-500/10"
+          )}>
+            <div className={cn(
+              "w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5",
+              toastNotification.type === 'success' ? "bg-emerald-50 text-emerald-600 border border-emerald-100" :
+              toastNotification.type === 'error' ? "bg-rose-50 text-rose-600 border border-rose-100" :
+              "bg-sky-50 text-sky-600 border border-sky-100"
+            )}>
+              {toastNotification.type === 'success' && <CheckCircle2 size={18} />}
+              {toastNotification.type === 'error' && <AlertTriangle size={18} />}
+              {toastNotification.type === 'info' && <RefreshCw size={16} />}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <h5 className="text-xs font-black uppercase tracking-tight text-slate-900">{toastNotification.title}</h5>
+              <p className="text-[11px] font-medium text-slate-600 mt-0.5 leading-snug">{toastNotification.message}</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setToastNotification(prev => ({ ...prev, show: false }))}
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

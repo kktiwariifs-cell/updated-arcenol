@@ -6147,12 +6147,14 @@ async function startServer() {
   app.post("/api/subsidiaries", (req, res) => {
     (db as any).subsidiaries = (db as any).subsidiaries || [];
     (db as any).subsidiaries.push(req.body);
+    saveDb();
     batchUpsert('arcenol_corporate_units', [mapCorporateUnit(req.body)]).catch(err => console.warn("Supabase subsidiary sync warning:", err));
     res.json(req.body);
   });
 
   app.post("/api/subsidiaries/sync", (req, res) => {
     (db as any).subsidiaries = req.body;
+    saveDb();
     batchUpsert('arcenol_corporate_units', ((db as any).subsidiaries || []).map(mapCorporateUnit)).catch(err => console.warn("Supabase subsidiary sync warning:", err));
     res.json({ success: true });
   });
@@ -6165,6 +6167,7 @@ async function startServer() {
       (db as any).subsidiaries[index] = { ...(db as any).subsidiaries[index], ...req.body };
     }
     const updated = (db as any).subsidiaries[index] || req.body;
+    saveDb();
     batchUpsert('arcenol_corporate_units', [mapCorporateUnit(updated)]).catch(err => console.warn("Supabase subsidiary sync warning:", err));
     res.json(updated);
   });
@@ -6173,6 +6176,7 @@ async function startServer() {
     const { id } = req.params;
     (db as any).subsidiaries = (db as any).subsidiaries || [];
     (db as any).subsidiaries = (db as any).subsidiaries.filter((s: any) => s.id !== id);
+    saveDb();
     deleteRecord('arcenol_corporate_units', id).catch(err => console.warn("Supabase subsidiary delete warning:", err));
     res.json({ success: true });
   });
