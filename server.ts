@@ -25,8 +25,15 @@ import {
   mapUser
 } from "./src/lib/serverSupabaseSync";
 
-function normalizeToRevisedSerial(serial: string): string {
-  if (!serial) return 'AESPL  EV  31G26001044';
+function normalizeToRevisedSerial(serial: string, fallbackGrade: string = 'EV'): string {
+  if (!serial) {
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const monthChar = String.fromCharCode(65 + now.getMonth());
+    const yr = String(now.getFullYear()).slice(-2);
+    const seq = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, '0');
+    return `AESPL  ${fallbackGrade}  ${day}${monthChar}${yr}${seq}`;
+  }
   const clean = String(serial).trim();
 
   // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26001044" or "AESPL EV 28G26001044"
@@ -126,13 +133,327 @@ function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | str
     if (digitsOnly) {
       numStr = digitsOnly.padStart(6, "0");
     } else {
-      numStr = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, "0");
+      numStr = "000001";
     }
   } else {
-    numStr = String(Math.floor(1000 + Math.random() * 9000)).padStart(6, "0");
+    numStr = "000001";
   }
 
   return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
+}
+
+function getNextSerialSequenceForModel(
+  modelId: string, 
+  existingItems: Array<{ model?: string; modelId?: string; serial?: string; serialNumber?: string }> = []
+): number {
+  if (!existingItems || !Array.isArray(existingItems) || existingItems.length === 0) {
+    return 1;
+  }
+  const targetModel = String(modelId || '').trim().toLowerCase();
+  const matchingItems = existingItems.filter(item => {
+    const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
+    return itemModel === targetModel;
+  });
+
+  if (matchingItems.length === 0) {
+    return 1;
+  }
+
+  let maxSeq = 0;
+  matchingItems.forEach(item => {
+    const s = item.serial || item.serialNumber || '';
+    const match = s.match(/(\d{6})$/) || s.match(/(\d{4,6})$/);
+    if (match) {
+      const parsed = parseInt(match[1], 10);
+      if (!isNaN(parsed) && parsed > maxSeq) {
+        maxSeq = parsed;
+      }
+    }
+  });
+
+  return maxSeq > 0 ? maxSeq + 1 : matchingItems.length + 1;
+}
+
+function generateModelSpecificSerial(
+  modelId: string,
+  seqNumber: number | string = 1,
+  customDate?: Date
+): string {
+  const d = customDate || new Date();
+  const day = String(d.getDate()).padStart(2, "0");
+  const monthChar = String.fromCharCode(65 + d.getMonth());
+  const year2 = String(d.getFullYear()).slice(-2);
+
+  let gradeTag = "EV";
+  if (modelId) {
+    const upper = String(modelId).toUpperCase();
+    if (upper.includes("AUTO")) gradeTag = "AUTO";
+    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT")) gradeTag = "INV";
+    else if (upper.includes("ESS")) gradeTag = "ESS";
+    else if (upper.includes("VRLA")) gradeTag = "VRLA";
+    else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
+    else {
+      const clean = upper.replace(/[^A-Z]/g, "");
+      gradeTag = clean.slice(0, 4) || "EV";
+    }
+  }
+
+  const digitsOnly = String(seqNumber).replace(/[^0-9]/g, "");
+  const numStr = digitsOnly ? digitsOnly.padStart(6, "0") : "000001";
+
+  return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
+}
+
+function generateUniqueTransactionId(entityType: string, customSuffix?: string | number): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const dateStr = `${year}${month}${day}`;
+  const randomSuffix = customSuffix !== undefined && customSuffix !== null && String(customSuffix).trim() !== ''
+    ? String(customSuffix).replace(/[^A-Z0-9]/gi, '')
+    : String(Math.floor(1000 + Math.random() * 9000));
+
+  switch (entityType) {
+    case 'PURCHASE_ORDER':
+      return `PO-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'AUTO_PO':
+      return `PO-${year}-AUTO-${randomSuffix.padStart(4, '0')}`;
+    case 'GATE_INWARD':
+    case 'GATE_PASS':
+      return `GATE-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'MATERIAL_RECEIPT':
+      return `MRN-${year}${month}-${randomSuffix.padStart(4, '0')}`;
+    case 'VENDOR_BILL':
+      return `VBILL-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'VENDOR_PAYMENT':
+      return `VPAY-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'SALES_ORDER':
+      return `SO-AESPL-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'SALES_INVOICE':
+    case 'TAX_INVOICE':
+      return `INV-${year}${month}-${randomSuffix.padStart(4, '0')}`;
+    case 'QUOTATION':
+      return `QUOT-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'DELIVERY_CHALLAN':
+      return `DC-${year}${month}-${randomSuffix.padStart(4, '0')}`;
+    case 'POS_SALE':
+      return `POS-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'DISPATCH_ALLOCATION':
+      return `DISP-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'PROFORMA_INVOICE':
+      return `PI-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'CREDIT_NOTE':
+      return `CN-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'DEBIT_NOTE':
+      return `DN-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'PAYMENT_VOUCHER':
+    case 'RECEIPT_VOUCHER':
+      return `RCPT-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'JOURNAL_VOUCHER':
+      return `JV-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'ACCOUNTING_VOUCHER':
+    case 'VYAPAR_RECORD':
+      return `BILL-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'EWAY_BILL':
+      return `EWB-${dateStr}-${randomSuffix.padStart(6, '0')}`;
+    case 'WORK_ORDER':
+      return `WO-AESPL-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'PRODUCTION_BATCH':
+      return `PROD-${year}${month}-${randomSuffix.padStart(4, '0')}`;
+    case 'WIP_LOT':
+      return `WIP-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'BATTERY_SERIAL':
+      return generateBatterySerial('EV', randomSuffix);
+    case 'FINISHED_GOOD':
+      return `FG-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'RAW_MATERIAL':
+      return `SKU-RM-${randomSuffix.padStart(4, '0')}`;
+    case 'STOCK_TRANSFER':
+      return `TRN-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'STOCK_AUDIT':
+      return `AUDIT-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'CELL_GRADING':
+      return `CGB-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'EOL_CERTIFICATE':
+      return `EOL-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'SCRAP_LOG':
+      return `SCRAP-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'TELEMATICS_LOG':
+      return `DIAG-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'WARRANTY_REGISTRATION':
+      return `WREG-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'RMA_CLAIM':
+      return `RMA-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'EPR_RECORD':
+      return `EPR-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'CRM_LEAD':
+      return `LEAD-${year}-${randomSuffix.padStart(4, '0')}`;
+    case 'COMPLAINT_TICKET':
+      return `CMP-${year}-${randomSuffix.padStart(4, '0')}`;
+    default: {
+      const prefix = String(entityType).toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4) || 'TXN';
+      return `${prefix}-${year}-${randomSuffix.padStart(4, '0')}`;
+    }
+  }
+}
+
+function ensureRecordIdentity<T extends Record<string, any>>(
+  record: T,
+  entityType: string,
+  options: {
+    fallbackGrade?: string;
+    index?: number;
+    partyId?: string;
+  } = {}
+): T & { id: string; transactionId?: string; serialNumber?: string; serial?: string; voucher_no?: string; poNumber?: string } {
+  if (!record || typeof record !== 'object') {
+    return { id: generateUniqueTransactionId(entityType, options.index) } as any;
+  }
+
+  const result: any = { ...record };
+  const currentYear = new Date().getFullYear();
+  const suffix = options.index !== undefined ? options.index + 1 : Math.floor(1000 + Math.random() * 9000);
+
+  if (!result.id || String(result.id).trim() === '' || result.id === 'undefined' || result.id === 'null') {
+    result.id = generateUniqueTransactionId(entityType, suffix);
+  }
+
+  switch (entityType) {
+    case 'PURCHASE_ORDER':
+    case 'AUTO_PO': {
+      if (!result.poNumber) result.poNumber = result.id.startsWith('PO-') ? result.id : `PO-${currentYear}-${suffix}`;
+      if (!result.trackingNumber) result.trackingNumber = `TRK-ARC-${Math.floor(1000 + Math.random() * 9000)}`;
+      break;
+    }
+    case 'GATE_INWARD':
+    case 'GATE_PASS': {
+      if (!result.gatePassNo) result.gatePassNo = `GP-${currentYear}-${suffix}`;
+      if (!result.challanNo) result.challanNo = `CH-${Math.floor(1000 + Math.random() * 9000)}`;
+      if (!result.weighbridgeSlipNo) result.weighbridgeSlipNo = `WB-${currentYear}-${Math.floor(1000 + Math.random() * 9000)}`;
+      break;
+    }
+    case 'TAX_INVOICE':
+    case 'SALES_INVOICE': {
+      if (!result.voucher_no) result.voucher_no = result.id;
+      if (!result.invoiceNumber) result.invoiceNumber = result.id;
+      if (!result.eWayBill && result.total > 50000) {
+        result.eWayBill = `EWB-${currentYear}${Math.floor(100000 + Math.random() * 900000)}`;
+      }
+      break;
+    }
+    case 'VYAPAR_RECORD':
+    case 'ACCOUNTING_VOUCHER':
+    case 'PAYMENT_VOUCHER':
+    case 'RECEIPT_VOUCHER': {
+      if (!result.voucherNumber) result.voucherNumber = result.id;
+      if (!result.voucher_no) result.voucher_no = result.id;
+      if (!result.refNo) result.refNo = `REF-${currentYear}-${Math.floor(1000 + Math.random() * 9000)}`;
+      break;
+    }
+    case 'BATTERY_SERIAL':
+    case 'FINISHED_GOOD': {
+      const rawSerial = result.serial || result.serialNumber || result.serial_no || result.id;
+      const normalized = normalizeToRevisedSerial(rawSerial, options.fallbackGrade || result.model || 'EV');
+      result.serial = normalized;
+      result.serialNumber = normalized;
+      if (!result.batch) result.batch = `BATCH-${new Date().toISOString().substring(0, 10)}`;
+      break;
+    }
+    case 'RAW_MATERIAL': {
+      if (!result.code) result.code = `SKU-RM-${Math.floor(1000 + Math.random() * 9000)}`;
+      if (!result.grn) result.grn = `GRN-${currentYear}-${Math.floor(1000 + Math.random() * 9000)}`;
+      if (!result.batch) result.batch = `LOT-${currentYear}-${Math.floor(100 + Math.random() * 900)}`;
+      if (!result.challanNo) result.challanNo = `CH-${Math.floor(1000 + Math.random() * 9000)}`;
+      break;
+    }
+    case 'STOCK_TRANSFER': {
+      if (!result.transferId) result.transferId = result.id;
+      if (!result.sealNumber) result.sealNumber = `SEAL-${Math.floor(100000 + Math.random() * 900000)}`;
+      if (!result.eWayBillNo) result.eWayBillNo = `EWB-${Math.floor(100000000000 + Math.random() * 900000000000)}`;
+      break;
+    }
+    case 'STOCK_AUDIT': {
+      if (!result.auditId) result.auditId = result.id;
+      break;
+    }
+    case 'CELL_GRADING': {
+      if (!result.batchCode) result.batchCode = `CGB-${currentYear}-${suffix}`;
+      if (!result.supplierLotNo) result.supplierLotNo = `CATL-LOT-${Math.floor(100 + Math.random() * 900)}`;
+      break;
+    }
+    case 'EOL_CERTIFICATE': {
+      if (result.serialNumber || result.serial) {
+        result.serialNumber = normalizeToRevisedSerial(result.serialNumber || result.serial, options.fallbackGrade || 'EV');
+      }
+      break;
+    }
+    case 'WARRANTY_REGISTRATION': {
+      if (result.serialNumber || result.serial) {
+        result.serialNumber = normalizeToRevisedSerial(result.serialNumber || result.serial, options.fallbackGrade || 'EV');
+        result.serial = result.serialNumber;
+      }
+      break;
+    }
+    case 'RMA_CLAIM': {
+      if (result.serialNumber || result.serial) {
+        result.serialNumber = normalizeToRevisedSerial(result.serialNumber || result.serial, options.fallbackGrade || 'EV');
+      }
+      if (!result.creditNoteNo) result.creditNoteNo = `CN-${currentYear}-${Math.floor(100 + Math.random() * 900)}`;
+      break;
+    }
+    case 'CRM_LEAD': {
+      if (!result.leadId) result.leadId = result.id;
+      break;
+    }
+  }
+
+  if (!result.createdAt && !result.date && !result.entryDate && !result.orderDate && !result.invoiceDate) {
+    result.createdAt = new Date().toISOString();
+  }
+
+  return result;
+}
+
+function normalizeUploadedBatch<T extends Record<string, any>>(
+  rows: T[],
+  entityType: string,
+  options: {
+    fallbackGrade?: string;
+    defaultWarehouse?: string;
+    defaultSupplier?: string;
+  } = {}
+): { sanitized: T[]; skipped: any[] } {
+  if (!Array.isArray(rows)) return { sanitized: [], skipped: [] };
+  const seenIds = new Set<string>();
+  const seenSerials = new Set<string>();
+  const skipped: any[] = [];
+
+  const sanitized = rows.map((row, idx) => {
+    const item = ensureRecordIdentity(row, entityType, {
+      fallbackGrade: options.fallbackGrade || (row as any).model || 'EV',
+      index: idx
+    });
+
+    while (seenIds.has(item.id)) {
+      item.id = generateUniqueTransactionId(entityType, idx + Math.floor(Math.random() * 100000));
+    }
+    seenIds.add(item.id);
+
+    if (item.serial) {
+      let candidate = normalizeToRevisedSerial(item.serial, options.fallbackGrade || item.model || 'EV');
+      if (seenSerials.has(candidate.toLowerCase())) {
+        candidate = generateBatterySerial(item.model || options.fallbackGrade || 'EV', idx + 1000);
+      }
+      seenSerials.add(candidate.toLowerCase());
+      item.serial = candidate;
+      if (item.serialNumber) item.serialNumber = candidate;
+    }
+
+    return item;
+  });
+
+  return { sanitized, skipped };
 }
 
 async function startServer() {
@@ -173,23 +494,23 @@ async function startServer() {
     production: [],
     productionPlans: [] as any[],
     finishedGoods: [
-      { id: "fg1", model: "72V30A", serial: "AESPL  EV  28G26001044", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-      { id: "fg2", model: "72V30A", serial: "AESPL  EV  28G26001045", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-      { id: "fg3", model: "72V30A", serial: "AESPL  EV  28G26001046", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
-      { id: "fg4", model: "72V30A", serial: "AESPL  EV  28G26001047", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
-      { id: "fg5", model: "72V30A", serial: "AESPL  EV  28G26001048", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
-      { id: "fg6", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26001049", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "READY" },
-      { id: "fg6b", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26001052", batch: "BATCH-B1", warehouse: "Ahmedabad Warehouse", rack: "BIN-08", date: "2026-07-28", status: "READY" },
-      { id: "fg7", model: "BAT-INV-150", serial: "AESPL  INV  28G26001050", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
-      { id: "fg7b", model: "BAT-INV-150", serial: "AESPL  INV  28G26001056", batch: "BATCH-C1", warehouse: "Ahmedabad Warehouse", rack: "BIN-07", date: "2026-07-28", status: "READY" },
-      { id: "fg8", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26001051", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
-      { id: "fg8b", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26001057", batch: "BATCH-D1", warehouse: "Main Warehouse", rack: "BIN-21", date: "2026-07-28", status: "READY" },
-      { id: "fg9", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26001053", batch: "BATCH-E1", warehouse: "Main Warehouse", rack: "BIN-12", date: "2026-07-28", status: "READY" },
-      { id: "fg9b", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26001058", batch: "BATCH-E1", warehouse: "Ahmedabad Warehouse", rack: "BIN-13", date: "2026-07-28", status: "READY" },
-      { id: "fg10", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26001054", batch: "BATCH-F1", warehouse: "Main Warehouse", rack: "BIN-14", date: "2026-07-28", status: "READY" },
-      { id: "fg11", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26001055", batch: "BATCH-F1", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "READY" },
-      { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26001059", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
-      { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26001060", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
+      { id: "fg1", model: "72V30A", serial: "AESPL  EV  28G26000001", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg2", model: "72V30A", serial: "AESPL  EV  28G26000002", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+      { id: "fg3", model: "72V30A", serial: "AESPL  EV  28G26000003", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
+      { id: "fg4", model: "72V30A", serial: "AESPL  EV  28G26000004", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
+      { id: "fg5", model: "72V30A", serial: "AESPL  EV  28G26000005", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
+      { id: "fg6", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26000001", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "READY" },
+      { id: "fg6b", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26000002", batch: "BATCH-B1", warehouse: "Ahmedabad Warehouse", rack: "BIN-08", date: "2026-07-28", status: "READY" },
+      { id: "fg7", model: "BAT-INV-150", serial: "AESPL  INV  28G26000001", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
+      { id: "fg7b", model: "BAT-INV-150", serial: "AESPL  INV  28G26000002", batch: "BATCH-C1", warehouse: "Ahmedabad Warehouse", rack: "BIN-07", date: "2026-07-28", status: "READY" },
+      { id: "fg8", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26000001", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
+      { id: "fg8b", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26000002", batch: "BATCH-D1", warehouse: "Main Warehouse", rack: "BIN-21", date: "2026-07-28", status: "READY" },
+      { id: "fg9", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26000001", batch: "BATCH-E1", warehouse: "Main Warehouse", rack: "BIN-12", date: "2026-07-28", status: "READY" },
+      { id: "fg9b", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26000002", batch: "BATCH-E1", warehouse: "Ahmedabad Warehouse", rack: "BIN-13", date: "2026-07-28", status: "READY" },
+      { id: "fg10", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-F1", warehouse: "Main Warehouse", rack: "BIN-14", date: "2026-07-28", status: "READY" },
+      { id: "fg11", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-F1", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "READY" },
+      { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
+      { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
     ],
     purchaseOrders: [
       {
@@ -384,7 +705,7 @@ async function startServer() {
     eolCertificates: [
       {
         id: "EOL-2026-901",
-        serialNumber: "AESPL EV 28G26001044",
+        serialNumber: "AESPL EV 28G26000001",
         packModel: "72V30A",
         hiPotInsulationResistanceMOm: 500,
         dielectricBreakdownTest: "PASS (1500V AC 1 min)",
@@ -397,7 +718,7 @@ async function startServer() {
         testBenchId: "TB-02-HV",
         testTimestamp: "2026-08-12 14:30",
         certificateStatus: "PASSED_CERTIFIED",
-        attachmentReport: "EOL_TEST_REPORT_28G26001044.pdf"
+        attachmentReport: "EOL_TEST_REPORT_28G26000001.pdf"
       }
     ],
     scrapLogs: [
@@ -2985,14 +3306,14 @@ async function startServer() {
        ]
     },
     invoices: [
-      { id: "INV-1001", date: "2024-05-12", dealerId: "l1", items: [{ model: "72V30A", qty: 1, serials: ["AESPL  EV  28G26001044"], price: 35000 }], total: 35000, status: "PAID", tax: 6300 },
+      { id: "INV-1001", date: "2024-05-12", dealerId: "l1", items: [{ model: "72V30A", qty: 1, serials: ["AESPL  EV  28G26000001"], price: 35000 }], total: 35000, status: "PAID", tax: 6300 },
       { id: "INV-1002", date: "2024-05-13", dealerId: "D-101", items: [{ model: "BAT-INV-150", qty: 5, serials: [], price: 18500 }], total: 92500, status: "UNPAID", tax: 16650 },
       { id: "INV-1003", date: "2024-05-14", dealerId: "D-102", items: [{ model: "72V30A", qty: 10, serials: [], price: 45000 }], total: 450000, status: "UNPAID", tax: 81000 },
       { id: "INV-1004", date: "2024-05-15", dealerId: "l1", items: [{ model: "BAT-AUTO-35", qty: 20, serials: [], price: 4500 }], total: 90000, status: "PAID", tax: 16200 },
     ],
     warranty: [
-      { id: "w1", serial: "AESPL  EV  28G26001044", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
-      { id: "w2", serial: "AESPL  EV  28G26001045", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w1", serial: "AESPL  EV  28G26000001", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
+      { id: "w2", serial: "AESPL  EV  28G26000002", dealerId: "l1", startDate: "2024-05-12", durationMonths: 36, status: "ACTIVE", history: [] },
       { id: "w3", serial: "AESPL  INV  31G260001265", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
       { id: "w4", serial: "AESPL  INV  31G260005059", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
       { id: "w5", serial: "AESPL  INV  31G260009790", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
@@ -3002,11 +3323,11 @@ async function startServer() {
       { id: "w9", serial: "AESPL  INV  31G260004192", dealerId: "l1", startDate: "2026-07-30", durationMonths: 36, status: "ACTIVE", history: [] },
     ],
     complaints: [
-      { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
-      { id: "C-1002", serial: "AESPL  EV  28G26001045", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: "2024-05-15", resolvedDate: "", notes: "Unit not turning on.", engineer: "Unassigned" },
-      { id: "C-1003", serial: "AESPL  EV  28G26001046", type: "Voltage Drop", stage: "UNDER_INSPECTION", status: "OPEN", date: "2024-05-16", resolvedDate: "", notes: "Sudden power cut.", engineer: "Ramesh K." },
-      { id: "C-1004", serial: "AESPL  AUTO  28G26001049", type: "No Backup", stage: "READY_FOR_DISPATCH", status: "OPEN", date: "2024-05-14", resolvedDate: "", notes: "Aging cells.", engineer: "Suresh P.", rootCause: "Cell Failure" },
-      { id: "C-1005", serial: "AESPL  INV  28G26001050", type: "High Temp", stage: "REPAIR_STARTED", status: "OPEN", date: "2024-05-12", resolvedDate: "", notes: "Fan not working.", engineer: "Anita D." },
+      { id: "C-1001", serial: "AESPL  EV  28G26000001", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
+      { id: "C-1002", serial: "AESPL  EV  28G26000002", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: "2024-05-15", resolvedDate: "", notes: "Unit not turning on.", engineer: "Unassigned" },
+      { id: "C-1003", serial: "AESPL  EV  28G26000003", type: "Voltage Drop", stage: "UNDER_INSPECTION", status: "OPEN", date: "2024-05-16", resolvedDate: "", notes: "Sudden power cut.", engineer: "Ramesh K." },
+      { id: "C-1004", serial: "AESPL  AUTO  28G26000001", type: "No Backup", stage: "READY_FOR_DISPATCH", status: "OPEN", date: "2024-05-14", resolvedDate: "", notes: "Aging cells.", engineer: "Suresh P.", rootCause: "Cell Failure" },
+      { id: "C-1005", serial: "AESPL  INV  28G26000001", type: "High Temp", stage: "REPAIR_STARTED", status: "OPEN", date: "2024-05-12", resolvedDate: "", notes: "Fan not working.", engineer: "Anita D." },
       { id: "C-1006", serial: "OLD-GEN-BATT-9900", type: "Water Damage", stage: "CLOSED", status: "RESOLVED", date: "2024-05-08", resolvedDate: "2024-05-11", notes: "Seal leaked.", engineer: "Ramesh K.", rootCause: "Water Damage" },
     ],
     engineers: [
@@ -3224,8 +3545,8 @@ async function startServer() {
       loginLeftImage: ""
     },
     warrantyChecks: [
-      { id: "wc-1", serial: "AESPL  EV  28G26001044", date: new Date(Date.now() - 1*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
-      { id: "wc-2", serial: "AESPL  EV  28G26001045", date: new Date(Date.now() - 3*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
+      { id: "wc-1", serial: "AESPL  EV  28G26000001", date: new Date(Date.now() - 1*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
+      { id: "wc-2", serial: "AESPL  EV  28G26000002", date: new Date(Date.now() - 3*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
       { id: "wc-3", serial: "ARC-UNKNOWN-X9", date: new Date(Date.now() - 4*24*60*60*1000).toLocaleDateString(), status: "NOT_FOUND / EXPIRED", durationRemaining: "N/A", foundInDb: false, model: "Unknown Blueprints" }
     ],
     loyaltyClaims: [
@@ -3235,13 +3556,13 @@ async function startServer() {
     diagnosticLogs: [
       { id: 'LOG-C1006-1', nodeId: 'C-1006', serial: 'OLD-GEN-BATT-9900', timestamp: '2024-05-08 11:00:00', stage: 'REGISTERED', rootCause: 'Water Damage', notes: 'Ticket registered. Old gen battery unit received with moisture exposure.', engineer: 'Ramesh K.' },
       { id: 'LOG-C1006-2', nodeId: 'C-1006', serial: 'OLD-GEN-BATT-9900', timestamp: '2024-05-11 14:20:00', stage: 'CLOSED', rootCause: 'Water Damage', notes: 'Enclosure seal replaced, circuitry dried and stress-tested. Case resolved.', engineer: 'Ramesh K.' },
-      { id: 'LOG-C1001-1', nodeId: 'C-1001', serial: 'AESPL  EV  28G26001044', timestamp: '2024-05-10 09:15:00', stage: 'UNDER_INSPECTION', rootCause: 'BMS Failure', notes: 'Initial inspection. Low battery range reported by client.', engineer: 'Suresh P.' },
-      { id: 'LOG-C1001-2', nodeId: 'C-1001', serial: 'AESPL  EV  28G26001044', timestamp: '2024-05-14 16:45:00', stage: 'CLOSED', rootCause: 'BMS Failure', notes: 'BMS firmware updated and recalibrated. Performance verified.', engineer: 'Suresh P.' },
-      { id: 'LOG-C1002-1', nodeId: 'C-1002', serial: 'AESPL  EV  28G26001045', timestamp: '2024-05-15 10:30:00', stage: 'REGISTERED', rootCause: 'Dead on Arrival', notes: 'Unit received at service depot. Awaiting technician assignment.', engineer: 'Unassigned' },
-      { id: 'LOG-C1004-1', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26001049', timestamp: '2026-06-16 14:32:00', stage: 'UNDER_INSPECTION', rootCause: 'Cell Failure', notes: 'Initial scrutiny. Detected swelling on anode module layer.', engineer: 'Suresh P.' },
-      { id: 'LOG-C1004-2', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26001049', timestamp: '2026-06-17 09:12:15', stage: 'READY_FOR_DISPATCH', rootCause: 'Cell Failure', notes: 'Aging cells. Replaced cell pack layer and confirmed capacity safety margins.', engineer: 'Suresh P.' },
-      { id: 'LOG-C1005-1', nodeId: 'C-1005', serial: 'AESPL  INV  28G26001050', timestamp: '2026-06-16 11:20:44', stage: 'REPAIR_STARTED', rootCause: 'BMS Failure', notes: 'Thermal compound degradation causing heat build up. Fan controller bypassed.', engineer: 'Anita D.' },
-      { id: 'LOG-C1003-1', nodeId: 'C-1003', serial: 'AESPL  EV  28G26001046', timestamp: '2026-06-17 08:30:10', stage: 'UNDER_INSPECTION', rootCause: 'Voltage Drop', notes: 'Resistance balancing audit underway.', engineer: 'Ramesh K.' }
+      { id: 'LOG-C1001-1', nodeId: 'C-1001', serial: 'AESPL  EV  28G26000001', timestamp: '2024-05-10 09:15:00', stage: 'UNDER_INSPECTION', rootCause: 'BMS Failure', notes: 'Initial inspection. Low battery range reported by client.', engineer: 'Suresh P.' },
+      { id: 'LOG-C1001-2', nodeId: 'C-1001', serial: 'AESPL  EV  28G26000001', timestamp: '2024-05-14 16:45:00', stage: 'CLOSED', rootCause: 'BMS Failure', notes: 'BMS firmware updated and recalibrated. Performance verified.', engineer: 'Suresh P.' },
+      { id: 'LOG-C1002-1', nodeId: 'C-1002', serial: 'AESPL  EV  28G26000002', timestamp: '2024-05-15 10:30:00', stage: 'REGISTERED', rootCause: 'Dead on Arrival', notes: 'Unit received at service depot. Awaiting technician assignment.', engineer: 'Unassigned' },
+      { id: 'LOG-C1004-1', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26000001', timestamp: '2026-06-16 14:32:00', stage: 'UNDER_INSPECTION', rootCause: 'Cell Failure', notes: 'Initial scrutiny. Detected swelling on anode module layer.', engineer: 'Suresh P.' },
+      { id: 'LOG-C1004-2', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26000001', timestamp: '2026-06-17 09:12:15', stage: 'READY_FOR_DISPATCH', rootCause: 'Cell Failure', notes: 'Aging cells. Replaced cell pack layer and confirmed capacity safety margins.', engineer: 'Suresh P.' },
+      { id: 'LOG-C1005-1', nodeId: 'C-1005', serial: 'AESPL  INV  28G26000001', timestamp: '2026-06-16 11:20:44', stage: 'REPAIR_STARTED', rootCause: 'BMS Failure', notes: 'Thermal compound degradation causing heat build up. Fan controller bypassed.', engineer: 'Anita D.' },
+      { id: 'LOG-C1003-1', nodeId: 'C-1003', serial: 'AESPL  EV  28G26000003', timestamp: '2026-06-17 08:30:10', stage: 'UNDER_INSPECTION', rootCause: 'Voltage Drop', notes: 'Resistance balancing audit underway.', engineer: 'Ramesh K.' }
     ],
     vyaparRecords: [
       { id: 'PAY-1001', type: 'Payment-In', partyId: 'l1', partyName: 'Green Motors Ahmedabad', date: '2026-06-08', amount: 120000, mode: 'UPI', status: 'PAID', remarks: 'Voucher payment for battery order' },
@@ -3909,11 +4230,12 @@ async function startServer() {
 
     // Generate finished goods
     const serials = [];
+    const startSeq = getNextSerialSequenceForModel(plan.modelId, db.finishedGoods);
     for (let i = 0; i < plan.qty; i++) {
-        const serial = generateBatterySerial(plan.modelId, 1000 + i + 1);
+        const serial = generateModelSpecificSerial(plan.modelId, startSeq + i);
         serials.push(serial);
         db.finishedGoods.push({
-            id: `fg-${Date.now()}-${i}`,
+            id: generateUniqueTransactionId('FINISHED_GOOD'),
             model: plan.modelId,
             serial,
             batch: `BATCH-${plan.id}`,
@@ -3938,8 +4260,8 @@ async function startServer() {
   });
 
   app.post("/api/invoices", (req, res) => {
-    const { dealerId, items, total, tax, discount, freightCharge, packagingCharge, paymentTerms, paymentMode, biller } = req.body;
-    const invId = `INV-${1000 + db.invoices.length + 1}`;
+    const { dealerId, items, total, tax, discount, freightCharge, packagingCharge, paymentTerms, paymentMode, biller, voucher_no } = req.body;
+    const invId = req.body.id || voucher_no || generateUniqueTransactionId('SALES_INVOICE');
     
     // Find Dealer for Regional Analysis
     const dealer = db.dealers.find(d => d.id === dealerId || d.company === dealerId);
@@ -3947,10 +4269,15 @@ async function startServer() {
     const invoice = {
       id: invId,
       voucher_no: invId,
+      invoiceNumber: invId,
+      eWayBill: req.body.eWayBill || (Number(total || 0) > 50000 ? generateUniqueTransactionId('EWAY_BILL') : undefined),
       date: new Date().toISOString().split('T')[0],
       dealerId: dealer ? dealer.id : dealerId,
       partyName: dealer ? dealer.company : (dealerId || 'Walk-In Customer'),
-      items: items || [],
+      items: (items || []).map((item: any) => ({
+        ...item,
+        serials: (item.serials || []).map((s: string) => normalizeToRevisedSerial(s, item.model || 'EV'))
+      })),
       goods: items || [],
       subtotal: Math.max(0, (total || 0) - (tax || 0)),
       discount: discount || 0,
@@ -3973,7 +4300,6 @@ async function startServer() {
     // Update Dealer Stats
     if (dealer) {
         dealer.rankingScore = Math.min(100, (dealer.rankingScore || 50) + 1);
-        // Add more logic here for growth etc.
     }
 
     // Trigger Notification: New Sale
@@ -3988,21 +4314,31 @@ async function startServer() {
     });
 
     // Process each item to update stock and activate warranty
-    items.forEach((item: any) => {
-      item.serials.forEach((serial: string) => {
+    (invoice.items || []).forEach((item: any) => {
+      (item.serials || []).forEach((rawSerial: string) => {
+        const serial = normalizeToRevisedSerial(rawSerial, item.model || 'EV');
         // 1. Update Finished Goods Status
-        const fgItem = db.finishedGoods.find(fg => fg.serial === serial);
-        if (fgItem) fgItem.status = "SOLD";
+        const fgItem = db.finishedGoods.find(fg => fg.serial.toLowerCase() === serial.toLowerCase() || fg.serial.replace(/\s+/g, '') === serial.replace(/\s+/g, ''));
+        if (fgItem) {
+          fgItem.status = "SOLD";
+          (fgItem as any).dealerName = invoice.partyName;
+          (fgItem as any).soldDate = invoice.date;
+        }
 
         // 2. Activate Warranty
-        db.warranty.push({
-          id: `W-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        (db.warranty as any[]).push({
+          id: generateUniqueTransactionId('WARRANTY_REGISTRATION'),
           serial,
           dealerId: dealer ? dealer.id : dealerId,
+          dealerName: invoice.partyName,
           startDate: invoice.date,
           durationMonths: 36, // Default 3 years
           status: "ACTIVE",
-          history: []
+          history: [{
+            date: invoice.date,
+            type: "WARRANTY_ACTIVATED",
+            description: `Sold under Invoice ${invId} to ${invoice.partyName}`
+          }]
         });
       });
     });
@@ -4118,7 +4454,7 @@ async function startServer() {
       if (typeof acceptedQty !== 'undefined') item.acceptedQty = Number(acceptedQty);
       if (typeof damagedQty !== 'undefined') item.damagedQty = Number(damagedQty);
     } else {
-      const safeId = id || ("RM-" + (name || Date.now().toString()).toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 15));
+      const safeId = id || generateUniqueTransactionId('RAW_MATERIAL');
       item = {
         id: safeId,
         name: name || 'Material Item',
@@ -4133,14 +4469,14 @@ async function startServer() {
         reorderLevel: Number(reorderLevel || 250),
         warehouse: warehouse || "Raw Hub",
         rack: rack || "A1",
-        grn: grn || `GRN-${Math.floor(1000 + Math.random() * 9000)}`,
+        grn: grn || generateUniqueTransactionId('MATERIAL_RECEIPT'),
         date: new Date().toISOString().split('T')[0],
         price: Number(price || 0),
         unit: unit || "Kg",
         qcStatus: qcStatus || "APPROVED",
-        challanNo: challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        challanNo: challanNo || generateUniqueTransactionId('DELIVERY_CHALLAN'),
         vehicleNo: vehicleNo || "GJ-01-AB-1234",
-        eWayBill: eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        eWayBill: eWayBill || generateUniqueTransactionId('EWAY_BILL'),
         exciseSlip: exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
         acceptedQty: Number(acceptedQty || qty || 0),
         damagedQty: Number(damagedQty || 0)
@@ -4188,10 +4524,10 @@ async function startServer() {
         return res.status(404).json({ error: "Inventory item template not found" });
       }
     } else {
-      const safeId = "RM-" + (name || Date.now().toString()).toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 15);
+      const safeId = req.body.id || generateUniqueTransactionId('RAW_MATERIAL');
       item = {
         id: safeId,
-        name,
+        name: name || 'Material Item',
         code: code || `CD-${Math.floor(100 + Math.random() * 900)}`,
         category: category || "RAW_MATERIAL",
         supplier: supplier || "Generic Supplier",
@@ -4203,14 +4539,14 @@ async function startServer() {
         reorderLevel: Number(reorderLevel || 250),
         warehouse: warehouse || "Raw Hub",
         rack: rack || "A1",
-        grn: grn || `GRN-${Math.floor(1000 + Math.random() * 9000)}`,
+        grn: grn || generateUniqueTransactionId('MATERIAL_RECEIPT'),
         date: new Date().toISOString().split('T')[0],
         price: Number(price || 0),
         unit: unit || "Kg",
-        qcStatus: "APPROVED",
-        challanNo: challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        qcStatus: qcStatus || "APPROVED",
+        challanNo: challanNo || generateUniqueTransactionId('DELIVERY_CHALLAN'),
         vehicleNo: vehicleNo || "GJ-01-AB-1234",
-        eWayBill: eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        eWayBill: eWayBill || generateUniqueTransactionId('EWAY_BILL'),
         exciseSlip: exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
         acceptedQty: Number(acceptedQty || qty || 0),
         damagedQty: Number(damagedQty || 0)
@@ -4244,14 +4580,15 @@ async function startServer() {
 
   app.post("/api/purchase-orders", (req, res) => {
     const { materialId, materialName, category, vendor, vendorContact, qty, unit, unitCost, estimatedDelivery, remarks, trackingNumber, raisedByRole, isStoreKeeperRaised, status } = req.body;
-    const poId = `PO-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`;
+    const poId = req.body.id || req.body.poNumber || generateUniqueTransactionId('PURCHASE_ORDER');
     
     const isSk = raisedByRole === 'STORE_KEEPER' || isStoreKeeperRaised || status === 'Pending Admin Approval';
     const poStatus = isSk ? "Pending Admin Approval" : (status || "Pending Supplier Confirmation");
 
     const newPO = {
       id: poId,
-      materialId: materialId || `RM-${Date.now()}`,
+      poNumber: poId,
+      materialId: materialId || generateUniqueTransactionId('RAW_MATERIAL'),
       materialName: materialName || "Raw Material",
       category: category || "RAW_MATERIAL",
       vendor: vendor || (isSk ? "Awaiting Admin Supplier Order" : "Arcenol Supply Partner"),
@@ -4374,19 +4711,17 @@ async function startServer() {
       return res.status(400).json({ error: "Invalid data format. Expected 'items' array." });
     }
 
+    const { sanitized, skipped } = normalizeUploadedBatch(items, 'RAW_MATERIAL');
     const added: any[] = [];
 
-    items.forEach((item: any) => {
+    sanitized.forEach((item: any) => {
       const name = String(item.name || "").trim();
       if (!name) return;
 
-      const code = String(item.code || "").trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`;
-      const safeId = "RM-" + name.toUpperCase().replace(/[^A-Z0-9]/g, '-').substring(0, 15) + "-" + Math.floor(Math.random() * 100000);
-
       const newItem = {
-        id: safeId,
+        id: item.id || generateUniqueTransactionId('RAW_MATERIAL'),
         name,
-        code,
+        code: item.code || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
         category: item.category || "Cells",
         supplier: item.supplier || "Generic Supplier",
         batch: item.batch || "BATCH-01",
@@ -4397,14 +4732,14 @@ async function startServer() {
         reorderLevel: Number(item.reorderLevel || 250),
         warehouse: item.warehouse || "Raw Hub",
         rack: item.rack || "A-1",
-        grn: item.grn || `GRN-${Math.floor(1000 + Math.random() * 9000)}`,
+        grn: item.grn || generateUniqueTransactionId('MATERIAL_RECEIPT'),
         date: item.date || new Date().toISOString().split('T')[0],
         price: Number(item.price || 0),
         unit: item.unit || "Pcs",
         qcStatus: item.qcStatus || "APPROVED",
-        challanNo: item.challanNo || `CH-${Math.floor(1000 + Math.random() * 9000)}`,
+        challanNo: item.challanNo || generateUniqueTransactionId('DELIVERY_CHALLAN'),
         vehicleNo: item.vehicleNo || "GJ-01-AB-1234",
-        eWayBill: item.eWayBill || `EWB-${Math.floor(100000 + Math.random() * 900000)}`,
+        eWayBill: item.eWayBill || generateUniqueTransactionId('EWAY_BILL'),
         exciseSlip: item.exciseSlip || `EXC-${Math.floor(1000 + Math.random() * 9000)}`,
         acceptedQty: Number(item.acceptedQty || item.qty || 0),
         damagedQty: Number(item.damagedQty || 0)
@@ -4419,7 +4754,7 @@ async function startServer() {
         id: `rm-bulk-notif-${Date.now()}`,
         type: "ENGAGEMENT",
         title: `Bulk Imported ${added.length} Raw Materials`,
-        message: `Successfully registered ${added.length} old/historic raw material records into inventory ledger.`,
+        message: `Successfully registered ${added.length} old/historic raw material records with standard unique transaction IDs into inventory ledger.`,
         date: new Date().toISOString(),
         status: "UNREAD",
         channel: "SYSTEM"
@@ -4429,7 +4764,7 @@ async function startServer() {
       batchUpsert('inventory', added.map(mapInventory)).catch(err => console.warn("Supabase bulk inventory sync warning:", err));
     }
 
-    res.json({ addedCount: added.length, items: added });
+    res.json({ addedCount: added.length, skippedCount: skipped.length, items: added, skipped });
   });
 
   app.post("/api/inventory/bulk-reorder", (req, res) => {
@@ -4443,16 +4778,17 @@ async function startServer() {
 
     const isSk = raisedByRole === 'STORE_KEEPER' || isStoreKeeperRaised !== false;
 
-    orders.forEach((ord: any, idx: number) => {
+    orders.forEach((ord: any) => {
       const item = db.inventory.find(i => i.id === ord.id);
       const qtyToReorder = Number(ord.reorderQty || 10);
 
       if (isSk) {
         // Create PO pending Admin approval
-        const poId = `PO-SK-${Date.now()}-${idx + 1}`;
+        const poId = generateUniqueTransactionId('PURCHASE_ORDER');
         const newPO = {
           id: poId,
-          materialId: ord.id,
+          poNumber: poId,
+          materialId: ord.id || generateUniqueTransactionId('RAW_MATERIAL'),
           materialName: item?.name || ord.name || "Raw Material Component",
           category: item?.category || "RAW_MATERIAL",
           vendor: item?.supplier || "Awaiting Admin Supplier Assignment",
@@ -4542,13 +4878,14 @@ async function startServer() {
       : baseAmt * ((cgst + sgst) / 100);
     const totalVal = baseAmt + taxAmt;
 
+    const gateId = entry.id || generateUniqueTransactionId('GATE_INWARD');
     const newGateEntry = {
-      id: `GATE-2026-${Math.floor(100 + Math.random() * 900)}`,
-      gatePassNo: entry.gatePassNo || `GP-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: gateId,
+      gatePassNo: entry.gatePassNo || generateUniqueTransactionId('GATE_PASS'),
       poNumber: entry.poNumber || "DIRECT-GATE-INWARD",
       supplier: entry.supplier || "Vendor Inward",
       materialName: entry.materialName || "Raw Inward Lot",
-      challanNo: entry.challanNo || "CH-PENDING",
+      challanNo: entry.challanNo || generateUniqueTransactionId('DELIVERY_CHALLAN'),
       invoiceNo: entry.invoiceNo || "INV-PENDING",
       vehicleNo: entry.vehicleNo || "N/A",
       driverName: entry.driverName || "Driver Unspecified",
@@ -4556,7 +4893,7 @@ async function startServer() {
       grossWeight: gross,
       tareWeight: tare,
       netWeight: net,
-      weighbridgeSlipNo: entry.weighbridgeSlipNo || "WB-PENDING",
+      weighbridgeSlipNo: entry.weighbridgeSlipNo || generateUniqueTransactionId('MATERIAL_RECEIPT'),
       weighbridgeSlipImg: entry.weighbridgeSlipImg || null,
       mtcCertificateNo: entry.mtcCertificateNo || "MTC-PENDING",
       mtcAttachment: entry.mtcAttachment || null,
@@ -4612,7 +4949,7 @@ async function startServer() {
     if (!db.stockAudits) db.stockAudits = [];
 
     const newAudit = {
-      id: `AUDIT-2026-${Math.floor(100 + Math.random() * 900)}`,
+      id: auditData.id || generateUniqueTransactionId('STOCK_AUDIT'),
       auditDate: auditData.auditDate || new Date().toISOString().split('T')[0],
       warehouse: auditData.warehouse || "Raw Hub",
       auditorName: auditData.auditorName || "Store Auditor",
@@ -4705,8 +5042,9 @@ async function startServer() {
     const trn = req.body;
     if (!db.warehouseTransfers) db.warehouseTransfers = [];
 
+    const transferId = trn.id || generateUniqueTransactionId('STOCK_TRANSFER');
     const newTransfer = {
-      id: `TRN-2026-${Math.floor(100 + Math.random() * 900)}`,
+      id: transferId,
       transferDate: trn.transferDate || new Date().toISOString().split('T')[0],
       sourceWarehouse: trn.sourceWarehouse || "Raw Hub",
       destWarehouse: trn.destWarehouse || "Ahmedabad Warehouse",
@@ -4717,7 +5055,7 @@ async function startServer() {
       transporterName: trn.transporterName || "Internal Logistics",
       driverPhone: trn.driverPhone || "+91 98765 00000",
       vehicleRegNo: trn.vehicleRegNo || "GJ-01-XX-0000",
-      eWayBillNo: trn.eWayBillNo || "EWB-PENDING",
+      eWayBillNo: trn.eWayBillNo || generateUniqueTransactionId('EWAY_BILL'),
       sealNumber: trn.sealNumber || `SEAL-${Math.floor(100000 + Math.random() * 900000)}`,
       status: "DISPATCHED_IN_TRANSIT",
       dispatchedBy: trn.dispatchedBy || "Store Keeper"
@@ -4767,8 +5105,9 @@ async function startServer() {
     const batch = req.body;
     if (!db.cellGradingBatches) db.cellGradingBatches = [];
 
+    const batchId = batch.id || generateUniqueTransactionId('CELL_GRADING');
     const newBatch = {
-      id: `CGB-2026-${Math.floor(100 + Math.random() * 900)}`,
+      id: batchId,
       batchCode: batch.batchCode || `LOT-${Date.now().toString().slice(-6)}`,
       supplierLotNo: batch.supplierLotNo || "CATL-LOT-001",
       totalCellsTested: Number(batch.totalCellsTested || 0),
@@ -4807,9 +5146,10 @@ async function startServer() {
     const eol = req.body;
     if (!db.eolCertificates) db.eolCertificates = [];
 
+    const normSerial = normalizeToRevisedSerial(eol.serialNumber || "AESPL EV UNKNOWN", eol.packModel || 'EV');
     const newCert = {
-      id: `EOL-2026-${Math.floor(100 + Math.random() * 900)}`,
-      serialNumber: eol.serialNumber || "AESPL EV UNKNOWN",
+      id: eol.id || generateUniqueTransactionId('EOL_CERTIFICATE'),
+      serialNumber: normSerial,
       packModel: eol.packModel || "72V30A",
       hiPotInsulationResistanceMOm: Number(eol.hiPotInsulationResistanceMOm || 500),
       dielectricBreakdownTest: eol.dielectricBreakdownTest || "PASS (1500V AC 1 min)",
@@ -4822,13 +5162,13 @@ async function startServer() {
       testBenchId: eol.testBenchId || "TB-01-HV",
       testTimestamp: new Date().toLocaleString(),
       certificateStatus: "PASSED_CERTIFIED",
-      attachmentReport: `EOL_TEST_REPORT_${(eol.serialNumber || '').replace(/[^A-Z0-9]/gi, '')}.pdf`
+      attachmentReport: `EOL_TEST_REPORT_${normSerial.replace(/[^A-Z0-9]/gi, '')}.pdf`
     };
 
     db.eolCertificates.unshift(newCert);
 
     // Also update finished goods status if matching serial found
-    const fgItem = db.finishedGoods.find((f: any) => f.serial === newCert.serialNumber);
+    const fgItem = db.finishedGoods.find((f: any) => f.serial.toLowerCase() === normSerial.toLowerCase() || f.serial.replace(/\s+/g, '') === normSerial.replace(/\s+/g, ''));
     if (fgItem) {
       fgItem.status = "QC_PASSED_CERTIFIED";
       (fgItem as any).eolCertId = newCert.id;
@@ -4847,7 +5187,7 @@ async function startServer() {
     if (!db.scrapLogs) db.scrapLogs = [];
 
     const newScrap = {
-      id: `SCRAP-2026-${Math.floor(100 + Math.random() * 900)}`,
+      id: scrap.id || generateUniqueTransactionId('SCRAP_LOG'),
       machineId: scrap.machineId || "SPOT_WELDER_01",
       machineName: scrap.machineName || "Pneumatic Spot Welder #1",
       shift: scrap.shift || "Shift A",
@@ -4892,27 +5232,31 @@ async function startServer() {
     const totalGst = Number(inv.totalGst || (totalSubtotal * (gstRate / 100)));
     const grandTotal = totalSubtotal + totalGst;
 
+    const invId = inv.id || generateUniqueTransactionId('SALES_INVOICE');
     const newInvoice = {
-      id: `INV-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: invId,
       dealerId: inv.dealerId || "D-101",
       partyName: inv.partyName || inv.dealerName || "Green Motors Ahmedabad",
       gstin: inv.gstin || "24AAACG1234A1Z5",
       invoiceDate: inv.invoiceDate || new Date().toISOString().split('T')[0],
-      eWayBillNo: inv.eWayBillNo || `EWB-2026-${Math.floor(100000 + Math.random() * 900000)}`,
+      eWayBillNo: inv.eWayBillNo || generateUniqueTransactionId('EWAY_BILL'),
       subtotal: totalSubtotal,
       gstRate: gstRate,
       totalGst: totalGst,
       grandTotal: grandTotal,
       paymentStatus: inv.paymentStatus || "CREDIT_PENDING",
       creditDaysAllowed: Number(inv.creditDaysAllowed || 30),
-      items: inv.items || [
+      items: (inv.items || [
         {
           model: inv.model || "72V30A High Efficiency Pack",
           qty: Number(inv.qty || 1),
           unitPrice: Number(inv.unitPrice || 35000),
-          serials: inv.serials || ["AESPL EV 28G26001044"]
+          serials: inv.serials || ["AESPL EV 28G26000001"]
         }
-      ],
+      ]).map((it: any) => ({
+        ...it,
+        serials: (it.serials || []).map((s: string) => normalizeToRevisedSerial(s, it.model || 'EV'))
+      })),
       remarks: inv.remarks || "Commercial Sales Dispatch Order"
     };
 
@@ -4923,7 +5267,7 @@ async function startServer() {
       newInvoice.items.forEach((it: any) => {
         if (Array.isArray(it.serials)) {
           it.serials.forEach((s: string) => {
-            const fg = (db as any).finishedGoods?.find((f: any) => f.serial === s);
+            const fg = (db as any).finishedGoods?.find((f: any) => f.serial.toLowerCase() === s.toLowerCase() || f.serial.replace(/\s+/g, '') === s.replace(/\s+/g, ''));
             if (fg) {
               fg.status = "SOLD";
               fg.dealerName = newInvoice.partyName;
@@ -4946,9 +5290,10 @@ async function startServer() {
     const reg = req.body;
     (db as any).endUserRegistrations = (db as any).endUserRegistrations || [];
 
+    const normSerial = normalizeToRevisedSerial(reg.serialNumber || "AESPL EV UNKNOWN", reg.vehicleModel || 'EV');
     const registration = {
-      id: `WREG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      serialNumber: reg.serialNumber,
+      id: reg.id || generateUniqueTransactionId('WARRANTY_REGISTRATION'),
+      serialNumber: normSerial,
       customerName: reg.customerName,
       customerPhone: reg.customerPhone,
       vehicleRegNo: reg.vehicleRegNo || "GJ-01-EV-8821",
@@ -4963,7 +5308,7 @@ async function startServer() {
     (db as any).endUserRegistrations.unshift(registration);
 
     // Update or insert into db.warranty
-    const existingIndex = db.warranty.findIndex((w: any) => w.serial === registration.serialNumber);
+    const existingIndex = db.warranty.findIndex((w: any) => w.serial.toLowerCase() === normSerial.toLowerCase() || w.serial.replace(/\s+/g, '') === normSerial.replace(/\s+/g, ''));
     if (existingIndex !== -1) {
       (db.warranty[existingIndex] as any).status = "ACTIVE";
       (db.warranty[existingIndex] as any).customerName = registration.customerName;
@@ -4972,8 +5317,8 @@ async function startServer() {
       (db.warranty[existingIndex] as any).startDate = registration.registrationDate;
     } else {
       (db.warranty as any[]).unshift({
-        id: `W-${Math.floor(100 + Math.random() * 900)}`,
-        serial: registration.serialNumber,
+        id: generateUniqueTransactionId('WARRANTY_REGISTRATION'),
+        serial: normSerial,
         dealerId: registration.dealerCode,
         dealerName: "Partner Dealer",
         customerName: registration.customerName,
@@ -4999,6 +5344,7 @@ async function startServer() {
     const log = req.body;
     (db as any).telematicsLogs = (db as any).telematicsLogs || [];
 
+    const normSerial = normalizeToRevisedSerial(log.serialNumber || "AESPL EV UNKNOWN");
     const soh = Number(log.sohPercent || 98.5);
     let healthRating = "EXCELLENT";
     if (soh < 70) healthRating = "CRITICAL_FAULT";
@@ -5006,8 +5352,8 @@ async function startServer() {
     else if (soh < 92) healthRating = "GOOD";
 
     const diagEntry = {
-      id: `DIAG-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      serialNumber: log.serialNumber,
+      id: log.id || generateUniqueTransactionId('TELEMATICS_LOG'),
+      serialNumber: normSerial,
       sohPercent: soh,
       socPercent: Number(log.socPercent || 85),
       maxCellTempCelsius: Number(log.maxCellTempCelsius || 34.2),
@@ -5033,24 +5379,26 @@ async function startServer() {
     const claim = req.body;
     (db as any).rmaClaims = (db as any).rmaClaims || [];
 
+    const normSerial = normalizeToRevisedSerial(claim.serialNumber || "AESPL EV UNKNOWN");
     // RMA Automated Recommendation Engine
     const soh = Number(claim.currentSohPercent || 90);
     let rec = "CELL_SWAP_REPAIR";
     if (soh < 70) rec = "FULL_PACK_REPLACEMENT";
     if (claim.isOutofWarranty) rec = "OUT_OF_WARRANTY_CHARGEABLE";
 
+    const rmaId = claim.id || generateUniqueTransactionId('RMA_CLAIM');
     const rma = {
-      id: `RMA-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-      serialNumber: claim.serialNumber,
+      id: rmaId,
+      serialNumber: normSerial,
       dealerId: claim.dealerId || "D-101",
       dealerName: claim.dealerName || "Green Motors Ahmedabad",
       defectSymptom: claim.defectSymptom || "BMS Over-Temp Trip",
       bmsFaultCode: claim.bmsFaultCode || "BMS-E04",
       currentSohPercent: soh,
       recommendedAction: rec,
-      replacementSerialAllocated: claim.replacementSerialAllocated || (rec === "FULL_PACK_REPLACEMENT" ? `AESPL EV 28G2600${Math.floor(1000 + Math.random() * 9000)}` : "N/A"),
+      replacementSerialAllocated: claim.replacementSerialAllocated || (rec === "FULL_PACK_REPLACEMENT" ? generateModelSpecificSerial("72V30A", getNextSerialSequenceForModel("72V30A", db.finishedGoods || [])) : "N/A"),
       dealerCreditNoteAmount: Number(claim.dealerCreditNoteAmount || (rec === "FULL_PACK_REPLACEMENT" ? 35000 : 2500)),
-      creditNoteNo: `CN-2026-${Math.floor(100 + Math.random() * 900)}`,
+      creditNoteNo: claim.creditNoteNo || generateUniqueTransactionId('CREDIT_NOTE'),
       claimDate: new Date().toISOString().split('T')[0],
       status: "UNDER_REVIEW",
       technicianRemarks: claim.technicianRemarks || "Awaiting RMA evaluation"
@@ -5202,8 +5550,8 @@ async function startServer() {
 
     // Yield rates: Li ~12%, Co ~20%, Ni ~35%, Mn ~10% of Black Mass
     const newRecord = {
-      id: `EPR-2026-${Math.floor(100 + Math.random() * 900)}`,
-      batchNo: entry.batchNo || `REC-BATCH-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: entry.id || generateUniqueTransactionId('EPR_RECORD'),
+      batchNo: entry.batchNo || generateUniqueTransactionId('PRODUCTION_BATCH'),
       decommissionedPacksCount: packCount,
       totalWeightKg: totalWeightKg,
       blackMassRecoveredKg: blackMassKg,
@@ -5432,17 +5780,18 @@ async function startServer() {
     const serials = [];
     const batch = `BATCH-${new Date().toISOString().slice(0, 10)}`;
     
-    // Generate serials and add to finished goods
+    // Generate serials starting afresh for each product type/model
+    const startSeq = getNextSerialSequenceForModel(model, db.finishedGoods);
     for (let i = 0; i < qty; i++) {
-      const serial = generateBatterySerial(model, 1000 + i + 1);
+      const serial = generateModelSpecificSerial(model, startSeq + i);
       serials.push(serial);
       db.finishedGoods.push({
-        id: `fg-${Date.now()}-${i}`,
+        id: generateUniqueTransactionId('FINISHED_GOOD'),
         model,
         serial,
         batch,
-        warehouse,
-        rack,
+        warehouse: warehouse || "Main Warehouse",
+        rack: rack || "A1",
         date: new Date().toISOString().split('T')[0],
         status: "READY"
       });
@@ -5450,7 +5799,7 @@ async function startServer() {
 
     // Record in history
     db.productionHistory.push({
-      id: `ph-${Date.now()}`,
+      id: generateUniqueTransactionId('PRODUCTION_BATCH'),
       model,
       qty,
       serials,
@@ -5479,9 +5828,10 @@ async function startServer() {
       return res.status(400).json({ error: "No leads provided" });
     }
 
+    const { sanitized } = normalizeUploadedBatch(leadsToImport, 'CRM_LEAD');
     const processedLeads = [];
-    for (const item of leadsToImport) {
-      const leadId = item.id || `lead-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    for (const item of sanitized) {
+      const leadId = item.id || generateUniqueTransactionId('CRM_LEAD');
       const leadObj = {
         id: String(leadId),
         company: item.company || 'Unnamed Lead',
@@ -5521,7 +5871,7 @@ async function startServer() {
   });
 
   app.post("/api/leads", (req, res) => {
-    const lead = { id: Date.now().toString(), status: 'NEW', ...req.body };
+    const lead = { id: req.body.id || generateUniqueTransactionId('CRM_LEAD'), status: 'NEW', ...req.body };
     db.leads.push(lead);
 
     // Trigger Lead Notification
@@ -6045,26 +6395,30 @@ async function startServer() {
       return res.status(400).json({ error: "Invalid data format. Expected 'items' array." });
     }
 
+    const { sanitized } = normalizeUploadedBatch(items, 'FINISHED_GOOD');
     const added: any[] = [];
     const skipped: any[] = [];
 
-    items.forEach((item: any) => {
-      const serial = String(item.serial || "").trim();
-      if (!serial) {
+    sanitized.forEach((item: any) => {
+      const model = item.model || "72V30A";
+      const rawSerial = String(item.serial || "").trim();
+      if (!rawSerial) {
         skipped.push({ ...item, reason: "Empty serial number" });
         return;
       }
 
+      const serial = normalizeToRevisedSerial(rawSerial, model);
+
       // Check for duplicate serials
-      const exists = db.finishedGoods.some(fg => fg.serial.toLowerCase() === serial.toLowerCase());
+      const exists = db.finishedGoods.some(fg => fg.serial.toLowerCase() === serial.toLowerCase() || fg.serial.replace(/\s+/g, '') === serial.replace(/\s+/g, ''));
       if (exists) {
-        skipped.push({ ...item, reason: "Duplicate Serial ID in database" });
+        skipped.push({ ...item, serial, reason: "Duplicate Serial ID in database" });
         return;
       }
 
       const newItem = {
-        id: `fg-bulk-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
-        model: item.model || "72V30A",
+        id: item.id || generateUniqueTransactionId('FINISHED_GOOD'),
+        model,
         serial,
         batch: item.batch || "BULK-IMPORT",
         warehouse: item.warehouse || "Main Warehouse",
@@ -6083,7 +6437,7 @@ async function startServer() {
         id: `fg-bulk-notif-${Date.now()}`,
         type: "ENGAGEMENT",
         title: `Bulk Imported ${added.length} Battery Serials`,
-        message: `Successfully registered ${added.length} old/historic battery serial numbers into active matrix.`,
+        message: `Successfully registered ${added.length} battery serial numbers with standardized numbering format into active matrix.`,
         date: new Date().toISOString(),
         status: "UNREAD",
         channel: "SYSTEM"
@@ -6096,25 +6450,40 @@ async function startServer() {
   // Custom Synced State Routes for multi-device live sync
   app.post("/api/warranty-checks", (req, res) => {
     (db as any).warrantyChecks = (db as any).warrantyChecks || [];
-    (db as any).warrantyChecks.unshift(req.body);
+    const checkItem = {
+      id: req.body.id || generateUniqueTransactionId('WARRANTY_REGISTRATION'),
+      ...req.body,
+      serial: req.body.serial ? normalizeToRevisedSerial(req.body.serial) : req.body.serial
+    };
+    (db as any).warrantyChecks.unshift(checkItem);
     res.json((db as any).warrantyChecks);
   });
 
   app.post("/api/diagnostic-logs", (req, res) => {
     (db as any).diagnosticLogs = (db as any).diagnosticLogs || [];
-    (db as any).diagnosticLogs.unshift(req.body);
+    const logItem = {
+      id: req.body.id || generateUniqueTransactionId('TELEMATICS_LOG'),
+      ...req.body,
+      serialNumber: req.body.serialNumber ? normalizeToRevisedSerial(req.body.serialNumber) : req.body.serialNumber
+    };
+    (db as any).diagnosticLogs.unshift(logItem);
     res.json((db as any).diagnosticLogs);
   });
 
   app.post("/api/vyapar-records", (req, res) => {
     (db as any).vyaparRecords = (db as any).vyaparRecords || [];
-    (db as any).vyaparRecords.unshift(req.body);
+    const recordId = req.body.id || generateUniqueTransactionId('PAYMENT_VOUCHER');
+    const record = {
+      ...req.body,
+      id: recordId
+    };
+    (db as any).vyaparRecords.unshift(record);
     
     // Maintain db.vouchers
     (db as any).vouchers = (db as any).vouchers || [];
     const vObj = {
-      id: req.body.id,
-      voucherType: req.body.type,
+      id: recordId,
+      voucherType: req.body.type || 'RECEIPT',
       partyName: req.body.partyName,
       category: req.body.category || 'General',
       amount: req.body.amount,
@@ -6126,7 +6495,7 @@ async function startServer() {
     (db as any).vouchers.unshift(vObj);
 
     // Sync to Supabase
-    batchUpsert('accounting_vouchers', [mapVoucher(req.body)]).catch(err => console.warn("Supabase voucher sync warning:", err));
+    batchUpsert('accounting_vouchers', [mapVoucher(record)]).catch(err => console.warn("Supabase voucher sync warning:", err));
 
     res.json((db as any).vyaparRecords);
   });
@@ -6650,8 +7019,8 @@ async function startServer() {
       ];
     } else if (section === 'complaints') {
       (db as any).complaints = [
-        { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P." },
-        { id: "C-1002", serial: "AESPL  EV  28G26001045", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: new Date().toISOString().split('T')[0], resolvedDate: "", notes: "Unit awaiting technician assignment.", engineer: "Unassigned" }
+        { id: "C-1001", serial: "AESPL  EV  28G26000001", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P." },
+        { id: "C-1002", serial: "AESPL  EV  28G26000002", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: new Date().toISOString().split('T')[0], resolvedDate: "", notes: "Unit awaiting technician assignment.", engineer: "Unassigned" }
       ];
     } else if (section === 'stockAudits') {
       (db as any).stockAudits = [

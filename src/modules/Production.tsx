@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { generateBatterySerial, FormattedSerial } from "../lib/serialUtils";
+import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel, FormattedSerial } from "../lib/serialUtils";
 import {
   Factory,
   Box,
@@ -724,8 +724,9 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
       if (res.ok && Array.isArray(result.serials) && result.serials.length > 0) {
         setSerials(result.serials);
       } else {
+        const startSeq = getNextSerialSequenceForModel(selectedModel, data?.finishedGoods || []);
         const generated = Array.from({ length: qty || 1 }).map((_, i) =>
-          generateBatterySerial(selectedModel, 1044 + i)
+          generateModelSpecificSerial(selectedModel, startSeq + i)
         );
         setSerials(generated);
       }
@@ -733,8 +734,9 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
       refetch();
     } catch (e) {
       console.error("Error in production completion:", e);
+      const startSeq = getNextSerialSequenceForModel(selectedModel || 'EV', data?.finishedGoods || []);
       const generated = Array.from({ length: qty || 1 }).map((_, i) =>
-        generateBatterySerial(selectedModel || 'EV', 1044 + i)
+        generateModelSpecificSerial(selectedModel || 'EV', startSeq + i)
       );
       setSerials(generated);
       setStep(3);
@@ -1718,8 +1720,9 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                       setSelectedModel(fallbackModel);
                     }
                     if (s.id === 3 && serials.length === 0) {
+                      const startSeq = getNextSerialSequenceForModel(fallbackModel, data?.finishedGoods || []);
                       const generated = Array.from({ length: qty || 1 }).map((_, i) =>
-                        generateBatterySerial(fallbackModel, 1044 + i)
+                        generateModelSpecificSerial(fallbackModel, startSeq + i)
                       );
                       setSerials(generated);
                     }
@@ -1817,7 +1820,8 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                               {p.name}
                             </p>
                             {(() => {
-                              const sampleSerial = generateBatterySerial(p.id || p.name, 1044);
+                              const nextSeq = getNextSerialSequenceForModel(p.id || p.name, data?.finishedGoods || []);
+                              const sampleSerial = generateModelSpecificSerial(p.id || p.name, nextSeq);
                               return (
                                 <div className="mt-3 pt-3 border-t border-slate-200/60 flex flex-col gap-1.5">
                                   <div className="flex items-center justify-between text-[9.5px]">
@@ -1963,8 +1967,9 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
               })()}
 
               {step === 3 && (() => {
+                const startSeq = getNextSerialSequenceForModel(selectedModel || 'BAT-NEXT-200', data?.finishedGoods || []);
                 const displaySerials = serials.length > 0 ? serials : Array.from({ length: qty || 1 }).map((_, i) =>
-                  generateBatterySerial(selectedModel || 'BAT-NEXT-200', 1044 + i)
+                  generateModelSpecificSerial(selectedModel || 'BAT-NEXT-200', startSeq + i)
                 );
 
                 return (

@@ -670,21 +670,58 @@ export const DataRetentionPurge: React.FC = () => {
 
           {/* Quick Stats Banner */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 shrink-0">
-            <div className="space-y-1">
+            <div 
+              onClick={() => {
+                setPurgeMode('ALL');
+                setActiveSubTab('sections');
+              }}
+              className="space-y-1 cursor-pointer hover:bg-white/10 p-2 rounded-xl transition-all"
+              title="View all records across all modules"
+            >
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Records</div>
               <div className="text-xl font-black text-white font-mono">{globalSummary.totalRecords}</div>
+              <div className="text-[8px] text-slate-400 font-mono">System-wide</div>
             </div>
-            <div className="space-y-1">
+
+            <div 
+              onClick={() => {
+                setSelectedCategoryFilter('ALL');
+                setActiveSubTab('sections');
+              }}
+              className="space-y-1 cursor-pointer hover:bg-white/10 p-2 rounded-xl transition-all"
+              title="Active modules: 18 operational pipelines across Sales, Procurement, Manufacturing, RMA & Logs"
+            >
               <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Modules</div>
               <div className="text-xl font-black text-white font-mono">{globalSummary.totalSections}</div>
+              <div className="text-[8px] text-emerald-300 font-mono">18 Core Pipelines</div>
             </div>
-            <div className="space-y-1">
+
+            <div 
+              onClick={() => {
+                setPurgeMode('OLDER_THAN_DAYS');
+                setOlderThanDays(90);
+                setActiveSubTab('sections');
+              }}
+              className="space-y-1 cursor-pointer hover:bg-amber-500/20 p-2 rounded-xl transition-all border border-amber-500/30"
+              title="Click to filter records older than 90 days across modules"
+            >
               <div className="text-[10px] font-bold text-amber-300 uppercase tracking-wider">&gt; 90 Days Old</div>
               <div className="text-xl font-black text-amber-300 font-mono">{globalSummary.recordsOlder90}</div>
+              <div className="text-[8px] text-amber-200/80 font-mono">Click to filter 90d+</div>
             </div>
-            <div className="space-y-1">
+
+            <div 
+              onClick={() => {
+                setPurgeMode('OLDER_THAN_DAYS');
+                setOlderThanDays(180);
+                setActiveSubTab('sections');
+              }}
+              className="space-y-1 cursor-pointer hover:bg-rose-500/20 p-2 rounded-xl transition-all border border-rose-500/30"
+              title="Click to filter records older than 180 days across modules"
+            >
               <div className="text-[10px] font-bold text-rose-300 uppercase tracking-wider">&gt; 180 Days Old</div>
               <div className="text-xl font-black text-rose-400 font-mono">{globalSummary.recordsOlder180}</div>
+              <div className="text-[8px] text-rose-200/80 font-mono">Click to filter 180d+</div>
             </div>
           </div>
         </div>

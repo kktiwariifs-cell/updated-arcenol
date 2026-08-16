@@ -244,6 +244,11 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
   // In-App Deletion confirmation modal state
   const [subToDelete, setSubToDelete] = useState<{ id: string; name: string } | null>(null);
   const [isDeletingSub, setIsDeletingSub] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  const [showResetDefaultsModal, setShowResetDefaultsModal] = useState(false);
+  const [isResettingDefaults, setIsResettingDefaults] = useState(false);
+  const [showProfileDeployModal, setShowProfileDeployModal] = useState(false);
 
   // Floating Toast Notification state
   const [toastNotification, setToastNotification] = useState<{ show: boolean; title: string; message: string; type: 'success' | 'error' | 'info' }>({
@@ -671,6 +676,46 @@ export const SuperAdmin: React.FC<SuperAdminProps> = ({ initialTab = 'profile' }
       showToast('Deletion Failed', err?.message || 'Failed to delete subsidiary.', 'error');
     } finally {
       setIsDeletingSub(false);
+    }
+  };
+
+  const handleConfirmDeleteUser = () => {
+    if (!userToDelete) return;
+    setIsDeletingUser(true);
+    try {
+      const res = deleteUser(userToDelete.id);
+      if (res.success) {
+        setUserSuccess(`Operator clearances revoked and account deleted.`);
+        showToast('Operator Revoked', `Operator "${userToDelete.name}" was permanently removed.`, 'success');
+        if (isEditingUser === userToDelete.id) {
+          setIsEditingUser(null);
+          setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+        }
+      } else {
+        setUserErrors(res.error || 'Failed to revoke permissions.');
+        showToast('Revocation Failed', res.error || 'Failed to revoke permissions.', 'error');
+      }
+    } catch (err: any) {
+      showToast('Revocation Failed', err?.message || 'Error revoking operator.', 'error');
+    } finally {
+      setIsDeletingUser(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const handleConfirmResetDefaults = () => {
+    setIsResettingDefaults(true);
+    try {
+      resetDefaultUsers();
+      setUserSuccess('Baseline credentials database successfully rebuilt.');
+      showToast('System Defaults Restored', 'All operator clearance nodes restored to baseline credentials.', 'success');
+      setIsEditingUser(null);
+      setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
+    } catch (err: any) {
+      showToast('Reset Failed', err?.message || 'Error restoring system defaults.', 'error');
+    } finally {
+      setIsResettingDefaults(false);
+      setShowResetDefaultsModal(false);
     }
   };
 
@@ -2213,15 +2258,9 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
 
               <button
                 type="button"
-                onClick={() => {
-                  if (confirm('Rebuild baseline credentials? All customized operator credentials will be reset.')) {
-                    resetDefaultUsers();
-                    setUserSuccess('Baseline credentials database successfully rebuilt.');
-                    setIsEditingUser(null);
-                    setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
-                  }
-                }}
-                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest font-mono transition-all flex items-center gap-1.5 self-start md:self-center"
+                onClick={() => setShowResetDefaultsModal(true)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest font-mono transition-all flex items-center gap-1.5 self-start md:self-center cursor-pointer"
+                id="super-admin-restore-defaults-btn"
               >
                 <RefreshCw size={11} className="animate-spin-slow" />
                 Restore System Defaults
@@ -2361,20 +2400,7 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                                 <button
                                   type="button"
                                   disabled={usersList.length <= 1}
-                                  onClick={() => {
-                                    if (confirm(`Are you absolutely sure you want to revoke permissions and delete ${usr.name}?`)) {
-                                      const res = deleteUser(usr.id);
-                                      if (res.success) {
-                                        setUserSuccess(`Operator clearances revoked and account deleted.`);
-                                        if (isEditingUser === usr.id) {
-                                          setIsEditingUser(null);
-                                          setUserForm({ name: '', email: '', password: '', role: 'QUALITY_TEAM' as UserRole, department: '' });
-                                        }
-                                      } else {
-                                        setUserErrors(res.error || 'Failed to revoke permissions.');
-                                      }
-                                    }
-                                  }}
+                                  onClick={() => setUserToDelete({ id: usr.id, name: usr.name })}
                                   className="p-1.5 bg-red-50 hover:bg-red-100 text-red-650 rounded-lg inline-flex items-center border border-red-100 disabled:opacity-40 cursor-pointer"
                                   title="Revoke permissions"
                                   id={`delete-usr-btn-${usr.id}`}
@@ -2823,6 +2849,116 @@ create policy "Allow public access to all records" on arcenol_corporate_units fo
                   <>
                     <Trash2 size={14} />
                     <span>Confirm Revocation</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal for User Account Deletion */}
+      {userToDelete && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden w-full max-w-md animate-in zoom-in-95 duration-150">
+            <div className="p-6 bg-red-50/70 border-b border-red-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center text-red-600 shrink-0">
+                <Trash2 size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">Revoke Operator Account</h4>
+                <p className="text-[11px] font-semibold text-red-600">Access credential termination</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                Are you sure you want to permanently revoke clearance permissions and delete operator account <span className="font-black text-slate-900">"{userToDelete.name}"</span>?
+              </p>
+              <div className="p-3 bg-red-50 border border-red-200/70 rounded-xl flex items-start gap-2.5 text-[11px] font-bold text-red-800">
+                <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                <span>This operator will immediately lose access to their clearance node and portal sessions.</span>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isDeletingUser}
+                onClick={() => setUserToDelete(null)}
+                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="confirm-delete-user-btn"
+                disabled={isDeletingUser}
+                onClick={handleConfirmDeleteUser}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-red-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {isDeletingUser ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Revoking Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={14} />
+                    <span>Confirm Revocation</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-App Confirmation Modal for Resetting Defaults */}
+      {showResetDefaultsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-[2rem] border border-slate-200 shadow-2xl overflow-hidden w-full max-w-md animate-in zoom-in-95 duration-150">
+            <div className="p-6 bg-amber-50/70 border-b border-amber-100 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-600 shrink-0">
+                <RefreshCw size={20} />
+              </div>
+              <div>
+                <h4 className="text-base font-black text-slate-900 uppercase tracking-tight">Restore System Defaults</h4>
+                <p className="text-[11px] font-semibold text-amber-700">Rebuild baseline operator database</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                Rebuilding baseline credentials will reset all customized operator accounts, roles, and security keys to initial factory defaults.
+              </p>
+            </div>
+
+            <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                disabled={isResettingDefaults}
+                onClick={() => setShowResetDefaultsModal(false)}
+                className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                id="confirm-reset-defaults-btn"
+                disabled={isResettingDefaults}
+                onClick={handleConfirmResetDefaults}
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md shadow-amber-600/20 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                {isResettingDefaults ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" />
+                    <span>Restoring Defaults...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} />
+                    <span>Confirm Restore</span>
                   </>
                 )}
               </button>

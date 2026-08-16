@@ -4,7 +4,7 @@ import { useERPData } from '../hooks/useERPData';
 import { useAuthStore, UserRole } from '../store/authStore';
 import { formatCurrency, cn } from '../lib/utils';
 import { downloadElementAsPDF, downloadReportDataAsPDF, printElement } from '../lib/pdfGenerator';
-import { FormattedSerial, normalizeToRevisedSerial, generateBatterySerial } from '../lib/serialUtils';
+import { FormattedSerial, normalizeToRevisedSerial, generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from '../lib/serialUtils';
 import { supabase } from '../lib/supabaseClient';
 
 interface VyaparRecord {
@@ -380,7 +380,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
       const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, defaultProduct));
       let serial = avail[0]?.serial;
       if (!serial) {
-        serial = generateBatterySerial(defaultProduct.id || 'EV');
+        const nextSeq = getNextSerialSequenceForModel(defaultProduct.id || 'EV', availableStock);
+        serial = generateModelSpecificSerial(defaultProduct.id || 'EV', nextSeq);
       }
       serial = normalizeToRevisedSerial(serial);
       currentCart = [{ modelId: defaultProduct.id || 'BAT-NEXT-200', serials: [serial], price: defaultProduct.price || 35000 }];
@@ -393,7 +394,10 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
       if (itemSerials.length === 0) {
         const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, { id: item.modelId, name: item.modelId }));
         let s = avail[0]?.serial;
-        if (!s) s = generateBatterySerial(item.modelId);
+        if (!s) {
+          const nextSeq = getNextSerialSequenceForModel(item.modelId, availableStock);
+          s = generateModelSpecificSerial(item.modelId, nextSeq);
+        }
         itemSerials = [normalizeToRevisedSerial(s)];
       }
       return { ...item, serials: itemSerials };
@@ -574,7 +578,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
             const nextStock = availableUnpicked.shift();
             currentSerials.push(normalizeToRevisedSerial(nextStock.serial));
           } else {
-            const genSerial = generateBatterySerial(modelId, currentSerials.length + 101);
+            const nextSeq = getNextSerialSequenceForModel(modelId, availableStock);
+            const genSerial = generateModelSpecificSerial(modelId, nextSeq + currentSerials.length);
             currentSerials.push(genSerial);
           }
         }
@@ -2073,7 +2078,8 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
                                    if (p) {
                                       const avail = availableStock.filter((fg: any) => matchFgToProduct(fg, p));
                                       const unpicked = avail.find((ru: any) => !cart.some(c => c.serials.includes(ru.serial)));
-                                      const s = unpicked?.serial || generateBatterySerial(p.id || 'EV');
+                                      const nextSeq = getNextSerialSequenceForModel(p.id || 'EV', availableStock);
+                                      const s = unpicked?.serial || generateModelSpecificSerial(p.id || 'EV', nextSeq);
                                       addToCart(p.id, s);
                                    }
                                    e.target.value = '';

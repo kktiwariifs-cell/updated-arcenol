@@ -10,7 +10,7 @@ import {
   clearClientTable,
   deleteClientRecord
 } from './clientSupabaseSync';
-import { generateBatterySerial } from './serialUtils';
+import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from './serialUtils';
 
 const INITIAL_DB = {
   inventory: [] as any[],
@@ -3691,8 +3691,9 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         if (!db.finishedGoods) db.finishedGoods = [];
         const cleanModel = String(targetModel).replace(/[^A-Z0-9]/gi, '').slice(0, 10).toUpperCase();
 
+        const startSeq = getNextSerialSequenceForModel(targetModel, db.finishedGoods || []);
         for (let i = 0; i < targetQty; i++) {
-          const serial = generateBatterySerial(targetModel, 1044 + Math.floor(Math.random() * 8000));
+          const serial = generateModelSpecificSerial(targetModel, startSeq + i);
           serials.push(serial);
           db.finishedGoods.push({
             id: `fg-${Date.now()}-${i}`,

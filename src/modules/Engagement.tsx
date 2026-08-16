@@ -29,7 +29,7 @@ import {
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
-import { generateBatterySerial } from '../lib/serialUtils';
+import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from '../lib/serialUtils';
 import { printElement } from '../lib/pdfGenerator';
 
 export const Engagement: React.FC = () => {
@@ -77,7 +77,7 @@ export const Engagement: React.FC = () => {
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [stickerTheme, setStickerTheme] = useState<'slate' | 'crimson' | 'emerald'>('slate');
-  const [stickerSerial, setStickerSerial] = useState<string>(generateBatterySerial('EV', 1044));
+  const [stickerSerial, setStickerSerial] = useState<string>(generateModelSpecificSerial('EV', 1));
   const [isPreviewPrintOpen, setIsPreviewPrintOpen] = useState<boolean>(false);
 
   const triggerMockDownload = () => {
@@ -255,11 +255,12 @@ export const Engagement: React.FC = () => {
     e.preventDefault();
     if (!batchParams.productId) return;
     
-    // Generate sequential serials following standard battery pattern (AESPL  <GRADE>  <DAY><MONTH><YEAR><SEQUENCE>)
+    // Generate sequential serials starting afresh for each product type/model
     const serialsList: string[] = [];
-    const baseNum = Math.floor(Math.random() * 8000) + 1000;
+    const targetModel = batchParams.productId || batchParams.prefix || 'EV';
+    const startSeq = getNextSerialSequenceForModel(targetModel, data?.finishedGoods || []);
     for (let i = 0; i < batchParams.qty; i++) {
-      serialsList.push(generateBatterySerial(batchParams.prefix || batchParams.productId || 'EV', baseNum + i));
+      serialsList.push(generateModelSpecificSerial(targetModel, startSeq + i));
     }
     setGeneratedSerials(serialsList);
 
@@ -1208,7 +1209,7 @@ export const Engagement: React.FC = () => {
                            stickerTheme === 'slate' && "text-slate-900",
                            stickerTheme === 'crimson' && "text-rose-950",
                            stickerTheme === 'emerald' && "text-emerald-950"
-                        )}>{stickerSerial || generateBatterySerial('EV', 1044)}</h5>
+                        )}>{stickerSerial || generateModelSpecificSerial('EV', 1)}</h5>
                         <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest">SCAN FOR WARRANTY & SERVICE</p>
                         <div className="pt-2 text-[7px] font-mono font-bold text-slate-500 flex items-center gap-1 leading-none border-t border-slate-200 select-none uppercase">
                            <span className={cn(
@@ -1463,9 +1464,9 @@ export const Engagement: React.FC = () => {
                               setBatchParams({ productId: batch.productId, qty: batch.qty, prefix: batch.prefix || 'AESPL  EV' });
                               // Fill local serials list
                               const list = [];
-                              const base = 1000 + idx * 50;
+                              const targetModel = batch.productId || batch.prefix || 'EV';
                               for(let i=0; i < batch.qty; i++) {
-                                 list.push(generateBatterySerial(batch.prefix || batch.productId || 'EV', base + i));
+                                 list.push(generateModelSpecificSerial(targetModel, 1 + i));
                               }
                               setGeneratedSerials(list);
                               setIsBatchQRModalOpen(true);
