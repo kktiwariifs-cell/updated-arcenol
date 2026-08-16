@@ -418,9 +418,9 @@ export const FinishedGoods: React.FC = () => {
   const handleDownloadExcelTemplate = () => {
     const headings = ['Serial ID', 'Product SKU', 'Warehouse Hub', 'Production Batch', 'Entry Date', 'Status'];
     const sampleRows = [
-      ['AESPL  EV  28G26001044', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['AESPL  EV  28G26001045', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['AESPL  AUTO  28G26001049', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
+      ['AESPL  EV  28G26000001', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  EV  28G26000002', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  AUTO  28G26000001', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
     ];
     const wsData = [headings, ...sampleRows];
     const wb = XLSX.utils.book_new();
@@ -432,9 +432,9 @@ export const FinishedGoods: React.FC = () => {
   const handleDownloadCSVTemplate = () => {
     const headings = ['Serial ID', 'Product SKU', 'Warehouse Hub', 'Production Batch', 'Entry Date', 'Status'];
     const sampleRows = [
-      ['AESPL  EV  28G26001044', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['AESPL  EV  28G26001045', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
-      ['AESPL  AUTO  28G26001049', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
+      ['AESPL  EV  28G26000001', '72V30A', 'Main Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  EV  28G26000002', '72V30A', 'Ahmedabad Warehouse', 'BATCH-C1', '2026-07-15', 'READY'],
+      ['AESPL  AUTO  28G26000001', 'BAT-AUTO-35', 'Service Warehouse', 'BATCH-B2', '2026-07-15', 'HOLD']
     ];
     const csvContent = [headings.join(','), ...sampleRows.map(row => row.map(cell => `"${cell}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1353,7 +1353,7 @@ export const FinishedGoods: React.FC = () => {
                         <label className="block text-[9px] font-black text-slate-400 uppercase mb-1.5 tracking-wider">Paste Serial Numbers (One per line, or comma-separated)</label>
                         <textarea
                           rows={6}
-                          placeholder={`e.g.\nAESPL  EV  28G26001044\nAESPL  EV  28G26001045\nAESPL  AUTO  28G26001049`}
+                          placeholder={`e.g.\nAESPL  EV  28G26000001\nAESPL  EV  28G26000002\nAESPL  AUTO  28G26000001`}
                           className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3.5 text-xs font-mono font-bold text-slate-800 outline-none focus:ring-2 focus:ring-primary-500/20 focus:bg-white resize-none"
                           value={pastedSerials}
                           onChange={(e) => setPastedSerials(e.target.value)}

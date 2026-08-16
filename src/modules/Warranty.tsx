@@ -22,7 +22,7 @@ export const Warranty: React.FC = () => {
   const [isRmaModalOpen, setIsRmaModalOpen] = useState(false);
 
   // Form 1: End-User Activation State
-  const [actSerial, setActSerial] = useState('AESPL EV 28G26001046');
+  const [actSerial, setActSerial] = useState('AESPL EV 28G26000003');
   const [actCustName, setActCustName] = useState('Rajesh Sharma');
   const [actCustPhone, setActCustPhone] = useState('+91 98250 12345');
   const [actVehicleReg, setActVehicleReg] = useState('GJ-01-EV-9921');
@@ -31,7 +31,7 @@ export const Warranty: React.FC = () => {
   const [isSubmittingAct, setIsSubmittingAct] = useState(false);
 
   // Form 2: Telematics & SOH Diagnostic State
-  const [diagSerial, setDiagSerial] = useState('AESPL EV 28G26001044');
+  const [diagSerial, setDiagSerial] = useState('AESPL EV 28G26000001');
   const [diagSoh, setDiagSoh] = useState(96.4);
   const [diagSoc, setDiagSoc] = useState(88.0);
   const [diagMaxTemp, setDiagMaxTemp] = useState(33.5);
@@ -43,7 +43,7 @@ export const Warranty: React.FC = () => {
   const [isSubmittingDiag, setIsSubmittingDiag] = useState(false);
 
   // Form 3: RMA Warranty Claim State
-  const [rmaSerial, setRmaSerial] = useState('AESPL EV 28G26001044');
+  const [rmaSerial, setRmaSerial] = useState('AESPL EV 28G26000001');
   const [rmaDealerName, setRmaDealerName] = useState('Green Motors Ahmedabad');
   const [rmaDefect, setRmaDefect] = useState('BMS Thermal Over-Temperature Shutdown');
   const [rmaBmsFault, setRmaBmsFault] = useState('BMS-E04');

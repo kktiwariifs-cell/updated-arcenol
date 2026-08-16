@@ -36,7 +36,7 @@ function normalizeToRevisedSerial(serial: string, fallbackGrade: string = 'EV'):
   }
   const clean = String(serial).trim();
 
-  // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26001044" or "AESPL EV 28G26001044"
+  // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26000001" or "AESPL EV 28G26000001"
   const spaceMatch = clean.match(/^AESPL\s+([A-Z0-9]+)\s+([0-9]{2}[A-Z][0-9]{2,8})$/i);
   if (spaceMatch) {
     const grade = spaceMatch[1].toUpperCase();
@@ -98,7 +98,7 @@ function normalizeToRevisedSerial(serial: string, fallbackGrade: string = 'EV'):
     return `AESPL  ${grade}  ${day}${monthChar}26${seq}`;
   }
 
-  // Unspaced pattern e.g. "AESPLEV28G26001044" or "AESPLINV31G26001265"
+  // Unspaced pattern e.g. "AESPLEV28G26000001" or "AESPLINV31G26001265"
   const unspaced = clean.match(/^AESPL([A-Z]{2,4})(\d{2}[A-Z]\d+)$/i);
   if (unspaced) {
     return `AESPL  ${unspaced[1].toUpperCase()}  ${unspaced[2].toUpperCase()}`;
@@ -142,6 +142,17 @@ function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | str
   return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
 }
 
+function getProductClusterTag(modelIdOrSerial: string = "EV"): string {
+  const upper = String(modelIdOrSerial || "").trim().toUpperCase();
+  if (upper.includes("AUTO")) return "AUTO";
+  if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT") || upper.includes("LIT")) return "INV";
+  if (upper.includes("ESS")) return "ESS";
+  if (upper.includes("VRLA") || upper.includes("LEAD")) return "VRLA";
+  if (upper.includes("EV") || upper.includes("72V") || upper.includes("60V") || upper.includes("48V") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) return "EV";
+  const clean = upper.replace(/[^A-Z]/g, "");
+  return clean.slice(0, 4) || "EV";
+}
+
 function getNextSerialSequenceForModel(
   modelId: string, 
   existingItems: Array<{ model?: string; modelId?: string; serial?: string; serialNumber?: string }> = []
@@ -150,9 +161,13 @@ function getNextSerialSequenceForModel(
     return 1;
   }
   const targetModel = String(modelId || '').trim().toLowerCase();
+  const targetCluster = getProductClusterTag(modelId);
   const matchingItems = existingItems.filter(item => {
     const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
-    return itemModel === targetModel;
+    const itemSerial = String(item.serial || item.serialNumber || '').trim().toUpperCase();
+    if (itemModel && itemModel === targetModel) return true;
+    const itemCluster = getProductClusterTag(itemModel || itemSerial);
+    return itemCluster === targetCluster;
   });
 
   if (matchingItems.length === 0) {
@@ -184,19 +199,7 @@ function generateModelSpecificSerial(
   const monthChar = String.fromCharCode(65 + d.getMonth());
   const year2 = String(d.getFullYear()).slice(-2);
 
-  let gradeTag = "EV";
-  if (modelId) {
-    const upper = String(modelId).toUpperCase();
-    if (upper.includes("AUTO")) gradeTag = "AUTO";
-    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT")) gradeTag = "INV";
-    else if (upper.includes("ESS")) gradeTag = "ESS";
-    else if (upper.includes("VRLA")) gradeTag = "VRLA";
-    else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
-    else {
-      const clean = upper.replace(/[^A-Z]/g, "");
-      gradeTag = clean.slice(0, 4) || "EV";
-    }
-  }
+  const gradeTag = getProductClusterTag(modelId);
 
   const digitsOnly = String(seqNumber).replace(/[^0-9]/g, "");
   const numStr = digitsOnly ? digitsOnly.padStart(6, "0") : "000001";

@@ -27,23 +27,23 @@ const INITIAL_DB = {
   production: [] as any[],
   productionPlans: [] as any[],
   finishedGoods: [
-    { id: "fg1", model: "72V30A", serial: "AESPL  EV  28G26001044", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-    { id: "fg2", model: "72V30A", serial: "AESPL  EV  28G26001045", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
-    { id: "fg3", model: "72V30A", serial: "AESPL  EV  28G26001046", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
-    { id: "fg4", model: "72V30A", serial: "AESPL  EV  28G26001047", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
-    { id: "fg5", model: "72V30A", serial: "AESPL  EV  28G26001048", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
-    { id: "fg6", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26001049", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "READY" },
-    { id: "fg6b", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26001052", batch: "BATCH-B1", warehouse: "Ahmedabad Warehouse", rack: "BIN-08", date: "2026-07-28", status: "READY" },
-    { id: "fg7", model: "BAT-INV-150", serial: "AESPL  INV  28G26001050", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
-    { id: "fg7b", model: "BAT-INV-150", serial: "AESPL  INV  28G26001056", batch: "BATCH-C1", warehouse: "Ahmedabad Warehouse", rack: "BIN-07", date: "2026-07-28", status: "READY" },
-    { id: "fg8", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26001051", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
-    { id: "fg8b", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26001057", batch: "BATCH-D1", warehouse: "Main Warehouse", rack: "BIN-21", date: "2026-07-28", status: "READY" },
-    { id: "fg9", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26001053", batch: "BATCH-E1", warehouse: "Main Warehouse", rack: "BIN-12", date: "2026-07-28", status: "READY" },
-    { id: "fg9b", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26001058", batch: "BATCH-E1", warehouse: "Ahmedabad Warehouse", rack: "BIN-13", date: "2026-07-28", status: "READY" },
-    { id: "fg10", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26001054", batch: "BATCH-F1", warehouse: "Main Warehouse", rack: "BIN-14", date: "2026-07-28", status: "READY" },
-    { id: "fg11", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26001055", batch: "BATCH-F1", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "READY" },
-    { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26001059", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
-    { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26001060", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
+    { id: "fg1", model: "72V30A", serial: "AESPL  EV  28G26000001", batch: "BATCH-A1", warehouse: "Ahmedabad Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+    { id: "fg2", model: "72V30A", serial: "AESPL  EV  28G26000002", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-01", date: "2026-07-28", status: "READY" },
+    { id: "fg3", model: "72V30A", serial: "AESPL  EV  28G26000003", batch: "BATCH-A1", warehouse: "Main Warehouse", rack: "BIN-10", date: "2026-07-28", status: "HOLD" },
+    { id: "fg4", model: "72V30A", serial: "AESPL  EV  28G26000004", batch: "BATCH-A2", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "DAMAGED" },
+    { id: "fg5", model: "72V30A", serial: "AESPL  EV  28G26000005", batch: "BATCH-A2", warehouse: "Service Warehouse", rack: "S-01", date: "2026-07-28", status: "RETURNED" },
+    { id: "fg6", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26000001", batch: "BATCH-B1", warehouse: "Main Warehouse", rack: "BIN-05", date: "2026-07-28", status: "READY" },
+    { id: "fg6b", model: "BAT-AUTO-35", serial: "AESPL  AUTO  28G26000002", batch: "BATCH-B1", warehouse: "Ahmedabad Warehouse", rack: "BIN-08", date: "2026-07-28", status: "READY" },
+    { id: "fg7", model: "BAT-INV-150", serial: "AESPL  INV  28G26000001", batch: "BATCH-C1", warehouse: "Main Warehouse", rack: "BIN-06", date: "2026-07-28", status: "READY" },
+    { id: "fg7b", model: "BAT-INV-150", serial: "AESPL  INV  28G26000002", batch: "BATCH-C1", warehouse: "Ahmedabad Warehouse", rack: "BIN-07", date: "2026-07-28", status: "READY" },
+    { id: "fg8", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26000001", batch: "BATCH-D1", warehouse: "Ahmedabad Warehouse", rack: "BIN-20", date: "2026-07-28", status: "READY" },
+    { id: "fg8b", model: "BAT-VRLA-100", serial: "AESPL  VRLA  28G26000002", batch: "BATCH-D1", warehouse: "Main Warehouse", rack: "BIN-21", date: "2026-07-28", status: "READY" },
+    { id: "fg9", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26000001", batch: "BATCH-E1", warehouse: "Main Warehouse", rack: "BIN-12", date: "2026-07-28", status: "READY" },
+    { id: "fg9b", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26000002", batch: "BATCH-E1", warehouse: "Ahmedabad Warehouse", rack: "BIN-13", date: "2026-07-28", status: "READY" },
+    { id: "fg10", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-F1", warehouse: "Main Warehouse", rack: "BIN-14", date: "2026-07-28", status: "READY" },
+    { id: "fg11", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-F1", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "READY" },
+    { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
+    { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
   ],
   productionHistory: [] as any[],
   stockAudits: [] as any[],
@@ -2619,14 +2619,14 @@ const INITIAL_DB = {
           description: "E-Rickshaw Batteries",
           qty: 2,
           price: 45000,
-          serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045"]
+          serials: ["AESPL  EV  28G26000001", "AESPL  EV  28G26000002"]
         }
       ],
       goods: [
         {
           description: "E-Rickshaw Batteries",
           qty: 2,
-          serials: ["AESPL  EV  28G26001044", "AESPL  EV  28G26001045"],
+          serials: ["AESPL  EV  28G26000001", "AESPL  EV  28G26000002"],
           baseRate: 45000,
           netVal: 90000
         }
@@ -2649,8 +2649,8 @@ const INITIAL_DB = {
       date: "2026-07-25",
       billedDate: "2026-07-25",
       created_at: "2026-07-25T10:00:00.000Z",
-      items: [{ model: "BAT-72V-30A", modelId: "BAT-72V-30A", name: "E-Rickshaw Batteries (72V30A)", qty: 1, serials: ["AESPL  EV  28G26001044"], price: 35000 }],
-      goods: [{ description: "E-Rickshaw Batteries", qty: 1, serials: ["AESPL  EV  28G26001044"], baseRate: 35000, netVal: 35000 }],
+      items: [{ model: "BAT-72V-30A", modelId: "BAT-72V-30A", name: "E-Rickshaw Batteries (72V30A)", qty: 1, serials: ["AESPL  EV  28G26000001"], price: 35000 }],
+      goods: [{ description: "E-Rickshaw Batteries", qty: 1, serials: ["AESPL  EV  28G26000001"], baseRate: 35000, netVal: 35000 }],
       subtotal: 35000,
       gst: 6300,
       tax: 6300,
@@ -2662,11 +2662,11 @@ const INITIAL_DB = {
   ],
   warranty: [] as any[],
   complaints: [
-    { id: "C-1001", serial: "AESPL  EV  28G26001044", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
-    { id: "C-1002", serial: "AESPL  EV  28G26001045", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: "2024-05-15", resolvedDate: "", notes: "Unit not turning on.", engineer: "Unassigned" },
-    { id: "C-1003", serial: "AESPL  EV  28G26001046", type: "Voltage Drop", stage: "UNDER_INSPECTION", status: "OPEN", date: "2024-05-16", resolvedDate: "", notes: "Sudden power cut.", engineer: "Ramesh K." },
-    { id: "C-1004", serial: "AESPL  AUTO  28G26001049", type: "No Backup", stage: "READY_FOR_DISPATCH", status: "OPEN", date: "2024-05-14", resolvedDate: "", notes: "Aging cells.", engineer: "Suresh P.", rootCause: "Cell Failure" },
-    { id: "C-1005", serial: "AESPL  INV  28G26001050", type: "High Temp", stage: "REPAIR_STARTED", status: "OPEN", date: "2024-05-12", resolvedDate: "", notes: "Fan not working.", engineer: "Anita D." },
+    { id: "C-1001", serial: "AESPL  EV  28G26000001", type: "Low Range", stage: "CLOSED", status: "RESOLVED", date: "2024-05-10", resolvedDate: "2024-05-14", notes: "BMS firmware updated.", rootCause: "BMS Failure", engineer: "Suresh P.", inspectionResult: "Firmware drift detected" },
+    { id: "C-1002", serial: "AESPL  EV  28G26000002", type: "Dead on Arrival", stage: "REGISTERED", status: "OPEN", date: "2024-05-15", resolvedDate: "", notes: "Unit not turning on.", engineer: "Unassigned" },
+    { id: "C-1003", serial: "AESPL  EV  28G26000003", type: "Voltage Drop", stage: "UNDER_INSPECTION", status: "OPEN", date: "2024-05-16", resolvedDate: "", notes: "Sudden power cut.", engineer: "Ramesh K." },
+    { id: "C-1004", serial: "AESPL  AUTO  28G26000001", type: "No Backup", stage: "READY_FOR_DISPATCH", status: "OPEN", date: "2024-05-14", resolvedDate: "", notes: "Aging cells.", engineer: "Suresh P.", rootCause: "Cell Failure" },
+    { id: "C-1005", serial: "AESPL  INV  28G26000001", type: "High Temp", stage: "REPAIR_STARTED", status: "OPEN", date: "2024-05-12", resolvedDate: "", notes: "Fan not working.", engineer: "Anita D." },
     { id: "C-1006", serial: "OLD-GEN-BATT-9900", type: "Water Damage", stage: "CLOSED", status: "RESOLVED", date: "2024-05-08", resolvedDate: "2024-05-11", notes: "Seal leaked.", engineer: "Ramesh K.", rootCause: "Water Damage" }
   ],
   engineers: [
@@ -2871,8 +2871,8 @@ const INITIAL_DB = {
     logo: ""
   },
   warrantyChecks: [
-    { id: "wc-1", serial: "AESPL  EV  28G26001044", date: new Date(Date.now() - 1*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
-    { id: "wc-2", serial: "AESPL  EV  28G26001045", date: new Date(Date.now() - 3*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
+    { id: "wc-1", serial: "AESPL  EV  28G26000001", date: new Date(Date.now() - 1*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
+    { id: "wc-2", serial: "AESPL  EV  28G26000002", date: new Date(Date.now() - 3*24*60*60*1000).toLocaleDateString(), status: "ACTIVE WARRANTY", durationRemaining: "24 months left", foundInDb: true, model: "E-Rickshaw Batteries" },
     { id: "wc-3", serial: "ARC-UNKNOWN-X9", date: new Date(Date.now() - 4*24*60*60*1000).toLocaleDateString(), status: "NOT_FOUND / EXPIRED", durationRemaining: "N/A", foundInDb: false, model: "Unknown Blueprints" }
   ],
   loyaltyClaims: [
@@ -2882,13 +2882,13 @@ const INITIAL_DB = {
   diagnosticLogs: [
     { id: 'LOG-C1006-1', nodeId: 'C-1006', serial: 'OLD-GEN-BATT-9900', timestamp: '2024-05-08 11:00:00', stage: 'REGISTERED', rootCause: 'Water Damage', notes: 'Ticket registered. Old gen battery unit received with moisture exposure.', engineer: 'Ramesh K.' },
     { id: 'LOG-C1006-2', nodeId: 'C-1006', serial: 'OLD-GEN-BATT-9900', timestamp: '2024-05-11 14:20:00', stage: 'CLOSED', rootCause: 'Water Damage', notes: 'Enclosure seal replaced, circuitry dried and stress-tested. Case resolved.', engineer: 'Ramesh K.' },
-    { id: 'LOG-C1001-1', nodeId: 'C-1001', serial: 'AESPL  EV  28G26001044', timestamp: '2024-05-10 09:15:00', stage: 'UNDER_INSPECTION', rootCause: 'BMS Failure', notes: 'Initial inspection. Low battery range reported by client.', engineer: 'Suresh P.' },
-    { id: 'LOG-C1001-2', nodeId: 'C-1001', serial: 'AESPL  EV  28G26001044', timestamp: '2024-05-14 16:45:00', stage: 'CLOSED', rootCause: 'BMS Failure', notes: 'BMS firmware updated and recalibrated. Performance verified.', engineer: 'Suresh P.' },
-    { id: 'LOG-C1002-1', nodeId: 'C-1002', serial: 'AESPL  EV  28G26001045', timestamp: '2024-05-15 10:30:00', stage: 'REGISTERED', rootCause: 'Dead on Arrival', notes: 'Unit received at service depot. Awaiting technician assignment.', engineer: 'Unassigned' },
-    { id: 'LOG-C1004-1', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26001049', timestamp: '2026-06-16 14:32:00', stage: 'UNDER_INSPECTION', rootCause: 'Cell Failure', notes: 'Initial scrutiny. Detected swelling on anode module layer.', engineer: 'Suresh P.' },
-    { id: 'LOG-C1004-2', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26001049', timestamp: '2026-06-17 09:12:15', stage: 'READY_FOR_DISPATCH', rootCause: 'Cell Failure', notes: 'Aging cells. Replaced cell pack layer and confirmed capacity safety margins.', engineer: 'Suresh P.' },
-    { id: 'LOG-C1005-1', nodeId: 'C-1005', serial: 'AESPL  INV  28G26001050', timestamp: '2026-06-16 11:20:44', stage: 'REPAIR_STARTED', rootCause: 'BMS Failure', notes: 'Thermal compound degradation causing heat build up. Fan controller bypassed.', engineer: 'Anita D.' },
-    { id: 'LOG-C1003-1', nodeId: 'C-1003', serial: 'AESPL  EV  28G26001046', timestamp: '2026-06-17 08:30:10', stage: 'UNDER_INSPECTION', rootCause: 'Voltage Drop', notes: 'Resistance balancing audit underway.', engineer: 'Ramesh K.' }
+    { id: 'LOG-C1001-1', nodeId: 'C-1001', serial: 'AESPL  EV  28G26000001', timestamp: '2024-05-10 09:15:00', stage: 'UNDER_INSPECTION', rootCause: 'BMS Failure', notes: 'Initial inspection. Low battery range reported by client.', engineer: 'Suresh P.' },
+    { id: 'LOG-C1001-2', nodeId: 'C-1001', serial: 'AESPL  EV  28G26000001', timestamp: '2024-05-14 16:45:00', stage: 'CLOSED', rootCause: 'BMS Failure', notes: 'BMS firmware updated and recalibrated. Performance verified.', engineer: 'Suresh P.' },
+    { id: 'LOG-C1002-1', nodeId: 'C-1002', serial: 'AESPL  EV  28G26000002', timestamp: '2024-05-15 10:30:00', stage: 'REGISTERED', rootCause: 'Dead on Arrival', notes: 'Unit received at service depot. Awaiting technician assignment.', engineer: 'Unassigned' },
+    { id: 'LOG-C1004-1', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26000001', timestamp: '2026-06-16 14:32:00', stage: 'UNDER_INSPECTION', rootCause: 'Cell Failure', notes: 'Initial scrutiny. Detected swelling on anode module layer.', engineer: 'Suresh P.' },
+    { id: 'LOG-C1004-2', nodeId: 'C-1004', serial: 'AESPL  AUTO  28G26000001', timestamp: '2026-06-17 09:12:15', stage: 'READY_FOR_DISPATCH', rootCause: 'Cell Failure', notes: 'Aging cells. Replaced cell pack layer and confirmed capacity safety margins.', engineer: 'Suresh P.' },
+    { id: 'LOG-C1005-1', nodeId: 'C-1005', serial: 'AESPL  INV  28G26000001', timestamp: '2026-06-16 11:20:44', stage: 'REPAIR_STARTED', rootCause: 'BMS Failure', notes: 'Thermal compound degradation causing heat build up. Fan controller bypassed.', engineer: 'Anita D.' },
+    { id: 'LOG-C1003-1', nodeId: 'C-1003', serial: 'AESPL  EV  28G26000003', timestamp: '2026-06-17 08:30:10', stage: 'UNDER_INSPECTION', rootCause: 'Voltage Drop', notes: 'Resistance balancing audit underway.', engineer: 'Ramesh K.' }
   ],
   vyaparRecords: [
     { id: 'PAY-1001', type: 'Payment-In', partyId: 'l1', partyName: 'Green Motors Ahmedabad', date: '2026-06-08', amount: 120000, mode: 'UPI', status: 'PAID', remarks: 'Voucher payment for battery order' },

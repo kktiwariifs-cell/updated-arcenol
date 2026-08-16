@@ -60,7 +60,7 @@ export type EntityType =
   | 'WAREHOUSE_BIN';
 
 /**
- * Generates battery serial number following standard pattern: AESPL  EV  28G26001044
+ * Generates battery serial number following standard pattern: AESPL  EV  28G26000001
  * - AESPL: Arcenol energy solutions pvt ltd
  * - EV: battery Grade (EV, AUTO, INV, VRLA, etc.)
  * - 28: 2-digit present date of month
@@ -79,7 +79,7 @@ export function normalizeToRevisedSerial(serial: string, fallbackGrade: string =
   }
   const clean = String(serial).trim();
 
-  // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26001044" or "AESPL EV 28G26001044"
+  // If already matches standard revised pattern with spaces: e.g. "AESPL  EV  28G26000001" or "AESPL EV 28G26000001"
   const spaceMatch = clean.match(/^AESPL\s+([A-Z0-9]+)\s+([0-9]{2}[A-Z][0-9]{2,8})$/i);
   if (spaceMatch) {
     const grade = spaceMatch[1].toUpperCase();
@@ -142,7 +142,7 @@ export function normalizeToRevisedSerial(serial: string, fallbackGrade: string =
     return `AESPL  ${grade}  ${day}${monthChar}26${seq}`;
   }
 
-  // Unspaced pattern e.g. "AESPLEV28G26001044" or "AESPLINV31G26001265"
+  // Unspaced pattern e.g. "AESPLEV28G26000001" or "AESPLINV31G26001265"
   const unspaced = clean.match(/^AESPL([A-Z]{2,4})(\d{2}[A-Z]\d+)$/i);
   if (unspaced) {
     return `AESPL  ${unspaced[1].toUpperCase()}  ${unspaced[2].toUpperCase()}`;
@@ -192,9 +192,20 @@ export function generateBatterySerial(gradeStr: string = "EV", seqNumber?: numbe
   return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
 }
 
+export function getProductClusterTag(modelIdOrSerial: string = "EV"): string {
+  const upper = String(modelIdOrSerial || "").trim().toUpperCase();
+  if (upper.includes("AUTO")) return "AUTO";
+  if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT") || upper.includes("LIT")) return "INV";
+  if (upper.includes("ESS")) return "ESS";
+  if (upper.includes("VRLA") || upper.includes("LEAD")) return "VRLA";
+  if (upper.includes("EV") || upper.includes("72V") || upper.includes("60V") || upper.includes("48V") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) return "EV";
+  const clean = upper.replace(/[^A-Z]/g, "");
+  return clean.slice(0, 4) || "EV";
+}
+
 /**
- * Calculates the next serial sequence number for a given product model/type.
- * Ensures serial numbers start afresh from 1 for each distinct product type/model.
+ * Calculates the next serial sequence number for a given product model/type or cluster.
+ * Ensures serial numbers start afresh from 1 for each distinct product type / model cluster.
  */
 export function getNextSerialSequenceForModel(
   modelId: string, 
@@ -205,18 +216,22 @@ export function getNextSerialSequenceForModel(
   }
   
   const targetModel = String(modelId || '').trim().toLowerCase();
+  const targetCluster = getProductClusterTag(modelId);
   
-  // Find all items matching this specific model or product type
+  // Find all items matching this specific model or product cluster
   const matchingItems = existingItems.filter(item => {
     const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
-    return itemModel === targetModel;
+    const itemSerial = String(item.serial || item.serialNumber || '').trim().toUpperCase();
+    if (itemModel && itemModel === targetModel) return true;
+    const itemCluster = getProductClusterTag(itemModel || itemSerial);
+    return itemCluster === targetCluster;
   });
 
   if (matchingItems.length === 0) {
     return 1;
   }
 
-  // Extract sequence numbers from existing serials for this model
+  // Extract sequence numbers from existing serials for this model / cluster
   let maxSeq = 0;
   matchingItems.forEach(item => {
     const s = item.serial || item.serialNumber || '';
@@ -233,7 +248,7 @@ export function getNextSerialSequenceForModel(
 }
 
 /**
- * Generates a finished product serial number starting afresh for each product type/model.
+ * Generates a finished product serial number starting afresh for each product type/model cluster.
  */
 export function generateModelSpecificSerial(
   modelId: string,
@@ -245,20 +260,8 @@ export function generateModelSpecificSerial(
   const monthChar = String.fromCharCode(65 + d.getMonth());
   const year2 = String(d.getFullYear()).slice(-2);
 
-  // Grade normalization based on model
-  let gradeTag = "EV";
-  if (modelId) {
-    const upper = String(modelId).toUpperCase();
-    if (upper.includes("AUTO")) gradeTag = "AUTO";
-    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT")) gradeTag = "INV";
-    else if (upper.includes("ESS")) gradeTag = "ESS";
-    else if (upper.includes("VRLA")) gradeTag = "VRLA";
-    else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
-    else {
-      const clean = upper.replace(/[^A-Z]/g, "");
-      gradeTag = clean.slice(0, 4) || "EV";
-    }
-  }
+  // Grade/Cluster normalization based on model
+  const gradeTag = getProductClusterTag(modelId);
 
   const digitsOnly = String(seqNumber).replace(/[^0-9]/g, "");
   const numStr = digitsOnly ? digitsOnly.padStart(6, "0") : "000001";
@@ -560,7 +563,7 @@ export function parseBatterySerial(serial: string) {
   
   const norm = normalizeToRevisedSerial(serial);
 
-  // Pattern with spaces: e.g. "AESPL  EV  28G26001044" or "AESPL EV 28G26001044"
+  // Pattern with spaces: e.g. "AESPL  EV  28G26000001" or "AESPL EV 28G26000001"
   const spaceParts = norm.split(/\s+/);
   if (spaceParts.length >= 3 && spaceParts[0].toUpperCase() === 'AESPL') {
     return {

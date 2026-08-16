@@ -59,7 +59,7 @@ export const Engagement: React.FC = () => {
   const [searchedWarranty, setSearchedWarranty] = useState<any>(null);
   
   // Service submission on phone
-  const [phoneService, setPhoneService] = useState({ serial: 'AESPL  EV  28G26001044', type: 'Low Range', notes: '' });
+  const [phoneService, setPhoneService] = useState({ serial: 'AESPL  EV  28G26000001', type: 'Low Range', notes: '' });
   const [phoneServiceSubmitted, setPhoneServiceSubmitted] = useState(false);
 
   // Warranty checks logs linked to Image 2 lookups
@@ -358,7 +358,7 @@ export const Engagement: React.FC = () => {
         if (res.ok) {
           setPhoneServiceSubmitted(true);
           refetch();
-          setPhoneService({ serial: 'AESPL  EV  28G26001044', type: 'Low Range', notes: '' });
+          setPhoneService({ serial: 'AESPL  EV  28G26000001', type: 'Low Range', notes: '' });
         }
       } catch (err) {
         console.error(err);
@@ -562,7 +562,7 @@ export const Engagement: React.FC = () => {
                                  <input 
                                     type="text" 
                                     className="flex-1 bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-black tracking-widest focus:ring-2 focus:ring-[#912551]/20 outline-none uppercase"
-                                    placeholder="e.g. AESPL  EV  28G26001044"
+                                    placeholder="e.g. AESPL  EV  28G26000001"
                                     value={phoneSerial}
                                     onChange={(e) => setPhoneSerial(e.target.value)}
                                  />
@@ -1190,7 +1190,7 @@ export const Engagement: React.FC = () => {
                            value={stickerSerial}
                            onChange={(e) => setStickerSerial(e.target.value.toUpperCase())}
                            className="w-full bg-white border border-[#7c1d3c]/30 rounded-xl px-3 py-2 text-xs font-mono font-bold outline-none text-[#7c1d3c] focus:border-[#7c1d3c]"
-                           placeholder="e.g. AESPL  EV  28G26001044"
+                           placeholder="e.g. AESPL  EV  28G26000001"
                         />
                      </div>
                   </div>
