@@ -10,7 +10,7 @@ import {
   clearClientTable,
   deleteClientRecord
 } from './clientSupabaseSync';
-import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from './serialUtils';
+import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel, ensureIndependentProductSerials } from './serialUtils';
 
 const INITIAL_DB = {
   inventory: [] as any[],
@@ -2986,6 +2986,9 @@ function getLocalDB() {
       if (!Array.isArray(parsed.gateEntries)) parsed.gateEntries = [];
       if (!Array.isArray(parsed.warehouseTransfers)) parsed.warehouseTransfers = [];
       if (!Array.isArray(parsed.purchaseOrders)) parsed.purchaseOrders = [];
+      if (Array.isArray(parsed.finishedGoods)) {
+        parsed.finishedGoods = ensureIndependentProductSerials(parsed.finishedGoods);
+      }
       return parsed;
     } catch (e) {
       console.error("Error reading arcenol_db_clean from localstorage, resetting:", e);

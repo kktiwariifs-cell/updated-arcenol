@@ -191,8 +191,8 @@ export function generateBatterySerial(gradeOrModelStr: string = "EV", seqNumber?
 }
 
 /**
- * Calculates the next serial sequence number for a given product model/type or cluster.
- * Ensures serial numbers start afresh from 1 for each distinct product type / model cluster.
+ * Calculates the next serial sequence number for a given product model.
+ * Ensures serial numbers start afresh from 1 for each distinct product type / model.
  */
 export function getNextSerialSequenceForModel(
   modelId: string, 
@@ -203,22 +203,19 @@ export function getNextSerialSequenceForModel(
   }
   
   const targetModel = String(modelId || '').trim().toLowerCase();
-  const targetCluster = getProductClusterTag(modelId);
   
-  // Find all items matching this specific model or product cluster
+  // Find all items matching this specific product model
   const matchingItems = existingItems.filter(item => {
     const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
-    const itemSerial = String(item.serial || item.serialNumber || '').trim().toUpperCase();
-    if (itemModel && (itemModel === targetModel || itemModel.includes(targetModel) || targetModel.includes(itemModel))) return true;
-    const itemCluster = getProductClusterTag(itemModel || itemSerial);
-    return itemCluster === targetCluster;
+    if (!itemModel) return false;
+    return itemModel === targetModel || itemModel.includes(targetModel) || targetModel.includes(itemModel);
   });
 
   if (matchingItems.length === 0) {
     return 1;
   }
 
-  // Extract sequence numbers from existing serials for this model / cluster
+  // Extract sequence numbers from existing serials for this specific model
   let maxSeq = 0;
   matchingItems.forEach(item => {
     const s = item.serial || item.serialNumber || '';
@@ -232,6 +229,45 @@ export function getNextSerialSequenceForModel(
   });
 
   return maxSeq > 0 ? maxSeq + 1 : matchingItems.length + 1;
+}
+
+/**
+ * Ensures each distinct battery product / model has its own independent serial number sequence (starting from 000001).
+ * Detects legacy sequential numbering that crossed multiple models and normalizes them so each product model counts independently.
+ */
+export function ensureIndependentProductSerials<T extends { model?: string; modelId?: string; serial?: string; serialNumber?: string }>(
+  items: T[]
+): T[] {
+  if (!Array.isArray(items)) return items;
+  
+  // Track sequence count per distinct product model
+  const modelSeqMap = new Map<string, number>();
+  
+  return items.map(item => {
+    const rawModel = item.model || item.modelId || '72V30A';
+    const modelKey = String(rawModel).trim().toUpperCase();
+    const currentSeq = (modelSeqMap.get(modelKey) || 0) + 1;
+    modelSeqMap.set(modelKey, currentSeq);
+
+    const s = String(item.serial || item.serialNumber || '').trim();
+    const cluster = getProductClusterTag(rawModel || s);
+    
+    // Detect if this serial belongs to legacy continuous cross-product series (e.g. 001044..001052)
+    const isLegacyCrossProductSeq = /00104[0-9]/i.test(s) || /00105[0-9]/i.test(s) || /28G260010\d{2}/i.test(s);
+    
+    let finalSerial = s;
+    if (!s || isLegacyCrossProductSeq) {
+      finalSerial = generateModelSpecificSerial(rawModel, currentSeq);
+    } else {
+      finalSerial = normalizeToRevisedSerial(s, cluster);
+    }
+
+    return {
+      ...item,
+      serial: finalSerial,
+      ...(item.serialNumber !== undefined ? { serialNumber: finalSerial } : {})
+    };
+  });
 }
 
 /**

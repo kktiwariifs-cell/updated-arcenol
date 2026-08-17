@@ -145,13 +145,10 @@ function getNextSerialSequenceForModel(
     return 1;
   }
   const targetModel = String(modelId || '').trim().toLowerCase();
-  const targetCluster = getProductClusterTag(modelId);
   const matchingItems = existingItems.filter(item => {
     const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
-    const itemSerial = String(item.serial || item.serialNumber || '').trim().toUpperCase();
-    if (itemModel && (itemModel === targetModel || itemModel.includes(targetModel) || targetModel.includes(itemModel))) return true;
-    const itemCluster = getProductClusterTag(itemModel || itemSerial);
-    return itemCluster === targetCluster;
+    if (!itemModel) return false;
+    return itemModel === targetModel || itemModel.includes(targetModel) || targetModel.includes(itemModel);
   });
 
   if (matchingItems.length === 0) {
@@ -171,6 +168,38 @@ function getNextSerialSequenceForModel(
   });
 
   return maxSeq > 0 ? maxSeq + 1 : matchingItems.length + 1;
+}
+
+function ensureIndependentProductSerials<T extends { model?: string; modelId?: string; serial?: string; serialNumber?: string }>(
+  items: T[]
+): T[] {
+  if (!Array.isArray(items)) return items;
+  
+  const modelSeqMap = new Map<string, number>();
+  
+  return items.map(item => {
+    const rawModel = item.model || item.modelId || '72V30A';
+    const modelKey = String(rawModel).trim().toUpperCase();
+    const currentSeq = (modelSeqMap.get(modelKey) || 0) + 1;
+    modelSeqMap.set(modelKey, currentSeq);
+
+    const s = String(item.serial || item.serialNumber || '').trim();
+    const cluster = getProductClusterTag(rawModel || s);
+    const isLegacyCrossProductSeq = /00104[0-9]/i.test(s) || /00105[0-9]/i.test(s) || /28G260010\d{2}/i.test(s);
+    
+    let finalSerial = s;
+    if (!s || isLegacyCrossProductSeq) {
+      finalSerial = generateModelSpecificSerial(rawModel, currentSeq);
+    } else {
+      finalSerial = normalizeToRevisedSerial(s, cluster);
+    }
+
+    return {
+      ...item,
+      serial: finalSerial,
+      ...(item.serialNumber !== undefined ? { serialNumber: finalSerial } : {})
+    };
+  });
 }
 
 function generateModelSpecificSerial(
@@ -3680,6 +3709,9 @@ async function startServer() {
       await hydrateFromSupabase(db);
     } catch (err) {
       console.warn("[Server] Hydration warning in /api/data:", err);
+    }
+    if (db.finishedGoods) {
+      db.finishedGoods = ensureIndependentProductSerials(db.finishedGoods);
     }
     if (db.engagement) {
       if (!(db.engagement as any).loyaltyUrl) {

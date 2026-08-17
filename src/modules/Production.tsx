@@ -62,12 +62,12 @@ import {
 
 
 const SafeBarcode: React.FC<{ value: string }> = ({ value }) => {
-  const safeVal = String(value || 'AESPL  EV  28G26001044').toUpperCase().replace(/[^A-Z0-9 ]/g, '');
+  const safeVal = String(value || 'AESPL  EV  28G26000001').toUpperCase().replace(/[^A-Z0-9 ]/g, '');
   const BarcodeComponent = (Barcode as any).default || Barcode;
   return (
     <div className="flex flex-col items-center justify-center max-w-full overflow-hidden p-2">
       <BarcodeComponent
-        value={safeVal || 'AESPL  EV  28G26001044'}
+        value={safeVal || 'AESPL  EV  28G26000001'}
         width={1.2}
         height={45}
         displayValue={false}
@@ -128,7 +128,7 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
   const [gbInspector, setGbInspector] = useState(user?.name || "QC Lead Suresh");
 
   // Form Fields - EOL Battery Quality Cert
-  const [eolSerial, setEolSerial] = useState("AESPL EV 28G26001044");
+  const [eolSerial, setEolSerial] = useState("AESPL  EV  28G26000001");
   const [eolModel, setEolModel] = useState("72V30A");
   const [eolHiPotResistance, setEolHiPotResistance] = useState(500);
   const [eolDielectricResult, setEolDielectricResult] = useState("PASS (1500V AC 1 min)");

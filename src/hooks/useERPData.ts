@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { hydrateDbFromSupabase } from '../lib/clientSupabaseSync';
+import { ensureIndependentProductSerials } from '../lib/serialUtils';
 
 // Centralised in-memory cache and routing of subscribers for the entire ERP
 let cachedData: any = null;
@@ -33,6 +34,9 @@ export function notifyCrossTabSync(reason?: string) {
 export function setERPLocalData(updater: (prev: any) => any) {
   if (cachedData) {
     cachedData = updater({ ...cachedData });
+    if (cachedData.finishedGoods) {
+      cachedData.finishedGoods = ensureIndependentProductSerials(cachedData.finishedGoods);
+    }
     if (typeof window !== 'undefined') {
       localStorage.setItem('arcenol_db_clean', JSON.stringify(cachedData));
     }
@@ -49,6 +53,9 @@ if (typeof window !== 'undefined') {
   if (saved) {
     try {
       cachedData = JSON.parse(saved);
+      if (cachedData?.finishedGoods) {
+        cachedData.finishedGoods = ensureIndependentProductSerials(cachedData.finishedGoods);
+      }
       const profileBackup = localStorage.getItem('arcenol_business_profile_backup');
       if (profileBackup && cachedData) {
         const bp = JSON.parse(profileBackup);
@@ -123,6 +130,10 @@ const performFetch = async () => {
       if (json.businessProfile) {
         localStorage.setItem('arcenol_business_profile_backup', JSON.stringify(json.businessProfile));
       }
+    }
+
+    if (json?.finishedGoods) {
+      json.finishedGoods = ensureIndependentProductSerials(json.finishedGoods);
     }
 
     cachedData = json;
