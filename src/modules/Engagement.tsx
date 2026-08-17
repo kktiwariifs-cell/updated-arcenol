@@ -29,7 +29,7 @@ import {
 import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { QRCodeSVG } from 'qrcode.react';
-import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from '../lib/serialUtils';
+import { generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel, getProductClusterTag } from '../lib/serialUtils';
 import { printElement } from '../lib/pdfGenerator';
 
 export const Engagement: React.FC = () => {
@@ -1183,6 +1183,45 @@ export const Engagement: React.FC = () => {
                         </div>
                      </div>
 
+                     <div className="space-y-2 text-left">
+                        <div className="flex items-center justify-between">
+                           <label className="text-[9px] font-black uppercase tracking-wider text-[#7c1d3c] block">Select Battery Model / Cluster</label>
+                           <span className="text-[8px] font-black uppercase text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              Cluster: {getProductClusterTag(stickerSerial)}
+                           </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-1.5">
+                           {[
+                              { id: '72V30A', label: '72V30A (EV)', cluster: 'EV' },
+                              { id: 'BAT-AUTO-35', label: 'AUTO 35Ah', cluster: 'AUTO' },
+                              { id: 'BAT-INV-150', label: 'INV 150Ah', cluster: 'INV' },
+                              { id: 'BAT-NEXT-200', label: 'NEXT 200Ah', cluster: 'INV' },
+                              { id: 'BAT-VRLA-100', label: 'VRLA 100Ah', cluster: 'VRLA' },
+                              { id: 'LIT-200', label: 'LIT 200Ah', cluster: 'LIT' },
+                           ].map((item) => {
+                              const isCurrentCluster = getProductClusterTag(stickerSerial) === item.cluster;
+                              return (
+                                 <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => {
+                                       const seq = getNextSerialSequenceForModel(item.id, data?.finishedGoods || []);
+                                       setStickerSerial(generateModelSpecificSerial(item.id, seq));
+                                    }}
+                                    className={cn(
+                                       "px-2 py-1.5 rounded-lg text-[9px] font-bold uppercase border transition-all text-center truncate",
+                                       isCurrentCluster
+                                          ? "bg-[#7c1d3c] text-white border-[#7c1d3c] shadow-sm font-black"
+                                          : "bg-white text-slate-700 border-slate-200 hover:border-[#7c1d3c]/40 hover:text-[#7c1d3c]"
+                                    )}
+                                 >
+                                    {item.label}
+                                 </button>
+                               );
+                           })}
+                        </div>
+                     </div>
+
                      <div className="space-y-1.5 text-left">
                         <label className="text-[9px] font-black uppercase tracking-wider text-[#7c1d3c] block">Battery Serial Number</label>
                         <input 
@@ -1671,7 +1710,15 @@ export const Engagement: React.FC = () => {
                       required
                       className="w-full bg-slate-50 border border-slate-205 rounded-xl px-4 py-3.5 text-xs font-black text-slate-800 outline-none"
                       value={batchParams.productId}
-                      onChange={(e) => setBatchParams({...batchParams, productId: e.target.value})}
+                      onChange={(e) => {
+                        const prodId = e.target.value;
+                        const clusterTag = getProductClusterTag(prodId);
+                        setBatchParams({
+                          ...batchParams,
+                          productId: prodId,
+                          prefix: `AESPL  ${clusterTag}`
+                        });
+                      }}
                     >
                        <option value="">Select Blueprint</option>
                        {getProductsList().map((p: any) => (

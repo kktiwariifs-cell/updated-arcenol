@@ -107,50 +107,34 @@ function normalizeToRevisedSerial(serial: string, fallbackGrade: string = 'EV'):
   return clean;
 }
 
-function generateBatterySerial(gradeStr: string = "EV", seqNumber?: number | string): string {
+function getProductClusterTag(modelIdOrSerial: string = "EV"): string {
+  const upper = String(modelIdOrSerial || "").trim().toUpperCase();
+  if (upper.includes("AUTO") || upper.includes("SCOOTER") || upper.includes("CAR") || upper.includes("STARTER")) return "AUTO";
+  if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT") || upper.includes("UPS")) return "INV";
+  if (upper.includes("ESS") || upper.includes("CONTAINER") || upper.includes("STORAGE")) return "ESS";
+  if (upper.includes("VRLA") || upper.includes("LEAD") || upper.includes("SMF") || upper.includes("TUBULAR")) return "VRLA";
+  if (upper.includes("LIT") || upper.includes("NMC") || upper.includes("LFP") || upper.includes("LI-ION") || upper.includes("PRISMATIC")) return "LIT";
+  if (upper.includes("EV") || upper.includes("72V") || upper.includes("60V") || upper.includes("48V") || upper.includes("RICK") || upper.includes("BIKE")) return "EV";
+  const clean = upper.replace(/[^A-Z]/g, "");
+  return clean.slice(0, 4) || "EV";
+}
+
+function generateBatterySerial(gradeOrModelStr: string = "EV", seqNumber?: number | string): string {
+  const gradeTag = getProductClusterTag(gradeOrModelStr);
   const now = new Date();
   const day = String(now.getDate()).padStart(2, "0");
   const monthChar = String.fromCharCode(65 + now.getMonth());
   const year2 = String(now.getFullYear()).slice(-2);
 
-  let gradeTag = "EV";
-  if (gradeStr) {
-    const upper = String(gradeStr).toUpperCase();
-    if (upper.includes("AUTO")) gradeTag = "AUTO";
-    else if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT")) gradeTag = "INV";
-    else if (upper.includes("ESS")) gradeTag = "ESS";
-    else if (upper.includes("VRLA")) gradeTag = "VRLA";
-    else if (upper.includes("EV") || upper.includes("72V") || upper.includes("LIT") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) gradeTag = "EV";
-    else {
-      const clean = upper.replace(/[^A-Z]/g, "");
-      gradeTag = clean.slice(0, 4) || "EV";
-    }
-  }
-
-  let numStr = "";
+  let numStr = "000001";
   if (seqNumber !== undefined && seqNumber !== null && String(seqNumber).trim() !== "") {
     const digitsOnly = String(seqNumber).replace(/[^0-9]/g, "");
     if (digitsOnly) {
       numStr = digitsOnly.padStart(6, "0");
-    } else {
-      numStr = "000001";
     }
-  } else {
-    numStr = "000001";
   }
 
   return `AESPL  ${gradeTag}  ${day}${monthChar}${year2}${numStr}`;
-}
-
-function getProductClusterTag(modelIdOrSerial: string = "EV"): string {
-  const upper = String(modelIdOrSerial || "").trim().toUpperCase();
-  if (upper.includes("AUTO")) return "AUTO";
-  if (upper.includes("INV") || upper.includes("NEXT") || upper.includes("SOLAR") || upper.includes("INVERTER") || upper.includes("BATNEXT") || upper.includes("LIT")) return "INV";
-  if (upper.includes("ESS")) return "ESS";
-  if (upper.includes("VRLA") || upper.includes("LEAD")) return "VRLA";
-  if (upper.includes("EV") || upper.includes("72V") || upper.includes("60V") || upper.includes("48V") || upper.includes("NMC") || upper.includes("RICK") || upper.includes("BIKE")) return "EV";
-  const clean = upper.replace(/[^A-Z]/g, "");
-  return clean.slice(0, 4) || "EV";
 }
 
 function getNextSerialSequenceForModel(
@@ -165,7 +149,7 @@ function getNextSerialSequenceForModel(
   const matchingItems = existingItems.filter(item => {
     const itemModel = String(item.model || item.modelId || '').trim().toLowerCase();
     const itemSerial = String(item.serial || item.serialNumber || '').trim().toUpperCase();
-    if (itemModel && itemModel === targetModel) return true;
+    if (itemModel && (itemModel === targetModel || itemModel.includes(targetModel) || targetModel.includes(itemModel))) return true;
     const itemCluster = getProductClusterTag(itemModel || itemSerial);
     return itemCluster === targetCluster;
   });
@@ -512,8 +496,8 @@ async function startServer() {
       { id: "fg9b", model: "PROD-EV-BIKE", serial: "AESPL  EV  28G26000002", batch: "BATCH-E1", warehouse: "Ahmedabad Warehouse", rack: "BIN-13", date: "2026-07-28", status: "READY" },
       { id: "fg10", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-F1", warehouse: "Main Warehouse", rack: "BIN-14", date: "2026-07-28", status: "READY" },
       { id: "fg11", model: "BAT-NEXT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-F1", warehouse: "Ahmedabad Warehouse", rack: "BIN-15", date: "2026-07-28", status: "READY" },
-      { id: "fg12", model: "LIT-200", serial: "AESPL  INV  28G26000001", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
-      { id: "fg12b", model: "LIT-200", serial: "AESPL  INV  28G26000002", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
+      { id: "fg12", model: "LIT-200", serial: "AESPL  LIT  28G26000001", batch: "BATCH-G1", warehouse: "Main Warehouse", rack: "BIN-18", date: "2026-07-28", status: "READY" },
+      { id: "fg12b", model: "LIT-200", serial: "AESPL  LIT  28G26000002", batch: "BATCH-G1", warehouse: "Ahmedabad Warehouse", rack: "BIN-19", date: "2026-07-28", status: "READY" },
     ],
     purchaseOrders: [
       {

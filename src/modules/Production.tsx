@@ -3093,12 +3093,21 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                   <label className="text-[9px] font-black uppercase text-slate-400 block mb-1">Pack Model Specification</label>
                   <select
                     value={eolModel}
-                    onChange={(e) => setEolModel(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500"
+                    onChange={(e) => {
+                      const newModel = e.target.value;
+                      setEolModel(newModel);
+                      const nextSeq = getNextSerialSequenceForModel(newModel, data?.finishedGoods || []);
+                      setEolSerial(generateModelSpecificSerial(newModel, nextSeq));
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-cyan-500 font-bold"
                   >
-                    <option value="72V30A">72V30A (Heavy Duty EV)</option>
-                    <option value="60V26A">60V26A (Standard Scooter)</option>
-                    <option value="48V24A">48V24A (Light EV Pack)</option>
+                    <option value="72V30A">72V30A (Heavy Duty EV Pack)</option>
+                    <option value="BAT-AUTO-35">BAT-AUTO-35 (Automotive / Scooter Starter)</option>
+                    <option value="BAT-INV-150">BAT-INV-150 (Inverter / UPS Battery)</option>
+                    <option value="BAT-NEXT-200">BAT-NEXT-200 (Solar Inverter High Capacity)</option>
+                    <option value="BAT-VRLA-100">BAT-VRLA-100 (VRLA / SMF Tubular)</option>
+                    <option value="LIT-200">LIT-200 (Lithium NMC / LFP Energy Storage)</option>
+                    <option value="PROD-EV-BIKE">PROD-EV-BIKE (Electric Two-Wheeler Battery)</option>
                   </select>
                 </div>
               </div>

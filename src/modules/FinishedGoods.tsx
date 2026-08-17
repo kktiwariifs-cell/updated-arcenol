@@ -8,7 +8,7 @@ import {
   Upload, Download, FileSpreadsheet, FileText, AlertCircle, Check
 } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
-import { FormattedSerial } from '../lib/serialUtils';
+import { FormattedSerial, getProductClusterTag } from '../lib/serialUtils';
 import { cn } from '../lib/utils';
 import { downloadElementAsPDF, printElement } from '../lib/pdfGenerator';
 import { 
@@ -20,6 +20,7 @@ export const FinishedGoods: React.FC = () => {
   const { data, loading, refetch } = useERPData();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>('All');
+  const [selectedCluster, setSelectedCluster] = useState<string>('All');
 
   // Interactive console status
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
@@ -89,7 +90,9 @@ export const FinishedGoods: React.FC = () => {
     const matchesSearch = item.serial.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.model.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesWarehouse = selectedWarehouse === 'All' || item.warehouse === selectedWarehouse;
-    return matchesSearch && matchesWarehouse;
+    const itemCluster = getProductClusterTag(item.model || item.serial);
+    const matchesCluster = selectedCluster === 'All' || itemCluster === selectedCluster || item.model === selectedCluster;
+    return matchesSearch && matchesWarehouse && matchesCluster;
   });
 
   const totalFgPages = Math.ceil(filteredGoods.length / fgItemsPerPage) || 1;
@@ -484,6 +487,19 @@ export const FinishedGoods: React.FC = () => {
             />
           </div>
           <select 
+            value={selectedCluster}
+            onChange={(e) => setSelectedCluster(e.target.value)}
+            className="bg-white border border-slate-200 text-slate-900 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary-500 outline-none transition-all shadow-xl shadow-slate-200/50 cursor-pointer appearance-none"
+          >
+            <option value="All">All Clusters / Models</option>
+            <option value="EV">EV Packs (72V, 60V, Bike)</option>
+            <option value="AUTO">Automotive Starter (AUTO-35)</option>
+            <option value="INV">Inverter / UPS (INV-150, NEXT-200)</option>
+            <option value="VRLA">VRLA / SMF (VRLA-100)</option>
+            <option value="LIT">Lithium Storage (LIT-200)</option>
+            <option value="ESS">ESS Energy Containers</option>
+          </select>
+          <select 
             value={selectedWarehouse}
             onChange={(e) => setSelectedWarehouse(e.target.value)}
             className="bg-white border border-slate-200 text-slate-900 px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary-500 outline-none transition-all shadow-xl shadow-slate-200/50 cursor-pointer appearance-none"
@@ -717,9 +733,14 @@ export const FinishedGoods: React.FC = () => {
                     <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase italic tracking-wider">Entry: {item.date}</p>
                   </td>
                   <td className="px-8 py-6">
-                    <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{item.model}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{item.model}</p>
+                      <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                        {getProductClusterTag(item.model || item.serial)}
+                      </span>
+                    </div>
                     <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase leading-none opacity-60">
-                      {data?.products.find((p:any) => p.id === item.model)?.name || "ArcPower Storage Matrix"}
+                      {data?.products?.find((p:any) => p.id === item.model)?.name || "ArcPower Storage Matrix"}
                     </p>
                   </td>
                   <td className="px-8 py-6">
