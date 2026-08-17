@@ -9,6 +9,8 @@ const dataSubscribers = new Set<(data: any) => void>();
 const loadingSubscribers = new Set<(loading: boolean) => void>();
 let pollingTimer: any = null;
 let isFirstLoadTriggered = false;
+let isFetching = false;
+let lastSyncedDataStr = '';
 
 // Cross-tab broadcast channel for instant multi-tab sync
 let syncChannel: BroadcastChannel | null = null;
@@ -40,6 +42,7 @@ export function setERPLocalData(updater: (prev: any) => any) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('arcenol_db_clean', JSON.stringify(cachedData));
     }
+    lastSyncedDataStr = JSON.stringify(cachedData);
     dataSubscribers.forEach((cb) => {
       try { cb(cachedData); } catch (e) {}
     });
@@ -66,12 +69,15 @@ if (typeof window !== 'undefined') {
           loginLeftImage: cachedData.businessProfile?.loginLeftImage || bp?.loginLeftImage || ''
         };
       }
+      lastSyncedDataStr = JSON.stringify(cachedData);
       cachedLoading = false;
     } catch (e) {}
   }
 }
 
 const performFetch = async () => {
+  if (isFetching) return;
+  isFetching = true;
   try {
     let json: any = null;
     try {
@@ -81,7 +87,7 @@ const performFetch = async () => {
         json = await res.json();
       }
     } catch (e) {
-      console.warn('[useERPData] Server API endpoint unreachable, falling back to client Supabase:', e);
+      // Endpoint fallback
     }
 
     if (!json) {
@@ -100,17 +106,14 @@ const performFetch = async () => {
         warranty: [],
         products: []
       };
+      // Fallback hydrate client-side directly if not already hydrated by api mock
+      try {
+        await hydrateDbFromSupabase(json);
+      } catch (sbErr) {}
     }
 
     if (!json.warranty) {
       json.warranty = cachedData?.warranty || [];
-    }
-
-    // Always hydrate from Supabase to sync client-side database
-    try {
-      await hydrateDbFromSupabase(json);
-    } catch (sbErr) {
-      console.warn('[useERPData] Direct client Supabase hydration warning:', sbErr);
     }
 
     // Ensure logo and settings are backed up and merged seamlessly
@@ -136,22 +139,33 @@ const performFetch = async () => {
       json.finishedGoods = ensureIndependentProductSerials(json.finishedGoods);
     }
 
-    cachedData = json;
-    cachedLoading = false;
+    const currentStr = JSON.stringify(json);
+    const dataHasChanged = currentStr !== lastSyncedDataStr;
 
-    // Notify all active React hook listeners
-    dataSubscribers.forEach((cb) => {
-      try { cb(json); } catch (e) {}
-    });
-    loadingSubscribers.forEach((cb) => {
-      try { cb(false); } catch (e) {}
-    });
+    cachedData = json;
+    lastSyncedDataStr = currentStr;
+
+    if (cachedLoading) {
+      cachedLoading = false;
+      loadingSubscribers.forEach((cb) => {
+        try { cb(false); } catch (e) {}
+      });
+    }
+
+    // Only notify active React hook listeners if data actually changed to prevent constant UI flickering
+    if (dataHasChanged) {
+      dataSubscribers.forEach((cb) => {
+        try { cb(json); } catch (e) {}
+      });
+    }
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('arcenol_db_clean', JSON.stringify(json));
+      localStorage.setItem('arcenol_db_clean', currentStr);
     }
   } catch (err) {
     console.warn('[ERP State Sync Warning]:', err);
+  } finally {
+    isFetching = false;
   }
 };
 
@@ -160,7 +174,7 @@ const initGlobalPolling = () => {
   if (!isFirstLoadTriggered) {
     isFirstLoadTriggered = true;
     if (pollingTimer) clearInterval(pollingTimer);
-    pollingTimer = setInterval(performFetch, 2500);
+    pollingTimer = setInterval(performFetch, 10000);
 
     if (typeof window !== 'undefined') {
       window.addEventListener('focus', () => performFetch());

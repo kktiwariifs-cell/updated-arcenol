@@ -3012,6 +3012,9 @@ function saveLocalDB(db: any) {
   }
 }
 
+let lastMockHydrateTime = 0;
+let isMockHydrating = false;
+
 async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Response> {
   const db = getLocalDB();
   const options = init || {};
@@ -3023,8 +3026,19 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
 
   try {
     if (urlStr.includes('/api/data')) {
-      await hydrateDbFromSupabase(db);
-      saveLocalDB(db);
+      const now = Date.now();
+      if (!isMockHydrating && now - lastMockHydrateTime > 15000) {
+        isMockHydrating = true;
+        hydrateDbFromSupabase(db)
+          .then(() => {
+            lastMockHydrateTime = Date.now();
+            saveLocalDB(db);
+          })
+          .catch(() => {})
+          .finally(() => {
+            isMockHydrating = false;
+          });
+      }
       responseData = db;
     } else if (urlStr.includes('/api/business-profile')) {
       if (method === 'GET') {
@@ -4206,27 +4220,15 @@ if (typeof window !== 'undefined') {
     }
   }
 
-  // Cross-device automatic background sync & tab window focus sync for Vercel static deployments
-  const triggerAutoSync = () => {
+  // Initial background sync on startup
+  setTimeout(() => {
     try {
       const db = getLocalDB();
       hydrateDbFromSupabase(db).then(() => {
         saveLocalDB(db);
       }).catch(() => {});
     } catch (e) {}
-  };
-
-  // Initial sync on startup
-  setTimeout(triggerAutoSync, 1500);
-
-  // Poll Supabase every 8 seconds for multi-device sync
-  setInterval(triggerAutoSync, 8000);
-
-  // Sync on tab focus or window visibility change
-  window.addEventListener('focus', triggerAutoSync);
-  window.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') triggerAutoSync();
-  });
+  }, 1000);
 }
 
 export {};

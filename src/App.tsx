@@ -24,7 +24,7 @@ import { UserManual } from './modules/UserManual';
 import { InventoryHub } from './modules/InventoryHub';
 import { ManufacturingHub } from './modules/ManufacturingHub';
 import { CommandMenu } from './components/CommandMenu';
-const factoryAssemblyImg = '/src/assets/images/factory_assembly_1781177240715.png';
+import factoryAssemblyImg from './assets/images/factory_assembly_1781177240715.png';
 import { Battery, Zap, ChevronRight, LayoutDashboard, Database, PieChart, Users, ReceiptIndianRupee, ShieldCheck, Wrench, BarChart3, Smartphone, Mail, Lock, Eye, EyeOff, AlertCircle, Globe, Moon, Sun, Check, Cloud, Star, Activity, ShieldAlert, Shield, ToggleLeft, ToggleRight, Laptop, Terminal, Layers, Menu, BookOpen } from 'lucide-react';
 import { cn } from './lib/utils';
 import { useERPData } from './hooks/useERPData';
@@ -143,17 +143,9 @@ export default function App() {
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
 
-    // Periodic clearing of developer logs inside the run boundary
-    const logInterval = setInterval(() => {
-      if (process.env.NODE_ENV === 'production') {
-        console.clear();
-      }
-    }, 12000);
-
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
-      clearInterval(logInterval);
     };
   }, []);
 
