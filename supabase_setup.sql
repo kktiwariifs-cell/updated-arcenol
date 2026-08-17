@@ -546,6 +546,120 @@ ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS allocated_inflow
 ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS status text DEFAULT 'COMPLETED';
 ALTER TABLE public.procurement_entries ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
 
+-- -------------------------------------------------------------------------
+-- TABLE 21: FINISHED GOODS (FINISHED BATTERY PACKS & REPOSITORY)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.finished_goods (
+  id text PRIMARY KEY,
+  model text NOT NULL,
+  serial text UNIQUE NOT NULL,
+  batch text DEFAULT 'BATCH-A1',
+  warehouse text DEFAULT 'Main Warehouse',
+  rack text DEFAULT 'BIN-01',
+  date text,
+  status text DEFAULT 'READY',
+  test_results jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS model text;
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS serial text;
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS batch text DEFAULT 'BATCH-A1';
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS warehouse text DEFAULT 'Main Warehouse';
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS rack text DEFAULT 'BIN-01';
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS date text;
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS status text DEFAULT 'READY';
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS test_results jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE public.finished_goods ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
+-- -------------------------------------------------------------------------
+-- TABLE 22: PRODUCTION PLANS (MANUFACTURING JOB SCHEDULES)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.production_plans (
+  id text PRIMARY KEY,
+  model_id text NOT NULL,
+  model_name text,
+  target_qty numeric DEFAULT 0,
+  completed_qty numeric DEFAULT 0,
+  priority text DEFAULT 'MEDIUM',
+  start_date text,
+  target_date text,
+  status text DEFAULT 'PLANNED',
+  allocation_mode text DEFAULT 'CONSUME',
+  materials jsonb DEFAULT '[]'::jsonb,
+  notes text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS model_id text;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS model_name text;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS target_qty numeric DEFAULT 0;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS completed_qty numeric DEFAULT 0;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS priority text DEFAULT 'MEDIUM';
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS start_date text;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS target_date text;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS status text DEFAULT 'PLANNED';
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS allocation_mode text DEFAULT 'CONSUME';
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS materials jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE public.production_plans ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
+-- -------------------------------------------------------------------------
+-- TABLE 23: WAREHOUSE TRANSFERS (INTER-FACILITY LOGISTICS)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.warehouse_transfers (
+  id text PRIMARY KEY,
+  transfer_no text,
+  transfer_date text,
+  source_warehouse text NOT NULL,
+  destination_warehouse text NOT NULL,
+  items jsonb DEFAULT '[]'::jsonb,
+  status text DEFAULT 'DISPATCHED_IN_TRANSIT',
+  vehicle_no text,
+  driver_name text,
+  driver_contact text,
+  e_way_bill text,
+  notes text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS transfer_no text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS transfer_date text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS source_warehouse text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS destination_warehouse text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS items jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS status text DEFAULT 'DISPATCHED_IN_TRANSIT';
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS vehicle_no text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS driver_name text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS driver_contact text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS e_way_bill text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE public.warehouse_transfers ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
+-- -------------------------------------------------------------------------
+-- TABLE 24: STOCK AUDITS (PHYSICAL VERIFICATION AUDITS)
+-- -------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.stock_audits (
+  id text PRIMARY KEY,
+  audit_no text,
+  warehouse text NOT NULL,
+  auditor text,
+  audit_date text,
+  status text DEFAULT 'PENDING_APPROVAL',
+  findings jsonb DEFAULT '[]'::jsonb,
+  admin_notes text,
+  created_at timestamp with time zone DEFAULT timezone('utc'::text, now())
+);
+
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS audit_no text;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS warehouse text;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS auditor text;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS audit_date text;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS status text DEFAULT 'PENDING_APPROVAL';
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS findings jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS admin_notes text;
+ALTER TABLE public.stock_audits ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT timezone('utc'::text, now());
+
 -- =========================================================================
 -- ROW LEVEL SECURITY (RLS) FOR ANONYMOUS CRUD INTEGRATION
 -- =========================================================================
@@ -558,6 +672,28 @@ ALTER TABLE public.graded_cells ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wip_inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wip_process_stages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.process_initiations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.mrp_calculations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.bom_blueprints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.lead_followup_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.accounting_vouchers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.dtc_scans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketing_campaigns ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.batch_qr_labels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plant_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diagnostic_ledger ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.arcenol_business_profile ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.purchase_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.procurement_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.arcenol_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.finished_goods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.production_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.warehouse_transfers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.stock_audits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mrp_calculations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bom_blueprints ENABLE ROW LEVEL SECURITY;
@@ -877,6 +1013,54 @@ CREATE POLICY "Allow public select" ON public.arcenol_users FOR SELECT USING (tr
 CREATE POLICY "Allow public insert" ON public.arcenol_users FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public update" ON public.arcenol_users FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
 CREATE POLICY "Allow public delete" ON public.arcenol_users FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 25. finished_goods
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.finished_goods;
+DROP POLICY IF EXISTS "Allow public select" ON public.finished_goods;
+DROP POLICY IF EXISTS "Allow public insert" ON public.finished_goods;
+DROP POLICY IF EXISTS "Allow public update" ON public.finished_goods;
+DROP POLICY IF EXISTS "Allow public delete" ON public.finished_goods;
+
+CREATE POLICY "Allow public select" ON public.finished_goods FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.finished_goods FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.finished_goods FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.finished_goods FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 26. production_plans
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.production_plans;
+DROP POLICY IF EXISTS "Allow public select" ON public.production_plans;
+DROP POLICY IF EXISTS "Allow public insert" ON public.production_plans;
+DROP POLICY IF EXISTS "Allow public update" ON public.production_plans;
+DROP POLICY IF EXISTS "Allow public delete" ON public.production_plans;
+
+CREATE POLICY "Allow public select" ON public.production_plans FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.production_plans FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.production_plans FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.production_plans FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 27. warehouse_transfers
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.warehouse_transfers;
+DROP POLICY IF EXISTS "Allow public select" ON public.warehouse_transfers;
+DROP POLICY IF EXISTS "Allow public insert" ON public.warehouse_transfers;
+DROP POLICY IF EXISTS "Allow public update" ON public.warehouse_transfers;
+DROP POLICY IF EXISTS "Allow public delete" ON public.warehouse_transfers;
+
+CREATE POLICY "Allow public select" ON public.warehouse_transfers FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.warehouse_transfers FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.warehouse_transfers FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.warehouse_transfers FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
+
+-- 28. stock_audits
+DROP POLICY IF EXISTS "Allow public access to all records" ON public.stock_audits;
+DROP POLICY IF EXISTS "Allow public select" ON public.stock_audits;
+DROP POLICY IF EXISTS "Allow public insert" ON public.stock_audits;
+DROP POLICY IF EXISTS "Allow public update" ON public.stock_audits;
+DROP POLICY IF EXISTS "Allow public delete" ON public.stock_audits;
+
+CREATE POLICY "Allow public select" ON public.stock_audits FOR SELECT USING (true);
+CREATE POLICY "Allow public insert" ON public.stock_audits FOR INSERT WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public update" ON public.stock_audits FOR UPDATE USING (auth.role() IN ('anon', 'authenticated')) WITH CHECK (auth.role() IN ('anon', 'authenticated'));
+CREATE POLICY "Allow public delete" ON public.stock_audits FOR DELETE USING (auth.role() IN ('anon', 'authenticated'));
 
 -- -------------------------------------------------------------------------
 -- SECURITY HARDENING: SECURE EXISTING FUNCTIONS

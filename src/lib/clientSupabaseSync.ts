@@ -451,6 +451,49 @@ export async function hydrateDbFromSupabase(db: any) {
     } catch (usersCatchErr) {
       console.warn('[Client Supabase Sync] Error hydrating arcenol_users:', usersCatchErr);
     }
+
+    // 18. Finished Goods
+    try {
+      const { data: fgs, error: fgsErr } = await supabase.from('finished_goods').select('*');
+      if (!fgsErr && Array.isArray(fgs) && fgs.length > 0) {
+        db.finishedGoods = fgs.map((f: any) => ({
+          id: String(f.id),
+          model: f.model,
+          serial: f.serial,
+          batch: f.batch || 'BATCH-A1',
+          warehouse: f.warehouse || 'Main Warehouse',
+          rack: f.rack || 'BIN-01',
+          date: f.date || (f.created_at ? f.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          status: f.status || 'READY',
+          testResults: f.test_results || f.testResults || {}
+        }));
+      }
+    } catch (fgErr) {
+      // Graceful fallback
+    }
+
+    // 19. Production Plans
+    try {
+      const { data: plans, error: plansErr } = await supabase.from('production_plans').select('*');
+      if (!plansErr && Array.isArray(plans)) {
+        db.productionPlans = plans.map((p: any) => ({
+          id: String(p.id),
+          modelId: p.model_id || p.modelId,
+          modelName: p.model_name || p.modelName,
+          targetQty: Number(p.target_qty || p.targetQty || 0),
+          completedQty: Number(p.completed_qty || p.completedQty || 0),
+          priority: p.priority || 'MEDIUM',
+          startDate: p.start_date || p.startDate,
+          targetDate: p.target_date || p.targetDate,
+          status: p.status || 'PLANNED',
+          allocationMode: p.allocation_mode || p.allocationMode || 'CONSUME',
+          materials: Array.isArray(p.materials) ? p.materials : [],
+          notes: p.notes || ''
+        }));
+      }
+    } catch (planErr) {
+      // Graceful fallback
+    }
   } catch (err) {
     console.warn('[Client Supabase Sync Warning]:', err);
   }

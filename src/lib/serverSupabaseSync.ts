@@ -335,6 +335,67 @@ export function mapUser(u: any) {
   };
 }
 
+export function mapFinishedGood(fg: any) {
+  return {
+    id: String(fg.id || `fg-${Date.now()}`),
+    model: fg.model || fg.modelId || '72V30A',
+    serial: fg.serial || fg.serialNumber || 'AESPL  EV  28G26000001',
+    batch: fg.batch || 'BATCH-A1',
+    warehouse: fg.warehouse || 'Main Warehouse',
+    rack: fg.rack || 'BIN-01',
+    date: fg.date || new Date().toISOString().split('T')[0],
+    status: fg.status || 'READY',
+    test_results: fg.testResults || fg.test_results || {}
+  };
+}
+
+export function mapProductionPlan(p: any) {
+  return {
+    id: String(p.id || `plan-${Date.now()}`),
+    model_id: p.modelId || p.model_id || p.model || '72V30A',
+    model_name: p.modelName || p.model_name || p.name || 'Battery Pack',
+    target_qty: Number(p.targetQty || p.target_qty || p.qty || 0),
+    completed_qty: Number(p.completedQty || p.completed_qty || 0),
+    priority: p.priority || 'MEDIUM',
+    start_date: p.startDate || p.start_date || p.date || new Date().toISOString().split('T')[0],
+    target_date: p.targetDate || p.target_date || new Date().toISOString().split('T')[0],
+    status: p.status || 'PLANNED',
+    allocation_mode: p.allocationMode || p.allocation_mode || 'CONSUME',
+    materials: Array.isArray(p.materials) ? p.materials : [],
+    notes: p.notes || ''
+  };
+}
+
+export function mapWarehouseTransfer(t: any) {
+  return {
+    id: String(t.id || `TRN-${Date.now()}`),
+    transfer_no: t.transferNo || t.transfer_no || t.id,
+    source_warehouse: t.sourceWarehouse || t.source_warehouse || 'Raw Hub',
+    destination_warehouse: t.destinationWarehouse || t.destination_warehouse || 'Main Warehouse',
+    items: Array.isArray(t.items) ? t.items : [],
+    status: t.status || 'DISPATCHED_IN_TRANSIT',
+    vehicle_no: t.vehicleNo || t.vehicle_no || t.vehicleNumber || '',
+    driver_name: t.driverName || t.driver_name || '',
+    driver_contact: t.driverContact || t.driver_contact || '',
+    e_way_bill: t.eWayBillNo || t.e_way_bill || t.ewayBill || '',
+    notes: t.notes || t.receivedNotes || '',
+    transfer_date: t.transferDate || t.transfer_date || new Date().toISOString().split('T')[0]
+  };
+}
+
+export function mapStockAudit(a: any) {
+  return {
+    id: String(a.id || `AUDIT-${Date.now()}`),
+    audit_no: a.auditNo || a.audit_no || a.id,
+    warehouse: a.warehouse || 'Main Warehouse',
+    auditor: a.auditedBy || a.auditor || 'Warehouse Supervisor',
+    audit_date: a.auditDate || a.audit_date || new Date().toISOString().split('T')[0],
+    status: a.status || 'PENDING_APPROVAL',
+    findings: Array.isArray(a.items) ? a.items : (Array.isArray(a.findings) ? a.findings : []),
+    admin_notes: a.adminNotes || a.admin_notes || a.notes || ''
+  };
+}
+
 /**
  * Upsert items in batch into Supabase
  */
@@ -448,7 +509,11 @@ export async function syncAllERPToSupabase(db: any) {
     { name: 'arcenol_business_profile', rows: () => db.businessProfile ? [mapBusinessProfile(db.businessProfile)] : [] },
     { name: 'purchase_orders', rows: () => Array.isArray(db.purchaseOrders) ? db.purchaseOrders.map(mapPurchaseOrder) : [] },
     { name: 'procurement_entries', rows: () => Array.isArray(db.procurementEntries) ? db.procurementEntries.map(mapProcurementEntry) : [] },
-    { name: 'arcenol_users', rows: () => Array.isArray(db.users) ? db.users.map(mapUser) : [] }
+    { name: 'arcenol_users', rows: () => Array.isArray(db.users) ? db.users.map(mapUser) : [] },
+    { name: 'finished_goods', rows: () => Array.isArray(db.finishedGoods) ? db.finishedGoods.map(mapFinishedGood) : [] },
+    { name: 'production_plans', rows: () => Array.isArray(db.productionPlans) ? db.productionPlans.map(mapProductionPlan) : [] },
+    { name: 'warehouse_transfers', rows: () => Array.isArray(db.warehouseTransfers) ? db.warehouseTransfers.map(mapWarehouseTransfer) : [] },
+    { name: 'stock_audits', rows: () => Array.isArray(db.stockAudits) ? db.stockAudits.map(mapStockAudit) : [] }
   ];
 
   try {
@@ -915,6 +980,84 @@ export async function hydrateFromSupabase(db: any) {
           department: u.department || '',
           email: u.email,
           password: u.password || 'password123'
+        }));
+      }
+    } catch (e) {}
+
+    // 18. Finished Goods
+    try {
+      const { data: fgs, error: fgsErr } = await supabaseServerClient.from('finished_goods').select('*');
+      if (!fgsErr && Array.isArray(fgs) && fgs.length > 0) {
+        db.finishedGoods = fgs.map((f: any) => ({
+          id: String(f.id),
+          model: f.model,
+          serial: f.serial,
+          batch: f.batch || 'BATCH-A1',
+          warehouse: f.warehouse || 'Main Warehouse',
+          rack: f.rack || 'BIN-01',
+          date: f.date || (f.created_at ? f.created_at.split('T')[0] : new Date().toISOString().split('T')[0]),
+          status: f.status || 'READY',
+          testResults: f.test_results || f.testResults || {}
+        }));
+      }
+    } catch (e) {}
+
+    // 19. Production Plans
+    try {
+      const { data: plans, error: plansErr } = await supabaseServerClient.from('production_plans').select('*');
+      if (!plansErr && Array.isArray(plans)) {
+        db.productionPlans = plans.map((p: any) => ({
+          id: String(p.id),
+          modelId: p.model_id || p.modelId,
+          modelName: p.model_name || p.modelName,
+          targetQty: Number(p.target_qty || p.targetQty || 0),
+          completedQty: Number(p.completed_qty || p.completedQty || 0),
+          priority: p.priority || 'MEDIUM',
+          startDate: p.start_date || p.startDate,
+          targetDate: p.target_date || p.targetDate,
+          status: p.status || 'PLANNED',
+          allocationMode: p.allocation_mode || p.allocationMode || 'CONSUME',
+          materials: Array.isArray(p.materials) ? p.materials : [],
+          notes: p.notes || ''
+        }));
+      }
+    } catch (e) {}
+
+    // 20. Warehouse Transfers
+    try {
+      const { data: trns, error: trnsErr } = await supabaseServerClient.from('warehouse_transfers').select('*');
+      if (!trnsErr && Array.isArray(trns)) {
+        db.warehouseTransfers = trns.map((t: any) => ({
+          id: String(t.id),
+          transferNo: t.transfer_no || t.transferNo || t.id,
+          transferDate: t.transfer_date || t.transferDate || new Date().toISOString().split('T')[0],
+          sourceWarehouse: t.source_warehouse || t.sourceWarehouse || 'Raw Hub',
+          destinationWarehouse: t.destination_warehouse || t.destinationWarehouse || 'Main Warehouse',
+          items: Array.isArray(t.items) ? t.items : [],
+          status: t.status || 'DISPATCHED_IN_TRANSIT',
+          vehicleNo: t.vehicle_no || t.vehicleNo || '',
+          driverName: t.driver_name || t.driverName || '',
+          driverContact: t.driver_contact || t.driverContact || '',
+          eWayBillNo: t.e_way_bill || t.eWayBillNo || '',
+          notes: t.notes || '',
+          receivedNotes: t.notes || ''
+        }));
+      }
+    } catch (e) {}
+
+    // 21. Stock Audits
+    try {
+      const { data: audits, error: auditsErr } = await supabaseServerClient.from('stock_audits').select('*');
+      if (!auditsErr && Array.isArray(audits)) {
+        db.stockAudits = audits.map((a: any) => ({
+          id: String(a.id),
+          auditNo: a.audit_no || a.auditNo || a.id,
+          warehouse: a.warehouse || 'Main Warehouse',
+          auditedBy: a.auditor || a.auditedBy || 'Warehouse Supervisor',
+          auditDate: a.audit_date || a.auditDate || new Date().toISOString().split('T')[0],
+          status: a.status || 'PENDING_APPROVAL',
+          items: Array.isArray(a.findings) ? a.findings : (Array.isArray(a.items) ? a.items : []),
+          adminNotes: a.admin_notes || a.adminNotes || ''
         }));
       }
     } catch (e) {}
