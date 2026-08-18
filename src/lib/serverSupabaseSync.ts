@@ -443,6 +443,23 @@ export async function deleteRecord(tableName: string, id: string) {
 }
 
 /**
+ * Delete warehouse from Supabase by id and by name
+ */
+export async function deleteWarehouseRecord(nameOrId: string) {
+  if (!nameOrId) return;
+  try {
+    const clean = String(nameOrId).trim();
+    await supabaseServerClient.from('warehouses').delete().eq('id', clean);
+    await supabaseServerClient.from('warehouses').delete().eq('name', clean);
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {
+      console.warn(`[SupabaseSync] Warning deleting warehouse:`, msg);
+    }
+  }
+}
+
+/**
  * Delete batch of items from Supabase by IDs
  */
 export async function deleteRecordsBatch(tableName: string, ids: string[]) {

@@ -7,7 +7,7 @@ import {
   ClipboardList, PackagePlus, Truck, RefreshCcw, LayoutDashboard,
   Box, AlertCircle, Move, RotateCcw, X, Lock, Unlock, FileText, Sliders, Check, Edit, Save
 } from 'lucide-react';
-import { useERPData } from '../hooks/useERPData';
+import { useERPData, setERPLocalData, notifyCrossTabSync } from '../hooks/useERPData';
 import { cn, formatCurrency } from '../lib/utils';
 import { useAuthStore, UserRole } from '../store/authStore';
 
@@ -125,54 +125,146 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
   };
 
   const handleSaveEditWarehouse = async (oldName: string) => {
-    if (!editingWarehouseValue.trim()) return;
+    const cleanOld = String(oldName || '').trim();
+    const cleanNew = editingWarehouseValue.trim();
+    if (!cleanNew) return;
+    if (cleanOld === cleanNew) {
+      setEditingWarehouseName(null);
+      return;
+    }
     setIsSavingWarehouse(true);
+
+    // Optimistically update local data across app
+    setERPLocalData((prev: any) => {
+      const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];
+      const nextWhs = currentWhs.map((w: any) => {
+        const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+        if (wName.trim().toLowerCase() === cleanOld.toLowerCase()) {
+          if (typeof w === 'object' && w !== null) {
+            return { ...w, name: cleanNew };
+          }
+          return cleanNew;
+        }
+        return w;
+      });
+      const nextInventory = (prev.inventory || []).map((item: any) => {
+        if (item.warehouse && item.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+          return { ...item, warehouse: cleanNew };
+        }
+        return item;
+      });
+      const nextFg = (prev.finishedGoods || []).map((fg: any) => {
+        if (fg.warehouse && fg.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+          return { ...fg, warehouse: cleanNew };
+        }
+        return fg;
+      });
+      return {
+        ...prev,
+        warehouses: nextWhs,
+        inventory: nextInventory,
+        finishedGoods: nextFg
+      };
+    });
+    notifyCrossTabSync();
+
     try {
       const res = await fetch('/api/warehouses', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ oldName, newName: editingWarehouseValue.trim() })
+        body: JSON.stringify({ oldName: cleanOld, newName: cleanNew })
       });
       if (res.ok) {
         setEditingWarehouseName(null);
         if (refetch) await refetch();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Failed to update warehouse");
+        if (refetch) await refetch();
       }
     } catch (err) {
       console.error(err);
+      if (refetch) await refetch();
     } finally {
       setIsSavingWarehouse(false);
     }
   };
 
   const handleDeleteWarehouse = async (name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"? This will set its items to Unassigned.`)) return;
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim();
+    if (!confirm(`Are you sure you want to delete "${cleanName}"? This will set its items to Unassigned.`)) return;
+    
+    // Optimistically update local state immediately
+    setERPLocalData((prev: any) => {
+      const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];
+      const nextWhs = currentWhs.filter((w: any) => {
+        const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+        return wName.trim().toLowerCase() !== cleanName.toLowerCase();
+      });
+      const nextInventory = (prev.inventory || []).map((item: any) => {
+        if (item.warehouse && item.warehouse.trim().toLowerCase() === cleanName.toLowerCase()) {
+          return { ...item, warehouse: 'Unassigned' };
+        }
+        return item;
+      });
+      const nextFg = (prev.finishedGoods || []).map((fg: any) => {
+        if (fg.warehouse && fg.warehouse.trim().toLowerCase() === cleanName.toLowerCase()) {
+          return { ...fg, warehouse: 'Unassigned' };
+        }
+        return fg;
+      });
+      return {
+        ...prev,
+        warehouses: nextWhs,
+        inventory: nextInventory,
+        finishedGoods: nextFg
+      };
+    });
+    notifyCrossTabSync();
+
     try {
-      const res = await fetch(`/api/warehouses/${encodeURIComponent(name)}`, {
+      const res = await fetch(`/api/warehouses/${encodeURIComponent(cleanName)}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         if (refetch) await refetch();
       } else {
-        const err = await res.json();
+        const err = await res.json().catch(() => ({}));
         alert(err.error || "Failed to delete warehouse");
+        if (refetch) await refetch();
       }
     } catch (err) {
       console.error(err);
+      if (refetch) await refetch();
     }
   };
 
   const handleAddWarehouse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newWarehouseName.trim()) return;
+    const cleanName = newWarehouseName.trim();
+    if (!cleanName) return;
     setAddingWarehouse(true);
+
+    setERPLocalData((prev: any) => {
+      const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];
+      const exists = currentWhs.some((w: any) => {
+        const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+        return wName.trim().toLowerCase() === cleanName.toLowerCase();
+      });
+      if (exists) return prev;
+      return {
+        ...prev,
+        warehouses: [...currentWhs, cleanName]
+      };
+    });
+    notifyCrossTabSync();
+
     try {
       const res = await fetch('/api/warehouses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newWarehouseName.trim() })
+        body: JSON.stringify({ name: cleanName })
       });
       if (res.ok) {
         setNewWarehouseName('');
@@ -181,12 +273,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
           await refetch();
         }
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         alert(errData.error || 'Failed to add warehouse');
+        if (refetch) await refetch();
       }
     } catch (err) {
       console.error(err);
       alert('Error adding warehouse. Please retry.');
+      if (refetch) await refetch();
     } finally {
       setAddingWarehouse(false);
     }

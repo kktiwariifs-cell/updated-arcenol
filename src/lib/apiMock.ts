@@ -3953,6 +3953,108 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
           responseData = { success: true, categories: db.categories, productCategories: db.productCategories };
         }
       }
+    } else if (urlStr.includes('/api/warehouses/')) {
+      const parts = urlStr.split('/api/warehouses/');
+      const rawTarget = decodeURIComponent(parts[parts.length - 1]?.split('?')[0] || '').trim();
+      if (method === 'DELETE' && rawTarget) {
+        if (!db.warehouses) db.warehouses = [];
+        const idx = db.warehouses.findIndex((w: any) => {
+          const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+          return wName.trim().toLowerCase() === rawTarget.toLowerCase();
+        });
+        if (idx !== -1) {
+          const matchedItem = db.warehouses[idx];
+          const matchedName = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.name || rawTarget) : String(matchedItem);
+          const matchedId = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.id || matchedName) : matchedName;
+          db.warehouses.splice(idx, 1);
+          (db.inventory || []).forEach((i: any) => {
+            if (i.warehouse && (i.warehouse.trim().toLowerCase() === rawTarget.toLowerCase() || i.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+              i.warehouse = "Unassigned";
+            }
+          });
+          (db.finishedGoods || []).forEach((fg: any) => {
+            if (fg.warehouse && (fg.warehouse.trim().toLowerCase() === rawTarget.toLowerCase() || fg.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+              fg.warehouse = "Unassigned";
+            }
+          });
+          deleteClientRecord('warehouses', matchedId).catch(() => {});
+          if (matchedName && matchedName !== matchedId) {
+            deleteClientRecord('warehouses', matchedName).catch(() => {});
+          }
+        }
+        saveLocalDB(db);
+        responseData = { success: true, warehouses: db.warehouses };
+      }
+    } else if (urlStr.includes('/api/warehouses')) {
+      if (!db.warehouses) db.warehouses = [];
+      if (method === 'GET') {
+        responseData = { success: true, warehouses: db.warehouses };
+      } else if (method === 'POST' && body) {
+        const { name } = body;
+        if (!name || typeof name !== 'string' || !name.trim()) {
+          status = 400;
+          responseData = { error: "Warehouse name is required" };
+        } else {
+          const cleanName = name.trim();
+          const exists = db.warehouses.some((w: any) => {
+            const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+            return wName.trim().toLowerCase() === cleanName.toLowerCase();
+          });
+          if (exists) {
+            status = 400;
+            responseData = { error: "Warehouse already exists" };
+          } else {
+            db.warehouses.push(cleanName);
+            saveLocalDB(db);
+            responseData = { success: true, warehouses: db.warehouses };
+          }
+        }
+      } else if (method === 'PUT' && body) {
+        const { oldName, newName } = body;
+        if (!oldName || !newName) {
+          status = 400;
+          responseData = { error: "Both old and new names are required" };
+        } else {
+          const cleanOld = String(oldName).trim();
+          const cleanNew = String(newName).trim();
+          const idx = db.warehouses.findIndex((w: any) => {
+            const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+            return wName.trim().toLowerCase() === cleanOld.toLowerCase();
+          });
+          if (idx === -1) {
+            status = 404;
+            responseData = { error: "Warehouse not found" };
+          } else {
+            const duplicate = db.warehouses.some((w: any, i: number) => {
+              if (i === idx) return false;
+              const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+              return wName.trim().toLowerCase() === cleanNew.toLowerCase();
+            });
+            if (duplicate) {
+              status = 400;
+              responseData = { error: "Warehouse with new name already exists" };
+            } else {
+              if (typeof db.warehouses[idx] === 'object' && db.warehouses[idx] !== null) {
+                db.warehouses[idx].name = cleanNew;
+              } else {
+                db.warehouses[idx] = cleanNew;
+              }
+              (db.inventory || []).forEach((i: any) => {
+                if (i.warehouse && i.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+                  i.warehouse = cleanNew;
+                }
+              });
+              (db.finishedGoods || []).forEach((fg: any) => {
+                if (fg.warehouse && fg.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+                  fg.warehouse = cleanNew;
+                }
+              });
+              saveLocalDB(db);
+              responseData = { success: true, warehouses: db.warehouses };
+            }
+          }
+        }
+      }
     } else if (urlStr.includes('/api/mrp/plan')) {
       if (method === 'POST' && body) {
         const { modelId, qty, mode } = body;

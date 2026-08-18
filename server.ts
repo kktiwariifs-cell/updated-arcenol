@@ -7,6 +7,7 @@ import {
   hydrateFromSupabase, 
   batchUpsert, 
   deleteRecord, 
+  deleteWarehouseRecord,
   deleteRecordsBatch,
   clearRemoteTable,
   mapInventory, 
@@ -5717,42 +5718,109 @@ async function startServer() {
     res.json({ success: true, purchaseOrder: newPO });
   });
 
+  app.get("/api/warehouses", (req, res) => {
+    res.json({ success: true, warehouses: db.warehouses || [] });
+  });
+
+  app.post("/api/warehouses", (req, res) => {
+    const { name, racks, slots } = req.body;
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return res.status(400).json({ error: "Warehouse name is required" });
+    }
+    const cleanName = name.trim();
+    db.warehouses = db.warehouses || [];
+    const exists = db.warehouses.some((w: any) => {
+      const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+      return wName.trim().toLowerCase() === cleanName.toLowerCase();
+    });
+    if (exists) {
+      return res.status(400).json({ error: "Warehouse already exists" });
+    }
+    db.warehouses.push(cleanName);
+    batchUpsert('warehouses', [mapWarehouse(cleanName)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
+    res.json({ success: true, warehouses: db.warehouses });
+  });
+
   app.put("/api/warehouses", (req, res) => {
     const { oldName, newName } = req.body;
     if (!oldName || !newName) return res.status(400).json({ error: "Both old and new names are required" });
-    const idx = db.warehouses.indexOf(oldName);
+    const cleanOld = String(oldName).trim();
+    const cleanNew = String(newName).trim();
+    db.warehouses = db.warehouses || [];
+    const idx = db.warehouses.findIndex((w: any) => {
+      const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+      return wName.trim().toLowerCase() === cleanOld.toLowerCase();
+    });
     if (idx === -1) return res.status(404).json({ error: "Warehouse not found" });
-    if (db.warehouses.includes(newName) && oldName !== newName) {
-      return res.status(400).json({ error: "Warehouse already exists" });
+    
+    const duplicate = db.warehouses.some((w: any, i: number) => {
+      if (i === idx) return false;
+      const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+      return wName.trim().toLowerCase() === cleanNew.toLowerCase();
+    });
+    if (duplicate) {
+      return res.status(400).json({ error: "Warehouse with new name already exists" });
     }
-    db.warehouses[idx] = newName;
+
+    const targetItem = db.warehouses[idx];
+    if (targetItem && typeof targetItem === 'object') {
+      (targetItem as any).name = cleanNew;
+    } else {
+      db.warehouses[idx] = cleanNew;
+    }
+
     // Update occurrences in inventory
     db.inventory.forEach(i => {
-      if (i.warehouse === oldName) i.warehouse = newName;
+      if (i.warehouse && i.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+        i.warehouse = cleanNew;
+      }
     });
     // Update occurrences in finished goods
     db.finishedGoods.forEach(fg => {
-      if (fg.warehouse === oldName) fg.warehouse = newName;
+      if (fg.warehouse && fg.warehouse.trim().toLowerCase() === cleanOld.toLowerCase()) {
+        fg.warehouse = cleanNew;
+      }
     });
-    deleteRecord('warehouses', oldName).catch(() => {});
-    batchUpsert('warehouses', [mapWarehouse(newName)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
+    deleteWarehouseRecord(cleanOld).catch(() => {});
+    batchUpsert('warehouses', [mapWarehouse(cleanNew)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
     res.json({ success: true, warehouses: db.warehouses });
   });
 
   app.delete("/api/warehouses/:name", (req, res) => {
     const { name } = req.params;
-    const decodedName = decodeURIComponent(name);
-    const idx = db.warehouses.indexOf(decodedName);
-    if (idx === -1) return res.status(404).json({ error: "Warehouse not found" });
+    const decodedName = decodeURIComponent(name).trim();
+    db.warehouses = db.warehouses || [];
+    const idx = db.warehouses.findIndex((w: any) => {
+      const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+      return wName.trim().toLowerCase() === decodedName.toLowerCase();
+    });
+    if (idx === -1) {
+      return res.status(404).json({ error: `Warehouse "${decodedName}" not found` });
+    }
+    
+    const matchedItem: any = db.warehouses[idx];
+    const matchedName = matchedItem && typeof matchedItem === 'object' ? (matchedItem.name || decodedName) : String(matchedItem || decodedName);
+    const matchedId = matchedItem && typeof matchedItem === 'object' ? (matchedItem.id || matchedName) : matchedName;
+
     db.warehouses.splice(idx, 1);
-    // Reassign occurrences to "Unassigned" or a fallback warehouse
+
+    // Reassign occurrences to "Unassigned"
     db.inventory.forEach(i => {
-      if (i.warehouse === decodedName) i.warehouse = "Unassigned";
+      if (i.warehouse && (i.warehouse.trim().toLowerCase() === decodedName.toLowerCase() || i.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+        i.warehouse = "Unassigned";
+      }
     });
     db.finishedGoods.forEach(fg => {
-      if (fg.warehouse === decodedName) fg.warehouse = "Unassigned";
+      if (fg.warehouse && (fg.warehouse.trim().toLowerCase() === decodedName.toLowerCase() || fg.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+        fg.warehouse = "Unassigned";
+      }
     });
-    deleteRecord('warehouses', decodedName).catch(err => console.warn("Supabase warehouse delete warning:", err));
+
+    deleteWarehouseRecord(matchedId).catch(err => console.warn("Supabase warehouse delete warning:", err));
+    if (matchedName && matchedName !== matchedId) {
+      deleteWarehouseRecord(matchedName).catch(() => {});
+    }
+
     res.json({ success: true, warehouses: db.warehouses });
   });
 
