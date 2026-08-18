@@ -1766,7 +1766,7 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
 
   const inventory = data?.inventory || [];
   const gradedCells = data?.gradedInventory || [];
-  const rawWarehouses = data?.warehouses || ["Main Warehouse", "Production Warehouse", "QC Warehouse", "Service Warehouse", "Scrap Warehouse"];
+  const rawWarehouses = data?.warehouses || [];
   const warehouses: string[] = Array.from(new Set(rawWarehouses.map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w)).filter(Boolean)));
   const products = useMemo(() => {
     const defaultBase = [

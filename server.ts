@@ -4863,17 +4863,6 @@ async function startServer() {
     }
   });
 
-  app.post("/api/warehouses", (req, res) => {
-    const { name } = req.body;
-    if (!name) return res.status(400).json({ error: "Warehouse name is required" });
-    if (db.warehouses.includes(name)) {
-      return res.status(400).json({ error: "Warehouse already exists" });
-    }
-    db.warehouses.push(name);
-    batchUpsert('warehouses', [mapWarehouse(name)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
-    res.json({ success: true, warehouses: db.warehouses });
-  });
-
   // --- PHASE 1: STORES & WAREHOUSE REGISTERS ENDPOINTS ---
   
   // 1. Inward Gate Entry & GRN Register
@@ -5722,7 +5711,7 @@ async function startServer() {
     res.json({ success: true, warehouses: db.warehouses || [] });
   });
 
-  app.post("/api/warehouses", (req, res) => {
+  app.post("/api/warehouses", async (req, res) => {
     const { name, racks, slots } = req.body;
     if (!name || typeof name !== 'string' || !name.trim()) {
       return res.status(400).json({ error: "Warehouse name is required" });
@@ -5737,11 +5726,15 @@ async function startServer() {
       return res.status(400).json({ error: "Warehouse already exists" });
     }
     db.warehouses.push(cleanName);
-    batchUpsert('warehouses', [mapWarehouse(cleanName)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
+    try {
+      await batchUpsert('warehouses', [mapWarehouse(cleanName)]);
+    } catch (err) {
+      console.warn("Supabase warehouse sync warning:", err);
+    }
     res.json({ success: true, warehouses: db.warehouses });
   });
 
-  app.put("/api/warehouses", (req, res) => {
+  app.put("/api/warehouses", async (req, res) => {
     const { oldName, newName } = req.body;
     if (!oldName || !newName) return res.status(400).json({ error: "Both old and new names are required" });
     const cleanOld = String(oldName).trim();
@@ -5781,12 +5774,20 @@ async function startServer() {
         fg.warehouse = cleanNew;
       }
     });
-    deleteWarehouseRecord(cleanOld).catch(() => {});
-    batchUpsert('warehouses', [mapWarehouse(cleanNew)]).catch(err => console.warn("Supabase warehouse sync warning:", err));
+    
+    try {
+      await Promise.allSettled([
+        deleteWarehouseRecord(cleanOld),
+        batchUpsert('warehouses', [mapWarehouse(cleanNew)])
+      ]);
+    } catch (err) {
+      console.warn("Supabase warehouse sync warning:", err);
+    }
+    
     res.json({ success: true, warehouses: db.warehouses });
   });
 
-  app.delete("/api/warehouses/:name", (req, res) => {
+  app.delete("/api/warehouses/:name", async (req, res) => {
     const { name } = req.params;
     const decodedName = decodeURIComponent(name).trim();
     db.warehouses = db.warehouses || [];
@@ -5816,9 +5817,14 @@ async function startServer() {
       }
     });
 
-    deleteWarehouseRecord(matchedId).catch(err => console.warn("Supabase warehouse delete warning:", err));
-    if (matchedName && matchedName !== matchedId) {
-      deleteWarehouseRecord(matchedName).catch(() => {});
+    try {
+      await Promise.allSettled([
+        deleteWarehouseRecord(matchedId),
+        matchedName && matchedName !== matchedId ? deleteWarehouseRecord(matchedName) : Promise.resolve(),
+        decodedName && decodedName !== matchedName && decodedName !== matchedId ? deleteWarehouseRecord(decodedName) : Promise.resolve()
+      ]);
+    } catch (err) {
+      console.warn("Supabase warehouse delete warning:", err);
     }
 
     res.json({ success: true, warehouses: db.warehouses });

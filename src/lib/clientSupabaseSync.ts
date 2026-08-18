@@ -702,7 +702,40 @@ export async function syncProcurementEntryToSupabase(proc: any) {
 export async function deleteClientRecord(tableName: string, id: string) {
   if (!tableName || !id) return;
   try {
-    await supabase.from(tableName).delete().eq('id', id);
+    const clean = String(id).trim();
+    if (!clean) return;
+    
+    if (tableName === 'warehouses') {
+      try {
+        const { data: rows } = await supabase.from('warehouses').select('*');
+        if (Array.isArray(rows) && rows.length > 0) {
+          const targetLower = clean.toLowerCase();
+          const matchedRowIds = rows
+            .filter((r: any) => {
+              const rName = String(r.name || r.warehouse_name || r.location || r.title || r.id || '').trim().toLowerCase();
+              const rId = String(r.id || '').trim().toLowerCase();
+              return rName === targetLower || rId === targetLower;
+            })
+            .map((r: any) => r.id)
+            .filter(Boolean);
+
+          if (matchedRowIds.length > 0) {
+            await supabase.from('warehouses').delete().in('id', matchedRowIds);
+          }
+        }
+      } catch (e) {}
+
+      await Promise.allSettled([
+        supabase.from('warehouses').delete().eq('id', clean),
+        supabase.from('warehouses').delete().eq('name', clean),
+        supabase.from('warehouses').delete().ilike('id', clean),
+        supabase.from('warehouses').delete().ilike('name', clean),
+        supabase.from('warehouses').delete().eq('location', clean),
+        supabase.from('warehouses').delete().ilike('location', clean)
+      ]);
+    } else {
+      await supabase.from(tableName).delete().eq('id', clean);
+    }
   } catch (err) {
     console.warn(`[Client Supabase Sync] Warning deleting from ${tableName}:`, err);
   }

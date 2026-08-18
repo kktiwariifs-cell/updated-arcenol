@@ -443,14 +443,43 @@ export async function deleteRecord(tableName: string, id: string) {
 }
 
 /**
- * Delete warehouse from Supabase by id and by name
+ * Delete warehouse from Supabase by id, name, location or case-insensitive match
  */
 export async function deleteWarehouseRecord(nameOrId: string) {
   if (!nameOrId) return;
   try {
     const clean = String(nameOrId).trim();
-    await supabaseServerClient.from('warehouses').delete().eq('id', clean);
-    await supabaseServerClient.from('warehouses').delete().eq('name', clean);
+    if (!clean) return;
+
+    // 1. Query Supabase to find all matching warehouse row IDs
+    try {
+      const { data: rows } = await supabaseServerClient.from('warehouses').select('*');
+      if (Array.isArray(rows) && rows.length > 0) {
+        const targetLower = clean.toLowerCase();
+        const matchedRowIds = rows
+          .filter((r: any) => {
+            const rName = String(r.name || r.warehouse_name || r.location || r.title || r.id || '').trim().toLowerCase();
+            const rId = String(r.id || '').trim().toLowerCase();
+            return rName === targetLower || rId === targetLower;
+          })
+          .map((r: any) => r.id)
+          .filter(Boolean);
+
+        if (matchedRowIds.length > 0) {
+          await supabaseServerClient.from('warehouses').delete().in('id', matchedRowIds);
+        }
+      }
+    } catch (queryErr) {}
+
+    // 2. Comprehensive direct column deletions
+    await Promise.allSettled([
+      supabaseServerClient.from('warehouses').delete().eq('id', clean),
+      supabaseServerClient.from('warehouses').delete().eq('name', clean),
+      supabaseServerClient.from('warehouses').delete().ilike('id', clean),
+      supabaseServerClient.from('warehouses').delete().ilike('name', clean),
+      supabaseServerClient.from('warehouses').delete().eq('location', clean),
+      supabaseServerClient.from('warehouses').delete().ilike('location', clean)
+    ]);
   } catch (err: any) {
     const msg = err?.message || String(err);
     if (!msg.includes('fetch failed') && !msg.includes('Failed to fetch')) {

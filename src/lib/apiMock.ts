@@ -3977,10 +3977,13 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
               fg.warehouse = "Unassigned";
             }
           });
-          deleteClientRecord('warehouses', matchedId).catch(() => {});
-          if (matchedName && matchedName !== matchedId) {
-            deleteClientRecord('warehouses', matchedName).catch(() => {});
-          }
+          try {
+            await Promise.allSettled([
+              deleteClientRecord('warehouses', matchedId),
+              matchedName && matchedName !== matchedId ? deleteClientRecord('warehouses', matchedName) : Promise.resolve(),
+              rawTarget && rawTarget !== matchedId && rawTarget !== matchedName ? deleteClientRecord('warehouses', rawTarget) : Promise.resolve()
+            ]);
+          } catch (e) {}
         }
         saveLocalDB(db);
         responseData = { success: true, warehouses: db.warehouses };
