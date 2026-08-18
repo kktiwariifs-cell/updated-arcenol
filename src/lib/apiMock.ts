@@ -3958,40 +3958,59 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       const rawTarget = decodeURIComponent(parts[parts.length - 1]?.split('?')[0] || '').trim();
       if (method === 'DELETE' && rawTarget) {
         if (!db.warehouses) db.warehouses = [];
+        db.deletedWarehouses = db.deletedWarehouses || [];
         const idx = db.warehouses.findIndex((w: any) => {
           const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
           return wName.trim().toLowerCase() === rawTarget.toLowerCase();
         });
-        if (idx !== -1) {
-          const matchedItem = db.warehouses[idx];
-          const matchedName = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.name || rawTarget) : String(matchedItem);
-          const matchedId = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.id || matchedName) : matchedName;
-          db.warehouses.splice(idx, 1);
-          (db.inventory || []).forEach((i: any) => {
-            if (i.warehouse && (i.warehouse.trim().toLowerCase() === rawTarget.toLowerCase() || i.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
-              i.warehouse = "Unassigned";
-            }
-          });
-          (db.finishedGoods || []).forEach((fg: any) => {
-            if (fg.warehouse && (fg.warehouse.trim().toLowerCase() === rawTarget.toLowerCase() || fg.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
-              fg.warehouse = "Unassigned";
-            }
-          });
-          try {
-            await Promise.allSettled([
-              deleteClientRecord('warehouses', matchedId),
-              matchedName && matchedName !== matchedId ? deleteClientRecord('warehouses', matchedName) : Promise.resolve(),
-              rawTarget && rawTarget !== matchedId && rawTarget !== matchedName ? deleteClientRecord('warehouses', rawTarget) : Promise.resolve()
-            ]);
-          } catch (e) {}
-        }
+        const matchedItem = idx !== -1 ? db.warehouses[idx] : null;
+        const matchedName = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.name || rawTarget) : String(matchedItem || rawTarget);
+        const matchedId = typeof matchedItem === 'object' && matchedItem !== null ? (matchedItem.id || matchedName) : matchedName;
+        
+        const deleteKeys = [rawTarget.toLowerCase(), String(matchedName).toLowerCase(), String(matchedId).toLowerCase()].filter(Boolean);
+        deleteKeys.forEach(k => {
+          if (!db.deletedWarehouses.map((x: string) => x.toLowerCase()).includes(k)) {
+            db.deletedWarehouses.push(k);
+          }
+        });
+
+        db.warehouses = db.warehouses.filter((w: any) => {
+          const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+          return !deleteKeys.includes(wName.trim().toLowerCase());
+        });
+
+        (db.inventory || []).forEach((i: any) => {
+          if (i.warehouse && deleteKeys.includes(i.warehouse.trim().toLowerCase())) {
+            i.warehouse = "Unassigned";
+          }
+        });
+        (db.finishedGoods || []).forEach((fg: any) => {
+          if (fg.warehouse && deleteKeys.includes(fg.warehouse.trim().toLowerCase())) {
+            fg.warehouse = "Unassigned";
+          }
+        });
+        try {
+          await Promise.allSettled([
+            deleteClientRecord('warehouses', matchedId),
+            matchedName && matchedName !== matchedId ? deleteClientRecord('warehouses', matchedName) : Promise.resolve(),
+            rawTarget && rawTarget !== matchedId && rawTarget !== matchedName ? deleteClientRecord('warehouses', rawTarget) : Promise.resolve()
+          ]);
+        } catch (e) {}
+        
         saveLocalDB(db);
-        responseData = { success: true, warehouses: db.warehouses };
+        responseData = { success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses };
       }
     } else if (urlStr.includes('/api/warehouses')) {
       if (!db.warehouses) db.warehouses = [];
+      db.deletedWarehouses = db.deletedWarehouses || [];
+      const deletedSet = new Set((db.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase()));
+
       if (method === 'GET') {
-        responseData = { success: true, warehouses: db.warehouses };
+        const validWhs = db.warehouses.filter((w: any) => {
+          const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+          return !deletedSet.has(wName.trim().toLowerCase());
+        });
+        responseData = { success: true, warehouses: validWhs, deletedWarehouses: db.deletedWarehouses };
       } else if (method === 'POST' && body) {
         const { name } = body;
         if (!name || typeof name !== 'string' || !name.trim()) {
@@ -3999,6 +4018,7 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
           responseData = { error: "Warehouse name is required" };
         } else {
           const cleanName = name.trim();
+          db.deletedWarehouses = (db.deletedWarehouses || []).filter((x: string) => x.trim().toLowerCase() !== cleanName.toLowerCase());
           const exists = db.warehouses.some((w: any) => {
             const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
             return wName.trim().toLowerCase() === cleanName.toLowerCase();
@@ -4009,7 +4029,7 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
           } else {
             db.warehouses.push(cleanName);
             saveLocalDB(db);
-            responseData = { success: true, warehouses: db.warehouses };
+            responseData = { success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses };
           }
         }
       } else if (method === 'PUT' && body) {
@@ -4020,6 +4040,12 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         } else {
           const cleanOld = String(oldName).trim();
           const cleanNew = String(newName).trim();
+          
+          if (!db.deletedWarehouses.map((x: string) => x.toLowerCase()).includes(cleanOld.toLowerCase())) {
+            db.deletedWarehouses.push(cleanOld);
+          }
+          db.deletedWarehouses = db.deletedWarehouses.filter((x: string) => x.trim().toLowerCase() !== cleanNew.toLowerCase());
+
           const idx = db.warehouses.findIndex((w: any) => {
             const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
             return wName.trim().toLowerCase() === cleanOld.toLowerCase();
@@ -4053,7 +4079,7 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
                 }
               });
               saveLocalDB(db);
-              responseData = { success: true, warehouses: db.warehouses };
+              responseData = { success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses };
             }
           }
         }

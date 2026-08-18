@@ -40,6 +40,25 @@ export function setERPLocalData(updater: (prev: any) => any) {
       cachedData.finishedGoods = ensureIndependentProductSerials(cachedData.finishedGoods);
     }
     if (typeof window !== 'undefined') {
+      let localDeletedWh: string[] = [];
+      try {
+        const raw = localStorage.getItem('arcenol_deleted_warehouses');
+        if (raw) localDeletedWh = JSON.parse(raw);
+      } catch (e) {}
+
+      const deletedSet = new Set([
+        ...((cachedData.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase())),
+        ...(localDeletedWh.map(x => String(x).trim().toLowerCase()))
+      ]);
+
+      if (Array.isArray(cachedData.warehouses)) {
+        cachedData.warehouses = cachedData.warehouses.filter((w: any) => {
+          const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+          return !deletedSet.has(wName.trim().toLowerCase());
+        });
+      }
+      cachedData.deletedWarehouses = Array.from(deletedSet);
+      localStorage.setItem('arcenol_deleted_warehouses', JSON.stringify(cachedData.deletedWarehouses));
       localStorage.setItem('arcenol_db_clean', JSON.stringify(cachedData));
     }
     lastSyncedDataStr = JSON.stringify(cachedData);
@@ -137,6 +156,27 @@ const performFetch = async () => {
 
     if (json?.finishedGoods) {
       json.finishedGoods = ensureIndependentProductSerials(json.finishedGoods);
+    }
+
+    if (typeof window !== 'undefined' && json) {
+      let localDeletedWh: string[] = [];
+      try {
+        const raw = localStorage.getItem('arcenol_deleted_warehouses');
+        if (raw) localDeletedWh = JSON.parse(raw);
+      } catch (e) {}
+
+      const deletedSet = new Set([
+        ...((json.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase())),
+        ...(localDeletedWh.map(x => String(x).trim().toLowerCase()))
+      ]);
+
+      if (Array.isArray(json.warehouses)) {
+        json.warehouses = json.warehouses.filter((w: any) => {
+          const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+          return !deletedSet.has(wName.trim().toLowerCase());
+        });
+      }
+      json.deletedWarehouses = Array.from(deletedSet);
     }
 
     const currentStr = JSON.stringify(json);

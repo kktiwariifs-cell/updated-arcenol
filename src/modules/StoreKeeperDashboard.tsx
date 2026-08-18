@@ -134,6 +134,15 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     }
     setIsSavingWarehouse(true);
 
+    try {
+      let delList: string[] = [];
+      const raw = localStorage.getItem('arcenol_deleted_warehouses');
+      if (raw) delList = JSON.parse(raw);
+      if (!delList.includes(cleanOld.toLowerCase())) delList.push(cleanOld.toLowerCase());
+      delList = delList.filter(x => x !== cleanNew.toLowerCase());
+      localStorage.setItem('arcenol_deleted_warehouses', JSON.stringify(delList));
+    } catch (e) {}
+
     // Optimistically update local data across app
     setERPLocalData((prev: any) => {
       const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];
@@ -195,6 +204,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     const cleanName = name.trim();
     if (!confirm(`Are you sure you want to delete "${cleanName}"? This will set its items to Unassigned.`)) return;
     
+    try {
+      let delList: string[] = [];
+      const raw = localStorage.getItem('arcenol_deleted_warehouses');
+      if (raw) delList = JSON.parse(raw);
+      if (!delList.includes(cleanName.toLowerCase())) delList.push(cleanName.toLowerCase());
+      localStorage.setItem('arcenol_deleted_warehouses', JSON.stringify(delList));
+    } catch (e) {}
+
     // Optimistically update local state immediately
     setERPLocalData((prev: any) => {
       const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];
@@ -245,6 +262,14 @@ export const StoreKeeperDashboard: React.FC<{ activeTab?: string }> = ({ activeT
     const cleanName = newWarehouseName.trim();
     if (!cleanName) return;
     setAddingWarehouse(true);
+
+    try {
+      let delList: string[] = [];
+      const raw = localStorage.getItem('arcenol_deleted_warehouses');
+      if (raw) delList = JSON.parse(raw);
+      delList = delList.filter(x => x !== cleanName.toLowerCase());
+      localStorage.setItem('arcenol_deleted_warehouses', JSON.stringify(delList));
+    } catch (e) {}
 
     setERPLocalData((prev: any) => {
       const currentWhs = Array.isArray(prev.warehouses) ? prev.warehouses : [];

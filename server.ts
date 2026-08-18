@@ -601,6 +601,7 @@ async function startServer() {
     ],
     productionHistory: [] as any[],
     warehouses: ["Main Warehouse", "Ahmedabad Warehouse", "Dealer Warehouse", "Service Warehouse", "Raw Hub"],
+    deletedWarehouses: [] as string[],
     gateEntries: [
       {
         id: "GATE-2026-101",
@@ -3711,6 +3712,14 @@ async function startServer() {
     } catch (err) {
       console.warn("[Server] Hydration warning in /api/data:", err);
     }
+    db.deletedWarehouses = db.deletedWarehouses || [];
+    const deletedWhSet = new Set((db.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase()));
+    if (Array.isArray(db.warehouses)) {
+      db.warehouses = db.warehouses.filter((w: any) => {
+        const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+        return !deletedWhSet.has(wName.trim().toLowerCase());
+      });
+    }
     if (db.finishedGoods) {
       db.finishedGoods = ensureIndependentProductSerials(db.finishedGoods);
     }
@@ -5708,7 +5717,13 @@ async function startServer() {
   });
 
   app.get("/api/warehouses", (req, res) => {
-    res.json({ success: true, warehouses: db.warehouses || [] });
+    db.deletedWarehouses = db.deletedWarehouses || [];
+    const deletedWhSet = new Set((db.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase()));
+    const validWhs = (db.warehouses || []).filter((w: any) => {
+      const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+      return !deletedWhSet.has(wName.trim().toLowerCase());
+    });
+    res.json({ success: true, warehouses: validWhs, deletedWarehouses: db.deletedWarehouses });
   });
 
   app.post("/api/warehouses", async (req, res) => {
@@ -5718,6 +5733,8 @@ async function startServer() {
     }
     const cleanName = name.trim();
     db.warehouses = db.warehouses || [];
+    db.deletedWarehouses = (db.deletedWarehouses || []).filter((x: string) => x.trim().toLowerCase() !== cleanName.toLowerCase());
+
     const exists = db.warehouses.some((w: any) => {
       const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
       return wName.trim().toLowerCase() === cleanName.toLowerCase();
@@ -5726,12 +5743,14 @@ async function startServer() {
       return res.status(400).json({ error: "Warehouse already exists" });
     }
     db.warehouses.push(cleanName);
+    saveDb();
+
     try {
       await batchUpsert('warehouses', [mapWarehouse(cleanName)]);
     } catch (err) {
       console.warn("Supabase warehouse sync warning:", err);
     }
-    res.json({ success: true, warehouses: db.warehouses });
+    res.json({ success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses });
   });
 
   app.put("/api/warehouses", async (req, res) => {
@@ -5740,6 +5759,14 @@ async function startServer() {
     const cleanOld = String(oldName).trim();
     const cleanNew = String(newName).trim();
     db.warehouses = db.warehouses || [];
+    db.deletedWarehouses = db.deletedWarehouses || [];
+    
+    // Add old name to deleted blacklist and remove new name
+    if (!db.deletedWarehouses.some((x: string) => x.toLowerCase() === cleanOld.toLowerCase())) {
+      db.deletedWarehouses.push(cleanOld);
+    }
+    db.deletedWarehouses = db.deletedWarehouses.filter((x: string) => x.trim().toLowerCase() !== cleanNew.toLowerCase());
+
     const idx = db.warehouses.findIndex((w: any) => {
       const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
       return wName.trim().toLowerCase() === cleanOld.toLowerCase();
@@ -5774,6 +5801,7 @@ async function startServer() {
         fg.warehouse = cleanNew;
       }
     });
+    saveDb();
     
     try {
       await Promise.allSettled([
@@ -5784,38 +5812,54 @@ async function startServer() {
       console.warn("Supabase warehouse sync warning:", err);
     }
     
-    res.json({ success: true, warehouses: db.warehouses });
+    res.json({ success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses });
   });
 
   app.delete("/api/warehouses/:name", async (req, res) => {
     const { name } = req.params;
     const decodedName = decodeURIComponent(name).trim();
     db.warehouses = db.warehouses || [];
+    db.deletedWarehouses = db.deletedWarehouses || [];
+    
     const idx = db.warehouses.findIndex((w: any) => {
       const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
       return wName.trim().toLowerCase() === decodedName.toLowerCase();
     });
-    if (idx === -1) {
-      return res.status(404).json({ error: `Warehouse "${decodedName}" not found` });
-    }
     
-    const matchedItem: any = db.warehouses[idx];
+    const matchedItem: any = idx !== -1 ? db.warehouses[idx] : null;
     const matchedName = matchedItem && typeof matchedItem === 'object' ? (matchedItem.name || decodedName) : String(matchedItem || decodedName);
     const matchedId = matchedItem && typeof matchedItem === 'object' ? (matchedItem.id || matchedName) : matchedName;
 
-    db.warehouses.splice(idx, 1);
+    // Permanently record in deleted blacklist
+    const toDeleteSet = new Set([
+      decodedName.toLowerCase(),
+      String(matchedName).toLowerCase(),
+      String(matchedId).toLowerCase()
+    ]);
+    toDeleteSet.forEach(d => {
+      if (d && !db.deletedWarehouses.some((x: string) => x.toLowerCase() === d)) {
+        db.deletedWarehouses.push(d);
+      }
+    });
+
+    // Remove from in-memory warehouses
+    db.warehouses = db.warehouses.filter((w: any) => {
+      const wName = typeof w === 'object' && w !== null ? (w.name || w.id || '') : String(w);
+      return !toDeleteSet.has(wName.trim().toLowerCase());
+    });
 
     // Reassign occurrences to "Unassigned"
     db.inventory.forEach(i => {
-      if (i.warehouse && (i.warehouse.trim().toLowerCase() === decodedName.toLowerCase() || i.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+      if (i.warehouse && toDeleteSet.has(i.warehouse.trim().toLowerCase())) {
         i.warehouse = "Unassigned";
       }
     });
     db.finishedGoods.forEach(fg => {
-      if (fg.warehouse && (fg.warehouse.trim().toLowerCase() === decodedName.toLowerCase() || fg.warehouse.trim().toLowerCase() === String(matchedName).toLowerCase())) {
+      if (fg.warehouse && toDeleteSet.has(fg.warehouse.trim().toLowerCase())) {
         fg.warehouse = "Unassigned";
       }
     });
+    saveDb();
 
     try {
       await Promise.allSettled([
@@ -5827,7 +5871,7 @@ async function startServer() {
       console.warn("Supabase warehouse delete warning:", err);
     }
 
-    res.json({ success: true, warehouses: db.warehouses });
+    res.json({ success: true, warehouses: db.warehouses, deletedWarehouses: db.deletedWarehouses });
   });
 
   app.post("/api/processing", (req, res) => {

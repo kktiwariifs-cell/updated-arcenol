@@ -111,7 +111,33 @@ export async function hydrateDbFromSupabase(db: any) {
         try {
           const { data: whs, error: whsErr } = await supabase.from('warehouses').select('*');
           if (!whsErr && Array.isArray(whs)) {
-            db.warehouses = whs.map((w: any) => w.name || w.location || String(w));
+            let localDeletedWh: string[] = [];
+            try {
+              const raw = localStorage.getItem('arcenol_deleted_warehouses');
+              if (raw) localDeletedWh = JSON.parse(raw);
+            } catch (e) {}
+
+            const deletedSet = new Set([
+              ...((db.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase())),
+              ...(localDeletedWh.map(x => String(x).trim().toLowerCase()))
+            ]);
+
+            const zombieRows = whs.filter(w => {
+              const wName = typeof w === 'string' ? w : (w.name || w.location || String(w.id || ''));
+              return deletedSet.has(String(wName).trim().toLowerCase());
+            });
+            if (zombieRows.length > 0) {
+              const zombieIds = zombieRows.map(w => typeof w === 'object' && w !== null ? w.id : w).filter(Boolean);
+              try {
+                await supabase.from('warehouses').delete().in('id', zombieIds);
+              } catch (e) {}
+            }
+
+            db.warehouses = Array.from(new Set(
+              whs
+                .map((w: any) => w.name || w.location || String(w))
+                .filter(w => Boolean(w) && !deletedSet.has(String(w).trim().toLowerCase()))
+            ));
           }
         } catch (e) {}
       })(),

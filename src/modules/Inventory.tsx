@@ -1766,8 +1766,20 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
 
   const inventory = data?.inventory || [];
   const gradedCells = data?.gradedInventory || [];
+  let localDeletedWh: string[] = [];
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('arcenol_deleted_warehouses') : null;
+    if (raw) localDeletedWh = JSON.parse(raw);
+  } catch (e) {}
+  const deletedWhSet = new Set([
+    ...((data?.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase())),
+    ...(localDeletedWh.map(x => String(x).trim().toLowerCase()))
+  ]);
+
   const rawWarehouses = data?.warehouses || [];
-  const warehouses: string[] = Array.from(new Set(rawWarehouses.map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w)).filter(Boolean)));
+  const warehouses: string[] = Array.from(new Set(rawWarehouses
+    .map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w))
+    .filter(w => Boolean(w) && !deletedWhSet.has(String(w).trim().toLowerCase()))));
   const products = useMemo(() => {
     const defaultBase = [
       { id: "72V30A", model_id: "72V30A", name: "E-Rickshaw Batteries (72V30A)", category: "CATEGORY 1 — EV BATTERY INVENTORY", type: "EV Battery Pack", price: 45000 },

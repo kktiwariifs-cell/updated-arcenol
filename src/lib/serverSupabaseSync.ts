@@ -544,7 +544,20 @@ export async function syncAllERPToSupabase(db: any) {
     { name: 'inventory', rows: () => Array.isArray(db.inventory) ? db.inventory.map(mapInventory) : [] },
     { name: 'lead_inquiries', rows: () => Array.isArray(db.leads) ? db.leads.map(mapLead) : [] },
     { name: 'customers', rows: () => Array.isArray(db.dealers) ? db.dealers.map(mapCustomer) : [] },
-    { name: 'warehouses', rows: () => Array.isArray(db.warehouses) ? db.warehouses.map(mapWarehouse) : [] },
+    { 
+      name: 'warehouses', 
+      rows: () => {
+        const deletedSet = new Set(((db.deletedWarehouses || []) as string[]).map((x: string) => String(x).trim().toLowerCase()));
+        return Array.isArray(db.warehouses) 
+          ? db.warehouses
+              .filter((w: any) => {
+                const wName = typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w);
+                return !deletedSet.has(wName.trim().toLowerCase());
+              })
+              .map(mapWarehouse) 
+          : [];
+      } 
+    },
     { name: 'graded_cells', rows: () => Array.isArray(db.gradedInventory) ? db.gradedInventory.map(mapGradedCell) : [] },
     { name: 'wip_inventory', rows: () => Array.isArray(db.wipInventory) ? db.wipInventory.map(mapWip) : [] },
     { name: 'invoices', rows: () => Array.isArray(db.invoices) ? db.invoices.map(mapInvoice) : [] },
@@ -618,7 +631,25 @@ export async function hydrateFromSupabase(db: any) {
     try {
       const { data: whs, error: whsErr } = await supabaseServerClient.from('warehouses').select('*');
       if (!whsErr && Array.isArray(whs)) {
-        db.warehouses = Array.from(new Set(whs.map(w => (typeof w === 'string' ? w : (w.name || String(w.id)))).filter(Boolean)));
+        const deletedSet = new Set(((db.deletedWarehouses || []) as string[]).map((x: string) => String(x).trim().toLowerCase()));
+        
+        // Purge any zombie rows in Supabase that belong to deletedWarehouses
+        const zombieRows = whs.filter(w => {
+          const wName = typeof w === 'string' ? w : (w.name || w.location || String(w.id || ''));
+          return deletedSet.has(String(wName).trim().toLowerCase());
+        });
+        if (zombieRows.length > 0) {
+          const zombieIds = zombieRows.map(w => typeof w === 'object' && w !== null ? w.id : w).filter(Boolean);
+          try {
+            await supabaseServerClient.from('warehouses').delete().in('id', zombieIds);
+          } catch (e) {}
+        }
+
+        db.warehouses = Array.from(new Set(
+          whs
+            .map(w => (typeof w === 'string' ? w : (w.name || String(w.id))))
+            .filter(w => Boolean(w) && !deletedSet.has(String(w).trim().toLowerCase()))
+        ));
       }
     } catch (e) {}
 

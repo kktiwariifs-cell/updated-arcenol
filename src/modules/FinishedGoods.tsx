@@ -64,7 +64,19 @@ export const FinishedGoods: React.FC = () => {
   const finishedGoods = data?.finishedGoods || [];
   const history = data?.productionHistory || [];
 
-  const warehousesList: string[] = Array.from(new Set(((data?.warehouses as any[]) || []).map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w)).filter(Boolean)));
+  let localDeletedWh: string[] = [];
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('arcenol_deleted_warehouses') : null;
+    if (raw) localDeletedWh = JSON.parse(raw);
+  } catch (e) {}
+  const deletedSet = new Set([
+    ...((data?.deletedWarehouses || []).map((x: string) => String(x).trim().toLowerCase())),
+    ...(localDeletedWh.map(x => String(x).trim().toLowerCase()))
+  ]);
+
+  const warehousesList: string[] = Array.from(new Set(((data?.warehouses as any[]) || [])
+    .map((w: any) => typeof w === 'object' && w !== null ? (w.name || String(w.id || '')) : String(w))
+    .filter(w => Boolean(w) && !deletedSet.has(String(w).trim().toLowerCase()))));
 
   const stats = {
     ready: finishedGoods.filter((i: any) => i.status === 'READY').length,
