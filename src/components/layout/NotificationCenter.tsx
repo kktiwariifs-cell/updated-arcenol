@@ -47,16 +47,21 @@ export const NotificationCenter: React.FC = () => {
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
-          <div className="absolute right-0 mt-3 w-[380px] bg-white rounded-3xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in slide-in-from-top-4 duration-300">
-            <div className="p-5 border-b bg-slate-900 text-white flex justify-between items-center">
+          <div className="fixed inset-0 z-40 bg-slate-950/20 backdrop-blur-xs sm:bg-transparent sm:backdrop-blur-none" onClick={() => setIsOpen(false)}></div>
+          <div className="fixed sm:absolute left-3 sm:left-auto right-3 sm:right-0 top-16 sm:top-auto mt-2 sm:mt-3 w-[calc(100vw-24px)] sm:w-[380px] max-w-[380px] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200 z-50 overflow-hidden animate-in slide-in-from-top-4 duration-300">
+            <div className="p-4 sm:p-5 border-b bg-slate-900 text-white flex justify-between items-center">
                <div>
                  <h4 className="font-black text-sm uppercase tracking-widest">Notification Engine</h4>
                  <p className="text-[10px] text-slate-400">Omni-channel Alerts & Events</p>
                </div>
-               <button onClick={clearAll} className="p-1.5 hover:bg-white/10 rounded-lg transition-all text-xs font-bold text-primary-400">
-                 Clear Read
-               </button>
+               <div className="flex items-center gap-2">
+                 <button onClick={clearAll} className="p-1.5 hover:bg-white/10 rounded-lg transition-all text-xs font-bold text-primary-400 cursor-pointer">
+                   Clear Read
+                 </button>
+                 <button onClick={() => setIsOpen(false)} className="sm:hidden p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white cursor-pointer">
+                   <X size={16} />
+                 </button>
+               </div>
             </div>
             
             <div className="max-h-[450px] overflow-y-auto divide-y divide-slate-100 scrollbar-thin">
