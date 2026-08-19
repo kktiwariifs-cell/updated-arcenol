@@ -3108,26 +3108,62 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
       saveLocalDB(db);
     } else if (urlStr.includes('/api/leads')) {
       if (method === 'POST' && body) {
-        const newLead = {
-          id: body.id || `lead-${Date.now()}`,
-          company: body.company || 'Unnamed Lead',
-          category: body.category || 'Dealer',
-          leadSource: body.leadSource || body.source || 'Website',
-          source: body.leadSource || body.source || 'Website',
-          contactPerson: body.contactPerson || '',
-          phone: body.phone || '',
-          location: body.location || '',
-          followUpDate: body.followUpDate || new Date().toISOString().split('T')[0],
-          followUpTime: body.followUpTime || '10:00',
-          requirement: body.requirement || '',
-          notes: body.notes || '',
-          status: body.status || 'NEW',
-          remarksLog: body.remarksLog || []
-        };
-        db.leads.push(newLead);
-        saveLocalDB(db);
-        syncLeadRecordToSupabase(newLead);
-        responseData = newLead;
+        if (Array.isArray(body) || Array.isArray(body.leads)) {
+          const leadsArray = Array.isArray(body) ? body : body.leads;
+          const newLeads = leadsArray.map((b: any, i: number) => ({
+            id: b.id || `lead-${Date.now()}-${i}`,
+            company: b.company || 'Unnamed Lead',
+            category: b.category || 'Dealer',
+            leadSource: b.leadSource || b.source || 'Website',
+            source: b.leadSource || b.source || 'Website',
+            contactPerson: b.contactPerson || b.contact_person || '',
+            phone: b.phone || b.mobile || '',
+            location: b.location || 'Gujarat, India',
+            followUpDate: b.followUpDate || b.followup_date || new Date().toISOString().split('T')[0],
+            followUpTime: b.followUpTime || b.followup_time || '10:00',
+            requirement: b.requirement || 'General Requirement',
+            notes: b.notes || '',
+            status: String(b.status || 'NEW').toUpperCase(),
+            assignedTo: b.assignedTo || b.assigned_to || '',
+            remarksLog: Array.isArray(b.remarksLog) ? b.remarksLog : (Array.isArray(b.remarks_log) ? b.remarks_log : []),
+            createdAt: b.createdAt || new Date().toISOString()
+          }));
+          if (!db.leads) db.leads = [];
+          for (const nl of newLeads) {
+            const exIdx = db.leads.findIndex((l: any) => l.id === nl.id);
+            if (exIdx !== -1) {
+              db.leads[exIdx] = { ...db.leads[exIdx], ...nl };
+            } else {
+              db.leads.unshift(nl);
+            }
+            syncLeadRecordToSupabase(nl);
+          }
+          saveLocalDB(db);
+          responseData = { success: true, count: newLeads.length, leads: newLeads };
+        } else {
+          const newLead = {
+            id: body.id || `lead-${Date.now()}`,
+            company: body.company || 'Unnamed Lead',
+            category: body.category || 'Dealer',
+            leadSource: body.leadSource || body.source || 'Website',
+            source: body.leadSource || body.source || 'Website',
+            contactPerson: body.contactPerson || '',
+            phone: body.phone || '',
+            location: body.location || '',
+            followUpDate: body.followUpDate || new Date().toISOString().split('T')[0],
+            followUpTime: body.followUpTime || '10:00',
+            requirement: body.requirement || '',
+            notes: body.notes || '',
+            status: body.status || 'NEW',
+            assignedTo: body.assignedTo || body.assigned_to || '',
+            remarksLog: body.remarksLog || []
+          };
+          if (!db.leads) db.leads = [];
+          db.leads.unshift(newLead);
+          saveLocalDB(db);
+          syncLeadRecordToSupabase(newLead);
+          responseData = newLead;
+        }
       }
     } else if (urlStr.includes('/api/dealers/')) {
       const id = urlStr.split('/api/dealers/')[1];

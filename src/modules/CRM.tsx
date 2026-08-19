@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import { supabase } from "../lib/supabaseClient";
 import {
   Search,
@@ -41,6 +42,8 @@ import {
   XCircle,
   Upload,
   FileSpreadsheet,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { downloadReportDataAsPDF } from "../lib/pdfGenerator";
 import {
@@ -123,10 +126,365 @@ export const CRM: React.FC = () => {
   const [reassigningLead, setReassigningLead] = useState<any>(null);
   const [selectedExecForAssign, setSelectedExecForAssign] = useState<string>("");
 
-  // Bulk CSV Upload state
+  // Bulk Excel & CSV Upload state
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [bulkUploadTab, setBulkUploadTab] = useState<"file" | "paste">("file");
   const [csvRawText, setCsvRawText] = useState("");
   const [isUploadingCsv, setIsUploadingCsv] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
+  const [uploadedFileSize, setUploadedFileSize] = useState<string>("");
+  const [parsedLeadsPreview, setParsedLeadsPreview] = useState<any[]>([]);
+  const [bulkUploadError, setBulkUploadError] = useState<string | null>(null);
+  const [isParsingFile, setIsParsingFile] = useState(false);
+  const [previewSearch, setPreviewSearch] = useState("");
+
+  const downloadExcelTemplate = () => {
+    try {
+      const wsData = [
+        [
+          "Company Name",
+          "Category",
+          "Contact Person",
+          "Mobile / Phone",
+          "Location / City",
+          "Lead Source",
+          "Product Requirement",
+          "Follow Up Date",
+          "Follow Up Time",
+          "Status",
+          "Assigned Executive",
+          "Notes / Remarks"
+        ],
+        [
+          "Green Mobility Gujarat Pvt Ltd",
+          "Dealer",
+          "Rajeshbhai Patel",
+          "9825012345",
+          "Ahmedabad, Gujarat",
+          "Indiamart",
+          "100x 72V 30Ah EV Rickshaw Batteries",
+          new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+          "11:00",
+          "NEW",
+          "Suresh Raina",
+          "Urgent bulk requirement for fleet rollout."
+        ],
+        [
+          "EcoDrive Electro Wheels",
+          "OEM",
+          "Dr. Vikram Shah",
+          "9879543210",
+          "Surat, Gujarat",
+          "Website",
+          "50x 60V 24Ah High Performance Packs",
+          new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
+          "14:30",
+          "INTERESTED",
+          "Priya Sharma",
+          "Testing sample pack, requested quotation."
+        ],
+        [
+          "Sardar Solar & Energy Solutions",
+          "Distributor",
+          "Mahesh Bhai Desai",
+          "9909087654",
+          "Rajkot, Gujarat",
+          "Exhibition",
+          "30x 12.8V 100Ah Solar LiFePO4 Units",
+          new Date(Date.now() + 86400000 * 4).toISOString().split('T')[0],
+          "10:00",
+          "QUOTATION_SENT",
+          "Amit Trivedi",
+          "Quote sent for Gujarat state distributor margin."
+        ]
+      ];
+
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      ws['!cols'] = [
+        { wch: 32 }, // Company
+        { wch: 16 }, // Category
+        { wch: 22 }, // Contact Person
+        { wch: 18 }, // Mobile
+        { wch: 24 }, // Location
+        { wch: 16 }, // Source
+        { wch: 38 }, // Requirement
+        { wch: 16 }, // Follow up date
+        { wch: 16 }, // Follow up time
+        { wch: 16 }, // Status
+        { wch: 22 }, // Assigned
+        { wch: 42 }, // Notes
+      ];
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "CRM_Leads_Template");
+      XLSX.writeFile(wb, "Arcenol_CRM_Bulk_Leads_Template.xlsx");
+      showToast("Excel (.xlsx) Template downloaded successfully!", "info");
+    } catch (e: any) {
+      showToast("Failed to generate Excel template", "error");
+    }
+  };
+
+  const downloadCsvTemplate = () => {
+    try {
+      const csvContent =
+        "Company Name,Category,Contact Person,Mobile / Phone,Location / City,Lead Source,Product Requirement,Follow Up Date,Follow Up Time,Status,Assigned Executive,Notes / Remarks\n" +
+        '"Green Mobility Gujarat Pvt Ltd","Dealer","Rajeshbhai Patel","9825012345","Ahmedabad, Gujarat","Indiamart","100x 72V 30Ah EV Rickshaw Batteries","2026-08-25","11:00","NEW","Suresh Raina","Urgent bulk requirement"\n' +
+        '"EcoDrive Electro Wheels","OEM","Dr. Vikram Shah","9879543210","Surat, Gujarat","Website","50x 60V 24Ah High Performance Packs","2026-08-26","14:30","INTERESTED","Priya Sharma","Requested quotation"\n' +
+        '"Sardar Solar & Energy Solutions","Distributor","Mahesh Bhai Desai","9909087654","Rajkot, Gujarat","Exhibition","30x 12.8V 100Ah Solar LiFePO4 Units","2026-08-27","10:00","QUOTATION_SENT","Amit Trivedi","Quote sent for distributor"';
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", "Arcenol_CRM_Bulk_Leads_Template.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast("CSV Template downloaded successfully!", "info");
+    } catch (e) {
+      showToast("Failed to download CSV template", "error");
+    }
+  };
+
+  function parseExcelOrTextDate(val: any): string {
+    if (!val && val !== 0) return new Date().toISOString().split("T")[0];
+    if (typeof val === "number") {
+      try {
+        const parsed = XLSX.SSF.parse_date_code(val);
+        if (parsed) {
+          const y = parsed.y;
+          const m = String(parsed.m).padStart(2, "0");
+          const d = String(parsed.d).padStart(2, "0");
+          return `${y}-${m}-${d}`;
+        }
+      } catch (e) {
+        const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+        if (!isNaN(date.getTime())) return date.toISOString().split("T")[0];
+      }
+    }
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{4}$/.test(s)) {
+        const parts = s.split(/[-\/]/);
+        const day = parts[0].padStart(2, "0");
+        const month = parts[1].padStart(2, "0");
+        const year = parts[2];
+        return `${year}-${month}-${day}`;
+      }
+      if (/^\d{4}[-\/]\d{1,2}[-\/]\d{1,2}$/.test(s)) {
+        const parts = s.split(/[-\/]/);
+        const year = parts[0];
+        const month = parts[1].padStart(2, "0");
+        const day = parts[2].padStart(2, "0");
+        return `${year}-${month}-${day}`;
+      }
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+    }
+    return new Date().toISOString().split("T")[0];
+  }
+
+  function mapRawRowToLead(row: Record<string, any>, idx: number) {
+    const normKeys: Record<string, any> = {};
+    for (const key of Object.keys(row)) {
+      const cleanKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      normKeys[cleanKey] = row[key];
+    }
+
+    const company =
+      normKeys["companyname"] || normKeys["company"] || normKeys["clientname"] ||
+      normKeys["client"] || normKeys["customer"] || normKeys["business"] ||
+      normKeys["firm"] || normKeys["dealername"] || normKeys["partyname"] ||
+      normKeys["name"] || "";
+
+    const category =
+      normKeys["category"] || normKeys["segment"] || normKeys["type"] ||
+      normKeys["leadtype"] || "Dealer";
+
+    const contactPerson =
+      normKeys["contactperson"] || normKeys["contact"] || normKeys["person"] ||
+      normKeys["owner"] || normKeys["representative"] || company || "";
+
+    const phone =
+      normKeys["mobile"] || normKeys["phone"] || normKeys["mobilephone"] ||
+      normKeys["contactno"] || normKeys["phonenumber"] || normKeys["mobileno"] ||
+      normKeys["tel"] || normKeys["cell"] || normKeys["whatsapp"] || "";
+
+    const location =
+      normKeys["locationcity"] || normKeys["location"] || normKeys["city"] ||
+      normKeys["state"] || normKeys["address"] || normKeys["place"] || "Gujarat, India";
+
+    const leadSource =
+      normKeys["leadsource"] || normKeys["source"] || normKeys["channel"] ||
+      normKeys["inquirysource"] || "Website";
+
+    const requirement =
+      normKeys["productrequirement"] || normKeys["requirement"] ||
+      normKeys["product"] || normKeys["model"] || normKeys["batterymodel"] ||
+      normKeys["demand"] || normKeys["specification"] || normKeys["details"] || "General Requirement";
+
+    const statusVal = String(
+      normKeys["status"] || normKeys["stage"] || normKeys["leadstatus"] || "NEW"
+    ).toUpperCase().trim();
+    const status = LEAD_STAGES.includes(statusVal) ? statusVal : "NEW";
+
+    const followUpDate = parseExcelOrTextDate(
+      normKeys["followupdate"] || normKeys["followup"] || normKeys["nextfollowup"] ||
+      normKeys["nextfollowupdate"] || normKeys["date"]
+    );
+
+    const followUpTime = String(
+      normKeys["followuptime"] || normKeys["time"] || "10:00"
+    ).trim();
+
+    const assignedTo =
+      normKeys["assignedexecutive"] || normKeys["assignedto"] ||
+      normKeys["executive"] || normKeys["salesrep"] || "";
+
+    const notes =
+      normKeys["notesremarks"] || normKeys["notes"] || normKeys["remarks"] ||
+      normKeys["comment"] || normKeys["description"] || "";
+
+    return {
+      id: normKeys["id"] || `lead-${Date.now()}-${idx + 1}`,
+      company: String(company).trim() || `Inquiry #${idx + 1}`,
+      category: String(category).trim() || "Dealer",
+      contactPerson: String(contactPerson).trim(),
+      phone: String(phone).trim(),
+      location: String(location).trim() || "Gujarat, India",
+      leadSource: String(leadSource).trim() || "Website",
+      requirement: String(requirement).trim() || "General Requirement",
+      status,
+      followUpDate,
+      followUpTime: followUpTime || "10:00",
+      assignedTo: String(assignedTo).trim(),
+      notes: String(notes).trim(),
+      remarksLog: []
+    };
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+    setIsParsingFile(true);
+    setBulkUploadError(null);
+    setUploadedFileName(file.name);
+    setUploadedFileSize(`${(file.size / 1024).toFixed(1)} KB`);
+
+    try {
+      const fileNameLower = file.name.toLowerCase();
+      const isExcel = fileNameLower.endsWith(".xlsx") || fileNameLower.endsWith(".xls");
+      const isCsv = fileNameLower.endsWith(".csv") || fileNameLower.endsWith(".txt");
+
+      if (!isExcel && !isCsv) {
+        throw new Error("Unsupported file format. Please upload an Excel (.xlsx, .xls) or CSV (.csv) file.");
+      }
+
+      if (isExcel) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error("No worksheets found in this Excel workbook.");
+        }
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, any>[];
+
+        if (!rawJson || rawJson.length === 0) {
+          throw new Error("The selected Excel sheet contains no data rows.");
+        }
+
+        const mapped = rawJson.map((r, i) => mapRawRowToLead(r, i));
+        setParsedLeadsPreview(mapped);
+        showToast(`Successfully parsed ${mapped.length} rows from Excel sheet "${firstSheetName}"`, "success");
+      } else {
+        const text = await file.text();
+        setCsvRawText(text);
+        const workbook = XLSX.read(text, { type: "string" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, any>[];
+
+        if (!rawJson || rawJson.length === 0) {
+          throw new Error("CSV file contains no data rows.");
+        }
+
+        const mapped = rawJson.map((r, i) => mapRawRowToLead(r, i));
+        setParsedLeadsPreview(mapped);
+        showToast(`Successfully parsed ${mapped.length} rows from CSV file.`, "success");
+      }
+    } catch (err: any) {
+      console.error("Bulk upload parse error:", err);
+      setBulkUploadError(err?.message || "Failed to parse file.");
+      setParsedLeadsPreview([]);
+      showToast(err?.message || "Failed to parse file", "error");
+    } finally {
+      setIsParsingFile(false);
+    }
+  };
+
+  const handleParsePastedText = () => {
+    if (!csvRawText.trim()) {
+      setBulkUploadError("Please paste some CSV or delimited text first.");
+      return;
+    }
+    setIsParsingFile(true);
+    setBulkUploadError(null);
+    try {
+      const workbook = XLSX.read(csvRawText.trim(), { type: "string" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawJson = XLSX.utils.sheet_to_json(worksheet, { defval: "" }) as Record<string, any>[];
+
+      if (!rawJson || rawJson.length === 0) {
+        throw new Error("Pasted text contains no valid data rows.");
+      }
+
+      const mapped = rawJson.map((r, i) => mapRawRowToLead(r, i));
+      setParsedLeadsPreview(mapped);
+      setUploadedFileName("pasted_data.csv");
+      setUploadedFileSize(`${(new Blob([csvRawText]).size / 1024).toFixed(1)} KB`);
+      showToast(`Parsed ${mapped.length} rows from pasted text.`, "success");
+    } catch (err: any) {
+      setBulkUploadError(err?.message || "Failed to parse pasted text.");
+      setParsedLeadsPreview([]);
+      showToast(err?.message || "Failed to parse text", "error");
+    } finally {
+      setIsParsingFile(false);
+    }
+  };
+
+  const handleCommitBatchUpload = async () => {
+    if (parsedLeadsPreview.length === 0) {
+      showToast("No parsed leads available to import.", "error");
+      return;
+    }
+
+    setIsUploadingCsv(true);
+    try {
+      const res = await fetch("/api/leads/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(parsedLeadsPreview)
+      });
+
+      if (res.ok) {
+        showToast(`✅ Successfully imported and synced ${parsedLeadsPreview.length} leads!`, "success");
+        setShowBulkUpload(false);
+        setParsedLeadsPreview([]);
+        setCsvRawText("");
+        setUploadedFileName("");
+        setUploadedFileSize("");
+        refetch();
+      } else {
+        const errorJson = await res.json().catch(() => ({}));
+        showToast(`Failed to upload leads: ${errorJson?.error || res.statusText}`, "error");
+      }
+    } catch (err: any) {
+      showToast(`Network error uploading batch: ${err?.message}`, "error");
+    } finally {
+      setIsUploadingCsv(false);
+    }
+  };
 
   // Non-blocking modal & toast states
   const [toast, setToast] = useState<{ message: string; type: "success" | "info" | "error" } | null>(null);
@@ -1490,7 +1848,7 @@ export const CRM: React.FC = () => {
                 onClick={() => handleAction("Bulk Upload", () => setShowBulkUpload(true))}
                 className="px-6 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl flex items-center transition-all border border-transparent active:scale-95 cursor-pointer"
               >
-                <Upload size={16} className="mr-2 text-emerald-400" /> Bulk Import CSV
+                <FileSpreadsheet size={16} className="mr-2 text-emerald-400" /> Bulk Import (Excel / CSV)
               </button>
               <button
                 onClick={() =>
@@ -3756,173 +4114,405 @@ export const CRM: React.FC = () => {
         </div>
       )}
 
-      {/* BULK CSV UPLOAD MODAL */}
+      {/* BULK EXCEL & CSV UPLOAD MODAL */}
       {showBulkUpload && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-2xl w-full border border-slate-200 shadow-2xl space-y-6 animate-in fade-in zoom-in duration-200 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-5xl w-full border border-slate-200 shadow-2xl space-y-6 max-h-[92vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-                  <FileSpreadsheet size={20} />
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center border border-emerald-500/20 shadow-xs">
+                  <FileSpreadsheet size={24} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight italic">
-                    Bulk Lead Enquiries Import (CSV)
+                  <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight italic">
+                    Bulk Lead Inquiries Import (Excel & CSV)
                   </h3>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Paste CSV Content or Drop File
+                  <p className="text-xs font-semibold text-slate-500">
+                    Import leads from Microsoft Excel (<span className="font-mono text-emerald-600">.xlsx / .xls</span>) or CSV spreadsheets with automatic field mapping.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setShowBulkUpload(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                onClick={() => {
+                  setShowBulkUpload(false);
+                  setParsedLeadsPreview([]);
+                  setBulkUploadError(null);
+                  setUploadedFileName("");
+                }}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div className="border-2 border-dashed border-slate-200 rounded-2xl p-5 bg-slate-50/50 hover:bg-slate-50 text-center transition-all">
-                <input
-                  type="file"
-                  accept=".csv,.txt"
-                  id="csv-file-input"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (evt) => {
-                        if (evt.target?.result) {
-                          setCsvRawText(evt.target.result as string);
-                        }
-                      };
-                      reader.readAsText(file);
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="csv-file-input"
-                  className="cursor-pointer flex flex-col items-center justify-center space-y-2"
+            {/* Sub-bar: Modes & Template Download */}
+            <div className="flex flex-wrap items-center justify-between gap-3 flex-shrink-0 bg-slate-50 p-3 rounded-2xl border border-slate-100">
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkUploadTab("file")}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-2 ${
+                    bulkUploadTab === "file"
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-white text-slate-600 hover:bg-slate-200/60 border border-slate-200"
+                  }`}
                 >
-                  <Upload size={28} className="text-emerald-600" />
-                  <span className="text-xs font-bold text-slate-700">
-                    Click to select CSV file or Drag & Drop
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-semibold">
-                    Expected fields: company, category, source, contact_person, mobile, location, followup_date, requirement, status
-                  </span>
-                </label>
+                  <Upload size={14} />
+                  <span>Upload File (.xlsx / .csv)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBulkUploadTab("paste")}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center space-x-2 ${
+                    bulkUploadTab === "paste"
+                      ? "bg-slate-900 text-white shadow-md"
+                      : "bg-white text-slate-600 hover:bg-slate-200/60 border border-slate-200"
+                  }`}
+                >
+                  <FileText size={14} />
+                  <span>Direct Paste CSV Text</span>
+                </button>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
-                  Or Paste CSV Data Directly
-                </label>
-                <textarea
-                  value={csvRawText}
-                  onChange={(e) => setCsvRawText(e.target.value)}
-                  placeholder="id,company,category,source,contact_person,mobile,location,followup_date,followup_time,requirement,status&#10;lead-001,Green Motors,Dealer,Website,Rajesh Shah,9876543210,Ahmedabad,2026-08-15,10:00,50 Packs,NEW"
-                  rows={8}
-                  className="w-full text-xs font-mono p-3 bg-slate-900 text-emerald-400 rounded-2xl border border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
-                ></textarea>
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={downloadExcelTemplate}
+                  className="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-2xs cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>Excel Template (.xlsx)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={downloadCsvTemplate}
+                  className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-[11px] font-bold uppercase tracking-wider flex items-center space-x-1.5 transition-all shadow-2xs cursor-pointer"
+                >
+                  <Download size={13} />
+                  <span>CSV Template</span>
+                </button>
               </div>
             </div>
 
-            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {csvRawText.trim() ? `${csvRawText.trim().split('\n').length - 1} rows detected` : 'No file or data loaded'}
-              </p>
-              <div className="flex space-x-2">
+            {/* Main Content Area: Scrollable */}
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {bulkUploadError && (
+                <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 rounded-2xl text-xs flex items-center space-x-2">
+                  <AlertCircle size={16} className="shrink-0 text-rose-500" />
+                  <span>{bulkUploadError}</span>
+                </div>
+              )}
+
+              {/* TAB 1: FILE UPLOAD */}
+              {bulkUploadTab === "file" && (
+                <div>
+                  {!uploadedFileName ? (
+                    <div className="border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-3xl p-8 bg-slate-50/70 hover:bg-emerald-50/30 text-center transition-all">
+                      <input
+                        type="file"
+                        accept=".xlsx,.xls,.csv,.txt"
+                        id="crm-excel-file-input"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleFileUpload(file);
+                          }
+                          // Reset value so same file can be chosen again if needed
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor="crm-excel-file-input"
+                        className="cursor-pointer flex flex-col items-center justify-center space-y-3"
+                      >
+                        <div className="w-16 h-16 rounded-2xl bg-white shadow-md border border-slate-200 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition-all">
+                          {isParsingFile ? (
+                            <Loader2 size={32} className="animate-spin text-emerald-600" />
+                          ) : (
+                            <FileSpreadsheet size={32} className="text-emerald-600" />
+                          )}
+                        </div>
+                        <div className="space-y-1">
+                          <span className="text-sm font-bold text-slate-800 block">
+                            Click to select Excel (.xlsx / .xls) or CSV file, or Drag & Drop
+                          </span>
+                          <span className="text-xs text-slate-500 block">
+                            Supports Excel workbooks and CSV files with auto-detection of column headers.
+                          </span>
+                        </div>
+                        <div className="inline-flex items-center space-x-2 text-[10px] uppercase font-bold tracking-widest text-emerald-700 bg-emerald-100/70 px-3 py-1 rounded-full">
+                          <span>Supported: .xlsx, .xls, .csv</span>
+                        </div>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                          <FileSpreadsheet size={20} />
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-black text-slate-900">{uploadedFileName}</span>
+                            <span className="text-[11px] font-mono text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-md">
+                              {uploadedFileSize}
+                            </span>
+                          </div>
+                          <p className="text-xs font-semibold text-emerald-800">
+                            {parsedLeadsPreview.length} lead {parsedLeadsPreview.length === 1 ? 'record' : 'records'} parsed successfully
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv,.txt"
+                          id="crm-excel-reupload-input"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(file);
+                            e.target.value = "";
+                          }}
+                        />
+                        <label
+                          htmlFor="crm-excel-reupload-input"
+                          className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-2xs transition-all"
+                        >
+                          Change File
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUploadedFileName("");
+                            setUploadedFileSize("");
+                            setParsedLeadsPreview([]);
+                            setBulkUploadError(null);
+                          }}
+                          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          title="Clear uploaded file"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: DIRECT PASTE */}
+              {bulkUploadTab === "paste" && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-black text-slate-500 uppercase tracking-wider">
+                      Paste CSV or Tab-Delimited Data
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleParsePastedText}
+                      disabled={!csvRawText.trim() || isParsingFile}
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-xs transition-all disabled:opacity-50 flex items-center space-x-1.5 cursor-pointer"
+                    >
+                      {isParsingFile ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                      <span>Parse & Preview</span>
+                    </button>
+                  </div>
+                  <textarea
+                    value={csvRawText}
+                    onChange={(e) => setCsvRawText(e.target.value)}
+                    placeholder="Company Name,Category,Contact Person,Mobile / Phone,Location / City,Lead Source,Product Requirement,Follow Up Date,Follow Up Time,Status,Assigned Executive,Notes&#10;Green Mobility Gujarat Pvt Ltd,Dealer,Rajeshbhai Patel,9825012345,Ahmedabad,Indiamart,100x 72V 30Ah EV Batteries,2026-08-25,11:00,NEW,Suresh Raina,Urgent bulk order&#10;EcoDrive Electro Wheels,OEM,Dr. Vikram Shah,9879543210,Surat,Website,50x 60V 24Ah Packs,2026-08-26,14:30,INTERESTED,Priya Sharma,Quotation sent"
+                    rows={6}
+                    className="w-full text-xs font-mono p-3.5 bg-slate-950 text-emerald-400 rounded-2xl border border-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 leading-relaxed"
+                  ></textarea>
+                </div>
+              )}
+
+              {/* PARSED LEADS PREVIEW TABLE */}
+              {parsedLeadsPreview.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-100/80 p-3 rounded-2xl border border-slate-200">
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-1 text-xs font-bold text-slate-800">
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                        <span>Ready to Import: <span className="text-emerald-700 font-mono font-black">{parsedLeadsPreview.length}</span> records</span>
+                      </div>
+                      <span className="text-slate-300">|</span>
+                      <div className="text-[11px] text-slate-500 font-semibold">
+                        Previewing parsed data mapped to CRM ledger
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="relative">
+                        <Search size={13} className="absolute left-2.5 top-2.5 text-slate-400" />
+                        <input
+                          type="text"
+                          value={previewSearch}
+                          onChange={(e) => setPreviewSearch(e.target.value)}
+                          placeholder="Filter preview..."
+                          className="pl-7 pr-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 w-44"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setParsedLeadsPreview([]);
+                          setUploadedFileName("");
+                          setCsvRawText("");
+                        }}
+                        className="px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 border border-rose-200 rounded-xl font-bold uppercase tracking-wider transition-all"
+                      >
+                        Clear All
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable table */}
+                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-2xs max-h-72 overflow-y-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead className="bg-slate-900 text-white font-black uppercase text-[10px] tracking-wider sticky top-0 z-10">
+                        <tr>
+                          <th className="p-3">#</th>
+                          <th className="p-3">Company / Business</th>
+                          <th className="p-3">Category</th>
+                          <th className="p-3">Contact & Phone</th>
+                          <th className="p-3">Location</th>
+                          <th className="p-3">Source</th>
+                          <th className="p-3">Product Requirement</th>
+                          <th className="p-3">Follow-up</th>
+                          <th className="p-3">Status</th>
+                          <th className="p-3 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-medium">
+                        {parsedLeadsPreview
+                          .filter((l) => {
+                            if (!previewSearch.trim()) return true;
+                            const q = previewSearch.toLowerCase();
+                            return (
+                              l.company?.toLowerCase().includes(q) ||
+                              l.contactPerson?.toLowerCase().includes(q) ||
+                              l.phone?.toLowerCase().includes(q) ||
+                              l.location?.toLowerCase().includes(q) ||
+                              l.requirement?.toLowerCase().includes(q)
+                            );
+                          })
+                          .slice(0, 100)
+                          .map((lead, idx) => (
+                            <tr key={lead.id || idx} className="hover:bg-slate-50/80 transition-all">
+                              <td className="p-3 text-slate-400 font-mono text-[11px]">{idx + 1}</td>
+                              <td className="p-3">
+                                <div className="font-bold text-slate-900">{lead.company}</div>
+                                {lead.notes && (
+                                  <div className="text-[10px] text-slate-400 truncate max-w-xs">{lead.notes}</div>
+                                )}
+                              </td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                                  {lead.category || "Dealer"}
+                                </span>
+                              </td>
+                              <td className="p-3">
+                                <div className="text-slate-800 font-semibold">{lead.contactPerson || "—"}</div>
+                                <div className="text-slate-500 font-mono text-[11px] flex items-center space-x-1">
+                                  <span>{lead.phone || "No Mobile"}</span>
+                                </div>
+                              </td>
+                              <td className="p-3 text-slate-600 truncate max-w-[140px]">{lead.location || "Gujarat, India"}</td>
+                              <td className="p-3">
+                                <span className="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-md text-[10px] font-bold">
+                                  {lead.leadSource || "Website"}
+                                </span>
+                              </td>
+                              <td className="p-3 text-slate-700 truncate max-w-[180px]" title={lead.requirement}>
+                                {lead.requirement || "General Requirement"}
+                              </td>
+                              <td className="p-3 text-[11px] font-mono text-slate-600">
+                                <div>{lead.followUpDate}</div>
+                                <div className="text-[10px] text-slate-400">{lead.followUpTime || "10:00"}</div>
+                              </td>
+                              <td className="p-3">
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wider uppercase ${
+                                    lead.status === "CONVERTED"
+                                      ? "bg-emerald-100 text-emerald-800"
+                                      : lead.status === "QUOTATION_SENT"
+                                      ? "bg-purple-100 text-purple-800"
+                                      : lead.status === "INTERESTED"
+                                      ? "bg-indigo-100 text-indigo-800"
+                                      : lead.status === "LAPSED" || lead.status === "DEAD"
+                                      ? "bg-rose-100 text-rose-800"
+                                      : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {lead.status || "NEW"}
+                                </span>
+                              </td>
+                              <td className="p-3 text-center">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setParsedLeadsPreview((prev) => prev.filter((_, i) => i !== idx));
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                  title="Remove row from batch"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between pt-4 border-t border-slate-100 flex-shrink-0">
+              <div className="text-xs font-semibold text-slate-500">
+                {parsedLeadsPreview.length > 0 ? (
+                  <span className="text-emerald-700 font-bold flex items-center space-x-1">
+                    <CheckCircle2 size={14} className="text-emerald-600" />
+                    <span>{parsedLeadsPreview.length} leads ready for batch import & CRM synchronization</span>
+                  </span>
+                ) : (
+                  <span>Select an Excel (.xlsx / .xls) or CSV file above to begin</span>
+                )}
+              </div>
+              <div className="flex items-center space-x-3">
                 <button
                   type="button"
-                  onClick={() => setShowBulkUpload(false)}
+                  onClick={() => {
+                    setShowBulkUpload(false);
+                    setParsedLeadsPreview([]);
+                    setBulkUploadError(null);
+                    setUploadedFileName("");
+                  }}
                   className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer transition-all"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  disabled={!csvRawText.trim() || isUploadingCsv}
-                  onClick={async () => {
-                    setIsUploadingCsv(true);
-                    try {
-                      // Parse CSV lines
-                      const lines = csvRawText.trim().split(/\r?\n/).filter(Boolean);
-                      if (lines.length < 2) {
-                        showToast("Invalid CSV: Must contain headers and at least 1 data row", "error");
-                        setIsUploadingCsv(false);
-                        return;
-                      }
-
-                      function parseLine(line: string) {
-                        const cols = [];
-                        let col = '';
-                        let inQ = false;
-                        for (let i = 0; i < line.length; i++) {
-                          const c = line[i];
-                          if (c === '"') {
-                            if (inQ && line[i + 1] === '"') { col += '"'; i++; }
-                            else { inQ = !inQ; }
-                          } else if (c === ',' && !inQ) {
-                            cols.push(col.trim()); col = '';
-                          } else { col += c; }
-                        }
-                        cols.push(col.trim());
-                        return cols;
-                      }
-
-                      const headers = parseLine(lines[0]).map(h => h.toLowerCase().replace(/[^a-z0-9_]/g, ''));
-                      const parsedItems = [];
-
-                      for (let i = 1; i < lines.length; i++) {
-                        const cols = parseLine(lines[i]);
-                        if (cols.length === 0) continue;
-                        const row: Record<string, string> = {};
-                        headers.forEach((h, idx) => { row[h] = cols[idx] || ''; });
-                        
-                        parsedItems.push({
-                          id: row.id || `lead-${Date.now()}-${i}`,
-                          company: row.company || 'Unnamed Lead',
-                          category: row.category || 'Dealer',
-                          leadSource: row.source || row.lead_source || 'Website',
-                          contactPerson: row.contact_person || row.contactperson || row.company || '',
-                          phone: row.mobile || row.phone || '',
-                          location: row.location || '',
-                          followUpDate: row.followup_date || row.followUpDate || new Date().toISOString().split('T')[0],
-                          followUpTime: row.followup_time || row.followUpTime || '10:00',
-                          requirement: row.requirement || 'General Requirement',
-                          status: String(row.status || 'NEW').toUpperCase(),
-                          notes: row.notes || '',
-                          remarksLog: row.remarks_log ? (() => { try { return JSON.parse(row.remarks_log); } catch(e) { return []; } })() : []
-                        });
-                      }
-
-                      const res = await fetch("/api/leads/batch", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(parsedItems)
-                      });
-
-                      if (res.ok) {
-                        showToast(`Successfully uploaded ${parsedItems.length} leads!`, "success");
-                        setShowBulkUpload(false);
-                        setCsvRawText("");
-                        refetch();
-                      } else {
-                        showToast("Failed to upload batch leads", "error");
-                      }
-                    } catch (err: any) {
-                      showToast(`Import Error: ${err?.message || 'Failed to parse CSV'}`, "error");
-                    } finally {
-                      setIsUploadingCsv(false);
-                    }
-                  }}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/20 cursor-pointer transition-all disabled:opacity-50"
+                  disabled={parsedLeadsPreview.length === 0 || isUploadingCsv}
+                  onClick={handleCommitBatchUpload}
+                  className="px-7 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-emerald-600/25 cursor-pointer transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
-                  {isUploadingCsv ? "Uploading..." : "Import & Sync Leads"}
+                  {isUploadingCsv ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin" />
+                      <span>Syncing Leads...</span>
+                    </>
+                  ) : (
+                    <>
+                      <FileSpreadsheet size={15} />
+                      <span>Import & Sync ({parsedLeadsPreview.length}) Leads</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
