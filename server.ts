@@ -5,6 +5,7 @@ import fs from "fs";
 import { 
   syncAllERPToSupabase, 
   hydrateFromSupabase, 
+  supabaseServerClient,
   batchUpsert, 
   deleteRecord, 
   deleteWarehouseRecord,
@@ -4957,6 +4958,18 @@ async function startServer() {
     res.json({ success: true, gateEntry: gate });
   });
 
+  app.delete("/api/inventory/gate-entries/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.gateEntries) db.gateEntries = [];
+    db.gateEntries = db.gateEntries.filter((g: any) => g.id !== id);
+    if (supabaseServerClient) {
+      try {
+        await supabaseServerClient.from('procurement_entries').delete().eq('id', id);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
+  });
+
   // 2. Physical Stock Audit & Variance Register
   app.get("/api/inventory/stock-audits", (req, res) => {
     res.json(db.stockAudits || []);
@@ -5049,6 +5062,18 @@ async function startServer() {
     });
 
     res.json({ success: true, audit });
+  });
+
+  app.delete("/api/inventory/stock-audits/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.stockAudits) db.stockAudits = [];
+    db.stockAudits = db.stockAudits.filter((a: any) => a.id !== id);
+    if (supabaseServerClient) {
+      try {
+        await supabaseServerClient.from('stock_audits').delete().eq('id', id);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
   });
 
   // 3. Inter-Warehouse Transfer Manifest Slips
@@ -5155,6 +5180,18 @@ async function startServer() {
     res.json({ success: true, batch: newBatch });
   });
 
+  app.delete("/api/qc/cell-grading-batches/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.cellGradingBatches) db.cellGradingBatches = [];
+    db.cellGradingBatches = db.cellGradingBatches.filter((b: any) => b.id !== id);
+    if (supabaseServerClient) {
+      try {
+        await supabaseServerClient.from('cell_grading_batches').delete().eq('id', id);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
+  });
+
   // 2. End-of-Line (EOL) Battery Quality Certificate & Hi-Pot Test Bench
   app.get("/api/qc/eol-certificates", (req, res) => {
     res.json(db.eolCertificates || []);
@@ -5195,6 +5232,18 @@ async function startServer() {
     res.json({ success: true, certificate: newCert });
   });
 
+  app.delete("/api/qc/eol-certificates/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.eolCertificates) db.eolCertificates = [];
+    db.eolCertificates = db.eolCertificates.filter((e: any) => e.id !== id);
+    if (supabaseServerClient) {
+      try {
+        await supabaseServerClient.from('eol_certificates').delete().eq('id', id);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
+  });
+
   // 3. Machine Operator & Line Scrap Log
   app.get("/api/qc/scrap-logs", (req, res) => {
     res.json(db.scrapLogs || []);
@@ -5232,6 +5281,18 @@ async function startServer() {
     }
 
     res.json({ success: true, scrapLog: newScrap });
+  });
+
+  app.delete("/api/qc/scrap-logs/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.scrapLogs) db.scrapLogs = [];
+    db.scrapLogs = db.scrapLogs.filter((s: any) => s.id !== id);
+    if (supabaseServerClient) {
+      try {
+        await supabaseServerClient.from('scrap_logs').delete().eq('id', id);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
   });
 
   // ==================== PHASE 3: COMMERCIAL OPERATIONS, SALES, WARRANTY & SERVICE ENDPOINTS ==================== //
@@ -6524,6 +6585,32 @@ async function startServer() {
     });
 
     res.json(item);
+  });
+
+  app.delete("/api/finishedGoods/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.finishedGoods) db.finishedGoods = [];
+    const item = db.finishedGoods.find(fg => fg.id === id || fg.serial === id);
+    db.finishedGoods = db.finishedGoods.filter(fg => fg.id !== id && fg.serial !== id);
+    if (supabaseServerClient && item) {
+      try {
+        await supabaseServerClient.from('finished_goods').delete().or(`id.eq.${id},serial.eq.${item.serial}`);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
+  });
+
+  app.delete("/api/finished-goods/:id", async (req, res) => {
+    const { id } = req.params;
+    if (!db.finishedGoods) db.finishedGoods = [];
+    const item = db.finishedGoods.find(fg => fg.id === id || fg.serial === id);
+    db.finishedGoods = db.finishedGoods.filter(fg => fg.id !== id && fg.serial !== id);
+    if (supabaseServerClient && item) {
+      try {
+        await supabaseServerClient.from('finished_goods').delete().or(`id.eq.${id},serial.eq.${item.serial}`);
+      } catch (e) {}
+    }
+    res.json({ success: true, id });
   });
 
   app.post("/api/finishedGoods/bulk", (req, res) => {

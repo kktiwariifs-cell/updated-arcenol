@@ -5,7 +5,7 @@ import {
   Search, Factory, ChevronRight, MapPin, ClipboardList,
   BarChart3, PieChart as PieChartIcon, History, Zap, CheckCircle2,
   Box, Boxes, ArrowUpRight, X, Printer, QrCode, ShieldCheck, Tag, Loader2,
-  Upload, Download, FileSpreadsheet, FileText, AlertCircle, Check
+  Upload, Download, FileSpreadsheet, FileText, AlertCircle, Check, Trash2
 } from 'lucide-react';
 import { useERPData } from '../hooks/useERPData';
 import { FormattedSerial, getProductClusterTag } from '../lib/serialUtils';
@@ -147,6 +147,37 @@ export const FinishedGoods: React.FC = () => {
       console.error('[Finished Goods Console Dispatch Error]:', err);
     } finally {
       setSubmittingAction(false);
+    }
+  };
+
+  const [isDeletingItem, setIsDeletingItem] = useState(false);
+
+  const handleDeleteSingle = async (item: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const idToDelete = item.id || item.serial;
+    if (!window.confirm(`Are you sure you want to permanently delete battery pack "${item.serial || item.id}"? This will remove it from Finished Goods inventory and Supabase database.`)) {
+      return;
+    }
+    setIsDeletingItem(true);
+    try {
+      const response = await fetch(`/api/finishedGoods/${encodeURIComponent(idToDelete)}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setSuccessToast(`SUCCESSFULLY DELETED ${item.serial || item.id}!`);
+        setTimeout(() => setSuccessToast(''), 4000);
+        if (selectedItem?.id === item.id || selectedItem?.serial === item.serial) {
+          setSelectedItem(null);
+        }
+        await refetch();
+      } else {
+        alert('Failed to delete finished goods item. Please check server connection.');
+      }
+    } catch (err) {
+      console.error('[Finished Goods Delete Error]:', err);
+      alert('Error occurred while deleting finished goods item.');
+    } finally {
+      setIsDeletingItem(false);
     }
   };
 
@@ -786,6 +817,14 @@ export const FinishedGoods: React.FC = () => {
                       <button className="opacity-0 group-hover:opacity-100 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[9.5px] font-black uppercase tracking-wider rounded-lg transition-all active:scale-95 flex items-center gap-1 shrink-0 font-sans cursor-pointer">
                          <QrCode size={12} /> Control
                       </button>
+                      <button 
+                         type="button"
+                         onClick={(e) => handleDeleteSingle(item, e)}
+                         title="Permanently Delete Battery Pack"
+                         className="opacity-0 group-hover:opacity-100 p-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-all active:scale-95 flex items-center justify-center shrink-0 cursor-pointer"
+                      >
+                         <Trash2 size={13} />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -1077,11 +1116,19 @@ export const FinishedGoods: React.FC = () => {
                       </div>
 
                       {/* Submit actions */}
-                      <div className="pt-6 border-t border-slate-100 flex gap-4">
+                      <div className="pt-6 border-t border-slate-100 flex flex-wrap gap-3">
+                         <button
+                           type="button"
+                           onClick={(e) => handleDeleteSingle(selectedItem, e)}
+                           disabled={isDeletingItem}
+                           className="px-5 py-4 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-2xl font-black text-[10.5px] uppercase tracking-widest transition-all cursor-pointer active:scale-95 leading-none shadow-xs flex items-center justify-center gap-1.5"
+                         >
+                            <Trash2 size={14} /> Delete Pack
+                         </button>
                          <button
                            type="button"
                            onClick={() => setSelectedItem(null)}
-                           className="flex-1 py-4 border border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 rounded-2xl font-black text-[10.5px] uppercase tracking-widest text-slate-505 transition-all cursor-pointer active:scale-95 leading-none shadow-xs"
+                           className="flex-1 py-4 border border-slate-200 bg-white hover:bg-slate-50 hover:text-slate-900 rounded-2xl font-black text-[10.5px] uppercase tracking-widest text-slate-500 transition-all cursor-pointer active:scale-95 leading-none shadow-xs"
                          >
                             Discard
                          </button>

@@ -159,11 +159,71 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
         fetch('/api/qc/eol-certificates'),
         fetch('/api/qc/scrap-logs')
       ]);
-      if (cgbRes.ok) setCellGradingBatches(await cgbRes.json());
-      if (eolRes.ok) setEolCertificates(await eolRes.json());
-      if (scrapRes.ok) setScrapLogs(await scrapRes.json());
+      if (cgbRes.ok) {
+        const d = await cgbRes.json();
+        setCellGradingBatches(Array.isArray(d) ? d : (d.cellGradingBatches || []));
+      }
+      if (eolRes.ok) {
+        const d = await eolRes.json();
+        setEolCertificates(Array.isArray(d) ? d : (d.eolCertificates || []));
+      }
+      if (scrapRes.ok) {
+        const d = await scrapRes.json();
+        setScrapLogs(Array.isArray(d) ? d : (d.scrapLogs || []));
+      }
     } catch (err) {
       console.error('Error fetching Phase 2 QC data:', err);
+    }
+  };
+
+  const handleDeleteScrapLog = async (id: string) => {
+    if (!confirm(`Are you sure you want to delete Machine Scrap Log ${id}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/qc/scrap-logs/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('SCRAP_DELETED');
+      } else {
+        alert('Failed to delete scrap log.');
+      }
+    } catch (err) {
+      console.error('Error deleting scrap log:', err);
+      alert('Error deleting scrap log.');
+    }
+  };
+
+  const handleDeleteCellBatch = async (id: string) => {
+    if (!confirm(`Are you sure you want to delete Cell Grading Batch ${id}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/qc/cell-grading-batches/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('CELL_BATCH_DELETED');
+      } else {
+        alert('Failed to delete cell batch.');
+      }
+    } catch (err) {
+      console.error('Error deleting cell batch:', err);
+      alert('Error deleting cell batch.');
+    }
+  };
+
+  const handleDeleteEolCert = async (id: string) => {
+    if (!confirm(`Are you sure you want to delete EOL Battery Certificate ${id}? This action cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/qc/eol-certificates/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchQcData();
+        refetch();
+        notifyCrossTabSync('EOL_CERT_DELETED');
+      } else {
+        alert('Failed to delete EOL certificate.');
+      }
+    } catch (err) {
+      console.error('Error deleting EOL cert:', err);
+      alert('Error deleting EOL certificate.');
     }
   };
 
@@ -2429,11 +2489,11 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                     <th className="py-3 px-4">Avg Capacity & Ohmic IR</th>
                     <th className="py-3 px-4">Ambient Temp & Compensation</th>
                     <th className="py-3 px-4">Inspector & Date</th>
-                    <th className="py-3 px-4 text-right">Telemetry</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {cellGradingBatches.length === 0 ? (
+                  {(!Array.isArray(cellGradingBatches) || cellGradingBatches.length === 0) ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
                         No Cell Grading Batches Logged Yet.
@@ -2469,12 +2529,21 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                           <span className="text-slate-400 block font-mono">{b.inspectionDate}</span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => setViewCurveBatch(b)}
-                            className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1"
-                          >
-                            <LineChartIcon size={12} /> View Curve
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setViewCurveBatch(b)}
+                              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1"
+                            >
+                              <LineChartIcon size={12} /> View Curve
+                            </button>
+                            <button
+                              onClick={() => handleDeleteCellBatch(b.id)}
+                              title="Delete Cell Grading Batch"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2490,7 +2559,7 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Certified EV Packs</span>
-              <span className="text-3xl font-black text-slate-900 block mt-1">{eolCertificates.length}</span>
+              <span className="text-3xl font-black text-slate-900 block mt-1">{Array.isArray(eolCertificates) ? eolCertificates.length : 0}</span>
               <span className="text-[10px] font-bold text-emerald-600 uppercase mt-1 block">100% High-Voltage Insulation Verified</span>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
@@ -2501,7 +2570,7 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">BMS CAN Telemetry Paired</span>
               <span className="text-3xl font-black text-purple-600 block mt-1">
-                {eolCertificates.filter(c => c.bmsTelemetryPaired).length} / {eolCertificates.length}
+                {Array.isArray(eolCertificates) ? eolCertificates.filter(c => c.bmsTelemetryPaired).length : 0} / {Array.isArray(eolCertificates) ? eolCertificates.length : 0}
               </span>
               <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Live Firmware & MAC Handshake Active</span>
             </div>
@@ -2537,11 +2606,11 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                     <th className="py-3 px-4">BMS MAC & Telemetry</th>
                     <th className="py-3 px-4">Cell Delta & Capacity</th>
                     <th className="py-3 px-4">Test Bench & Lead</th>
-                    <th className="py-3 px-4 text-right">Certificate Action</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {eolCertificates.length === 0 ? (
+                  {(!Array.isArray(eolCertificates) || eolCertificates.length === 0) ? (
                     <tr>
                       <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
                         No EOL Battery Certificates Issued Yet.
@@ -2574,12 +2643,21 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                           <span className="text-slate-400 block font-mono">{c.testBenchId} • {c.testTimestamp}</span>
                         </td>
                         <td className="py-4 px-4 text-right">
-                          <button
-                            onClick={() => setViewEolCert(c)}
-                            className="px-3.5 py-1.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1.5"
-                          >
-                            <FileText size={12} /> View Certificate
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setViewEolCert(c)}
+                              className="px-3.5 py-1.5 bg-cyan-100 hover:bg-cyan-200 text-cyan-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1.5"
+                            >
+                              <FileText size={12} /> View Certificate
+                            </button>
+                            <button
+                              onClick={() => handleDeleteEolCert(c.id)}
+                              title="Delete EOL Certificate"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2595,13 +2673,13 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Machine Scrap Logs</span>
-              <span className="text-3xl font-black text-amber-600 block mt-1">{scrapLogs.length}</span>
+              <span className="text-3xl font-black text-amber-600 block mt-1">{Array.isArray(scrapLogs) ? scrapLogs.length : 0}</span>
               <span className="text-[10px] font-bold text-slate-400 uppercase mt-1 block">Line-side Scrap & Wastage Ledger</span>
             </div>
             <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-md">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Financial Scrap Loss Value</span>
               <span className="text-3xl font-black text-rose-600 block mt-1">
-                ₹{scrapLogs.reduce((acc, curr) => acc + Number(curr.financialScrapCost || 0), 0).toLocaleString()}
+                ₹{(Array.isArray(scrapLogs) ? scrapLogs : []).reduce((acc, curr) => acc + Number(curr.financialScrapCost || 0), 0).toLocaleString()}
               </span>
               <span className="text-[10px] font-bold text-rose-500 uppercase mt-1 block">Auto-deducted from raw materials</span>
             </div>
@@ -2642,13 +2720,14 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                     <th className="py-3 px-4">Scrapped Component & Qty</th>
                     <th className="py-3 px-4">Defect / Scrap Reason</th>
                     <th className="py-3 px-4">Financial Loss (₹)</th>
-                    <th className="py-3 px-4 text-right">QC Supervisor Sign-Off</th>
+                    <th className="py-3 px-4">QC Supervisor Sign-Off</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                  {scrapLogs.length === 0 ? (
+                  {(!Array.isArray(scrapLogs) || scrapLogs.length === 0) ? (
                     <tr>
-                      <td colSpan={7} className="py-8 text-center text-slate-400 font-bold uppercase">
+                      <td colSpan={8} className="py-8 text-center text-slate-400 font-bold uppercase">
                         No Machine Scrap Entries Logged Yet.
                       </td>
                     </tr>
@@ -2677,8 +2756,17 @@ export const Production: React.FC<{ initialSubTab?: "wip" | "assembly" | "gradin
                         <td className="py-4 px-4 font-mono font-black text-rose-600">
                           ₹{Number(s.financialScrapCost).toLocaleString()}
                         </td>
-                        <td className="py-4 px-4 text-right font-mono text-[10px] text-emerald-700 font-bold">
+                        <td className="py-4 px-4 font-mono text-[10px] text-emerald-700 font-bold">
                           ✓ {s.qcSupervisorSignOff}
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          <button
+                            onClick={() => handleDeleteScrapLog(s.id)}
+                            title="Delete Scrap Log"
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg transition-colors cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </td>
                       </tr>
                     ))

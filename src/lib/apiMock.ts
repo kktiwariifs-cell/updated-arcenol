@@ -4253,6 +4253,137 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
 
       saveLocalDB(db);
       responseData = { success: true, totalDeletedCount: totalDeleted, purgeLog: newLog };
+    } else if (urlStr.includes('/api/qc/scrap-logs')) {
+      if (!db.scrapLogs) db.scrapLogs = [];
+      if (method === 'GET') {
+        responseData = db.scrapLogs || [];
+      } else if (method === 'POST') {
+        const newScrap = {
+          id: body.id || `SCRAP-${Date.now()}`,
+          machineId: body.machineId || "SPOT_WELDER_01",
+          machineName: body.machineName || "Pneumatic Spot Welder #1",
+          shift: body.shift || "Shift A",
+          operatorName: body.operatorName || "Machine Operator",
+          materialId: body.materialId || "RM-NICKEL",
+          materialName: body.materialName || "Nickel Strip",
+          scrapQty: Number(body.scrapQty || 0),
+          unit: body.unit || "Kg",
+          scrapReason: body.scrapReason || "Machine Calibration Spatter",
+          financialScrapCost: Number(body.financialScrapCost || 0),
+          qcSupervisorSignOff: body.qcSupervisorSignOff || "QC Supervisor Verified",
+          logDate: new Date().toLocaleString(),
+          status: "LOGGED"
+        };
+        db.scrapLogs.unshift(newScrap);
+        saveLocalDB(db);
+        responseData = { success: true, scrapLog: newScrap };
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/qc/scrap-logs/')[1] || (body && body.id);
+        db.scrapLogs = db.scrapLogs.filter((s: any) => s.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/qc/cell-grading-batches')) {
+      if (!db.cellGradingBatches) db.cellGradingBatches = [];
+      if (method === 'GET') {
+        responseData = db.cellGradingBatches || [];
+      } else if (method === 'POST') {
+        const newBatch = {
+          id: body.id || `CGB-${Date.now()}`,
+          batchCode: body.batchCode || `LOT-${Date.now().toString().slice(-6)}`,
+          supplierLotNo: body.supplierLotNo || "CATL-LOT-001",
+          totalCellsTested: Number(body.totalCellsTested || 0),
+          gradeAQty: Number(body.gradeAQty || 0),
+          gradeBQty: Number(body.gradeBQty || 0),
+          gradeCQty: Number(body.gradeCQty || 0),
+          avgCapacityAh: Number(body.avgCapacityAh || 3.2),
+          avgOhmicImpedancemOm: Number(body.avgOhmicImpedancemOm || 18.0),
+          ambientTempCelsius: Number(body.ambientTempCelsius || 25.0),
+          tempCompensationFactor: Number(body.tempCompensationFactor || 1.0),
+          testerChannelCount: Number(body.testerChannelCount || 64),
+          dischargeTelemetryCurve: body.dischargeTelemetryCurve || [],
+          inspectedBy: body.inspectedBy || "QC Engineer",
+          inspectionDate: new Date().toISOString().split('T')[0],
+          status: "RELEASED_TO_PRODUCTION"
+        };
+        db.cellGradingBatches.unshift(newBatch);
+        saveLocalDB(db);
+        responseData = { success: true, batch: newBatch };
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/qc/cell-grading-batches/')[1] || (body && body.id);
+        db.cellGradingBatches = db.cellGradingBatches.filter((b: any) => b.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/qc/eol-certificates')) {
+      if (!db.eolCertificates) db.eolCertificates = [];
+      if (method === 'GET') {
+        responseData = db.eolCertificates || [];
+      } else if (method === 'POST') {
+        const newCert = {
+          id: body.id || `EOL-${Date.now()}`,
+          serialNumber: body.serialNumber || "AESPL EV UNKNOWN",
+          packModel: body.packModel || "72V30A",
+          hiPotInsulationResistanceMOm: Number(body.hiPotInsulationResistanceMOm || 500),
+          dielectricBreakdownTest: body.dielectricBreakdownTest || "PASS",
+          bmsMacAddress: body.bmsMacAddress || "A4:C1:38:00:00:00",
+          bmsTelemetryPaired: body.bmsTelemetryPaired !== false,
+          bmsFirmwareVersion: body.bmsFirmwareVersion || "v2.4.12",
+          cellVoltageDeltaMaxmV: Number(body.cellVoltageDeltaMaxmV || 8),
+          packCapacityAh: Number(body.packCapacityAh || 30.5),
+          socPercent: Number(body.socPercent || 98.5),
+          testedBy: body.testedBy || "QC Lead",
+          testBenchId: body.testBenchId || "TB-01",
+          testTimestamp: new Date().toLocaleString(),
+          certificateStatus: "PASSED_CERTIFIED"
+        };
+        db.eolCertificates.unshift(newCert);
+        saveLocalDB(db);
+        responseData = { success: true, certificate: newCert };
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/qc/eol-certificates/')[1] || (body && body.id);
+        db.eolCertificates = db.eolCertificates.filter((e: any) => e.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/inventory/gate-entries')) {
+      if (!db.gateEntries) db.gateEntries = [];
+      if (method === 'GET') {
+        responseData = db.gateEntries || [];
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/inventory/gate-entries/')[1] || (body && body.id);
+        db.gateEntries = db.gateEntries.filter((g: any) => g.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/inventory/stock-audits')) {
+      if (!db.stockAudits) db.stockAudits = [];
+      if (method === 'GET') {
+        responseData = db.stockAudits || [];
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/inventory/stock-audits/')[1] || (body && body.id);
+        db.stockAudits = db.stockAudits.filter((a: any) => a.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/purchase-orders')) {
+      if (!db.purchaseOrders) db.purchaseOrders = [];
+      if (method === 'GET') {
+        responseData = db.purchaseOrders || [];
+      } else if (method === 'DELETE') {
+        const id = urlStr.split('/api/purchase-orders/')[1] || (body && body.id);
+        db.purchaseOrders = db.purchaseOrders.filter((p: any) => p.id !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
+    } else if (urlStr.includes('/api/finishedGoods') || urlStr.includes('/api/finished-goods')) {
+      if (!db.finishedGoods) db.finishedGoods = [];
+      if (method === 'DELETE') {
+        const id = (urlStr.split('/api/finishedGoods/')[1] || urlStr.split('/api/finished-goods/')[1] || (body && body.id));
+        db.finishedGoods = db.finishedGoods.filter((f: any) => f.id !== id && f.serial !== id);
+        saveLocalDB(db);
+        responseData = { success: true, id };
+      }
     } else if (urlStr.includes('/api/admin/purge-record') && method === 'POST') {
       const { section, id } = body || {};
       if (section && (db as any)[section]) {

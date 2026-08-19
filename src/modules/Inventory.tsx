@@ -564,6 +564,53 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
     }
   };
 
+  const handleDeleteGateEntry = async (gateId: string) => {
+    if (!confirm(`Are you sure you want to permanently delete Inward Gate Entry "${gateId}"?`)) return;
+    try {
+      const res = await fetch(`/api/inventory/gate-entries/${encodeURIComponent(gateId)}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert(`✅ Inward Gate Entry ${gateId} deleted.`);
+        fetchPhase1Data();
+        refetch();
+      } else {
+        alert('Failed to delete Gate Entry.');
+      }
+    } catch (err) {
+      alert(`Error deleting Gate Entry ${gateId}`);
+    }
+  };
+
+  const handleDeleteStockAudit = async (auditId: string) => {
+    if (!confirm(`Are you sure you want to permanently delete Stock Audit "${auditId}"?`)) return;
+    try {
+      const res = await fetch(`/api/inventory/stock-audits/${encodeURIComponent(auditId)}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert(`✅ Stock Audit ${auditId} deleted.`);
+        fetchPhase1Data();
+        refetch();
+      } else {
+        alert('Failed to delete Stock Audit.');
+      }
+    } catch (err) {
+      alert(`Error deleting Stock Audit ${auditId}`);
+    }
+  };
+
+  const handleDeletePo = async (poId: string) => {
+    if (!confirm(`Are you sure you want to permanently delete Purchase Order "${poId}"?`)) return;
+    try {
+      const res = await fetch(`/api/purchase-orders/${encodeURIComponent(poId)}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert(`✅ Purchase Order ${poId} deleted.`);
+        refetch();
+      } else {
+        alert('Failed to delete Purchase Order.');
+      }
+    } catch (err) {
+      alert(`Error deleting Purchase Order ${poId}`);
+    }
+  };
+
   const handleCreateWarehouseTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingTransfer(true);
@@ -2488,12 +2535,21 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                           </span>
                         </td>
                         <td className="py-4 px-6 text-right">
-                          <button
-                            onClick={() => setViewGateSlip(entry)}
-                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1 border border-slate-200"
-                          >
-                            <Printer size={12} /> Print GRN Slip
-                          </button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => setViewGateSlip(entry)}
+                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer inline-flex items-center gap-1 border border-slate-200"
+                            >
+                              <Printer size={12} /> Print Slip
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGateEntry(entry.id)}
+                              title="Delete Gate Entry"
+                              className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all cursor-pointer border border-rose-200"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -2644,24 +2700,33 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                             )}
                           </td>
                           <td className="py-4 px-6 text-right">
-                            {audit.status === 'PENDING_ADMIN_APPROVAL' ? (
-                              <div className="flex items-center justify-end gap-2">
-                                <button
-                                  onClick={() => handleApproveStockAudit(audit.id, 'APPROVE')}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
-                                >
-                                  <Check size={11} /> Approve & Auto-Adjust ERP
-                                </button>
-                                <button
-                                  onClick={() => handleApproveStockAudit(audit.id, 'REJECT')}
-                                  className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[10px] font-bold transition-all cursor-pointer border border-rose-200"
-                                >
-                                  Reject
-                                </button>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] font-bold text-slate-400 italic">Ledger Synchronized</span>
-                            )}
+                            <div className="flex items-center justify-end gap-2">
+                              {audit.status === 'PENDING_ADMIN_APPROVAL' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleApproveStockAudit(audit.id, 'APPROVE')}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1"
+                                  >
+                                    <Check size={11} /> Approve & Reconcile
+                                  </button>
+                                  <button
+                                    onClick={() => handleApproveStockAudit(audit.id, 'REJECT')}
+                                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-[10px] font-bold transition-all cursor-pointer border border-rose-200"
+                                  >
+                                    Reject
+                                  </button>
+                                </>
+                              ) : (
+                                <span className="text-[10px] font-bold text-slate-400 italic">Reconciled</span>
+                              )}
+                              <button
+                                onClick={() => handleDeleteStockAudit(audit.id)}
+                                title="Delete Stock Audit"
+                                className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all cursor-pointer border border-rose-200"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -2915,6 +2980,13 @@ export const Inventory: React.FC<{ initialTab?: string }> = ({ initialTab }) => 
                               <CheckCircle2 size={12} /> Post QC GRN & Ingest Stock
                             </button>
                           )}
+                          <button
+                            onClick={() => handleDeletePo(po.id)}
+                            title="Delete Purchase Order"
+                            className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all cursor-pointer border border-rose-200"
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
                       </td>
                     </tr>
