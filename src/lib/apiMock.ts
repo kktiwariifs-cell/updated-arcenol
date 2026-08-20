@@ -3052,9 +3052,44 @@ async function handleMockRequest(urlStr: string, init?: RequestInit): Promise<Re
         syncBusinessProfileToSupabase(db.businessProfile).catch(err => console.warn('Supabase profile sync warning:', err));
         responseData = db.businessProfile;
       }
-    } else if (urlStr.includes('/api/notifications/clear')) {
-      db.notifications = db.notifications.map((n: any) => ({ ...n, status: 'READ' }));
+    } else if (urlStr.includes('/api/notifications/clear-all')) {
+      db.notifications = [];
       saveLocalDB(db);
+    } else if (urlStr.includes('/api/notifications/clear')) {
+      db.notifications = (db.notifications || []).map((n: any) => ({ ...n, status: 'READ' }));
+      saveLocalDB(db);
+    } else if (urlStr.includes('/api/notifications/mark-read')) {
+      const { id } = body || {};
+      if (id) {
+        db.notifications = (db.notifications || []).map((n: any) => n.id === id ? { ...n, status: 'READ' } : n);
+      } else {
+        db.notifications = (db.notifications || []).map((n: any) => ({ ...n, status: 'READ' }));
+      }
+      saveLocalDB(db);
+    } else if (urlStr.includes('/api/notifications/delete')) {
+      const { id } = body || {};
+      if (id) {
+        db.notifications = (db.notifications || []).filter((n: any) => n.id !== id);
+      } else {
+        db.notifications = [];
+      }
+      saveLocalDB(db);
+    } else if (urlStr.includes('/api/notifications/simulate')) {
+      if (!db.notifications) db.notifications = [];
+      const { type, title, message, channel, priority } = body || {};
+      const newNotif = {
+        id: `evt-${Date.now()}`,
+        type: type || 'SYSTEM',
+        title: title || 'Manual Event Triggered',
+        message: message || 'An administrative manual event was recorded in the system audit stream.',
+        date: new Date().toISOString(),
+        status: 'UNREAD',
+        channel: channel || 'SYSTEM',
+        priority: priority || 'MEDIUM'
+      };
+      db.notifications.unshift(newNotif);
+      saveLocalDB(db);
+      responseData = { status: "success", notification: newNotif };
     } else if (urlStr.includes('/api/leads/convert/')) {
       const id = urlStr.split('/api/leads/convert/')[1];
       const lead = db.leads.find((l: any) => l.id === id);

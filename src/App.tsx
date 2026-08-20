@@ -754,7 +754,7 @@ export default function App() {
                    OPERATIONAL
                 </div>
              </div>
-             <NotificationCenter />
+             <NotificationCenter setActiveTab={setActiveTab} />
              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-primary-600 transition-colors cursor-pointer" onClick={() => setIsCommandMenuOpen(true)}>
                 <Zap size={18} />
              </div>
@@ -768,7 +768,7 @@ export default function App() {
           {activeTab === 'management-kpi' && <ManagementKPI />}
           {activeTab === 'dealer-performance' && <DealerPerformance />}
           {activeTab === 'regional-sales' && <RegionalSales />}
-          {activeTab === 'alerts' && <Alerts />}
+          {activeTab === 'alerts' && <Alerts setActiveTab={setActiveTab} />}
           {(activeTab === 'inventory-hub' || activeTab === 'inventory' || activeTab === 'physical-audit' || activeTab === 'stock-audit' || activeTab === 'physical_audit' || activeTab === 'stock_audit' || activeTab === 'audit') && (
             <InventoryHub initialSubTab={activeTab === 'physical-audit' || activeTab === 'stock-audit' || activeTab === 'physical_audit' || activeTab === 'stock_audit' || activeTab === 'audit' ? 'stock_audit' : undefined} />
           )}

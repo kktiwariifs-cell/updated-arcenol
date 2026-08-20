@@ -6555,8 +6555,54 @@ async function startServer() {
   });
 
   app.post("/api/notifications/clear", (req, res) => {
+    if (!db.notifications) db.notifications = [];
     db.notifications.forEach(n => n.status = 'READ');
+    res.json({ status: "success", count: db.notifications.length });
+  });
+
+  app.post("/api/notifications/clear-all", (req, res) => {
+    db.notifications = [];
+    res.json({ status: "success", count: 0 });
+  });
+
+  app.post("/api/notifications/mark-read", (req, res) => {
+    if (!db.notifications) db.notifications = [];
+    const { id } = req.body || {};
+    if (id) {
+      const item = db.notifications.find(n => n.id === id);
+      if (item) item.status = 'READ';
+    } else {
+      db.notifications.forEach(n => n.status = 'READ');
+    }
     res.json({ status: "success" });
+  });
+
+  app.post("/api/notifications/delete", (req, res) => {
+    if (!db.notifications) db.notifications = [];
+    const { id } = req.body || {};
+    if (id) {
+      db.notifications = db.notifications.filter(n => n.id !== id);
+    } else {
+      db.notifications = [];
+    }
+    res.json({ status: "success", remaining: db.notifications.length });
+  });
+
+  app.post("/api/notifications/simulate", (req, res) => {
+    if (!db.notifications) db.notifications = [];
+    const { type, title, message, channel, priority } = req.body || {};
+    const newNotif = {
+      id: `evt-${Date.now()}`,
+      type: type || 'SYSTEM',
+      title: title || 'Manual Event Triggered',
+      message: message || 'An administrative manual event was recorded in the system audit stream.',
+      date: new Date().toISOString(),
+      status: 'UNREAD',
+      channel: channel || 'SYSTEM',
+      priority: priority || 'MEDIUM'
+    };
+    db.notifications.unshift(newNotif);
+    res.json({ status: "success", notification: newNotif });
   });
 
   app.patch("/api/finishedGoods/:id", (req, res) => {
