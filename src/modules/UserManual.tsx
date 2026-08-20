@@ -360,17 +360,23 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab, previousTa
       qaTips: "Always match the physical supplier challan invoice index precisely against the ERP record. If discrepancies in raw casing weight exceed 1.5%, label the batch as 'HEAVY DEVIATION' and transfer it to local quarantine storage first."
     },
     store: {
-      title: "3. Warehouse Management, Storage & Bin Ledger",
-      flowCode: "WHSE-BIN-2.0",
+      title: "3. Warehouse Management, Storage, Bin Ledger & Stock Audit",
+      flowCode: "WHSE-BIN-4.5",
       roleInvolved: "Store Keeper",
       objectives: [
         "Log systematic storage locations for lead-acid raw materials, electrolyte carboys, and lithium cell arrays.",
-        "Integrate dynamic Storage Calibration controls to modify rack bounds and horizontal slot counts dynamically.",
+        "Perform Physical Stock Audits with barcode scanning, actual on-floor counted entries, variance computation, and authorized one-click stock reconciliation.",
+        "Integrate dynamic Storage Calibration controls to modify rack bounds (A-Z) and horizontal slot counts dynamically.",
         "Perform precision stock search filtering to isolate specific materials, racks or warehouses.",
         "Generate stock reports scoped strictly to the filtered or searched results rather than entire backends.",
         "Monitor stock replenishment levels and active utilization metrics on live dynamically configured grids."
       ],
       operations: [
+        {
+          name: "Physical Stock Audit & Variance Reconciliation",
+          desc: "Switch to the 'Physical Stock Audit' sub-tab. Enter actual physical counts verified during floor sweeps. The system calculates surplus or shortage discrepancies, creates an audit log with timestamps and notes, and reconciles system inventory with one click.",
+          inputs: ["Physical Counted Qty", "Variance Computation", "Audit Reason / Notes", "Reconcile Stock Action"]
+        },
         {
           name: "Dynamic Map Grid Calibration",
           desc: "Configure physical layout bounds in real-time. Use the Calibration panel to adjust vertical rack counts (A to Z) and horizontal slot counts to auto-recompute utilization capacity.",
@@ -393,11 +399,12 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab, previousTa
         }
       ],
       checklist: [
+        "Conduct scheduled physical stock audits quarterly and review all shortage/surplus items.",
         "Align physical floor layout limits in the dynamic calibration controls before conducting visual map sweeps.",
         "Apply live filter terms in the registry search omnibox to verify particular rack occupancies.",
         "Use search-filtered stock report output for audit submissions to match exact physical sectors under count.",
         "Verify safety labels on hazardous electrolyte carboys before updating Bin counts.",
-        "Maintain minimum safety stocks of separation grids at all times."
+        "Maintain minimum safety stocks of separation grids and lithium cells at all times."
       ],
       qaTips: "Always calibrate the dynamic calibration grid layout to match physical warehouse blueprints. When preparing reports, filter by zone or material beforehand to keep printed documents short, fast, and highly directed."
     },
@@ -522,20 +529,27 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab, previousTa
       qaTips: "Include high-contrast 'FRAGILE' and 'CORROSIVE CHEMICALS' stickers on all outer boxes. Double-check that the assigned serial number matches the invoice ledger precisely prior to sealing transport panels."
     },
     crm: {
-      title: "8. CRM, Form-Captured Enquiry Ledger & Dealer Management",
-      flowCode: "CRM-ENQ-3.0",
+      title: "8. CRM, Lead Pipeline, Bulk Excel Import & Dealer Management",
+      flowCode: "CRM-ENQ-5.2",
       roleInvolved: "Sales Executives / Marketing Leads / Regional Directors",
       objectives: [
+        "Bulk import inquiries simultaneously from Microsoft Excel (.xlsx / .xls) and CSV sheets with automatic column detection and interactive preview ledger.",
         "Access the Form-Captured Enquiry Ledger capturing live customer requirement inputs from web forms, B2B portals, and exhibitions.",
+        "Track follow-up discussions with timestamped remarks, WhatsApp triggers, and daily agenda popups.",
         "Convert raw inquiries into qualified dealer leads or direct corporate accounts.",
         "Onboard new battery dealers with GSTIN verification, credit limits, and regional territory tags.",
         "Generate formal price quotations and track pipeline status from Discovery to Won/Closed."
       ],
       operations: [
         {
-          name: "Form-Captured Enquiry Ledger Audit",
-          desc: "Review inbound web and portal inquiries in the Enquiry Ledger. Filter entries live by company, location, or contact person.",
-          inputs: ["Enquiry Search Filter", "Requirement Specification", "Assigned Representative"]
+          name: "Bulk Import (Excel / CSV) with Smart Preview",
+          desc: "Click 'Bulk Import (Excel / CSV)' to upload .xlsx, .xls, or .csv files, or paste raw text. The intelligent parser maps columns (Company, Contact, Phone, Location, Requirement, Follow-up date/time, Source, Voltage/Capacity). Review, search, and delete rows before batch syncing to the live database.",
+          inputs: ["Upload Excel/CSV (.xlsx/.xls/.csv)", "Paste Raw CSV Text", "Sample Template (.xlsx/.csv)", "Interactive Data Grid Preview"]
+        },
+        {
+          name: "Form-Captured Enquiry Ledger & Follow-up Timeline",
+          desc: "Review inbound inquiries. Open the Dual-Pane Inquiry Workspace to log detailed follow-up remarks, schedule callback dates/times, and send instant WhatsApp messages.",
+          inputs: ["Enquiry Search Filter", "Follow-up Remarks", "Next Callback Time", "WhatsApp Trigger"]
         },
         {
           name: "Dealer Onboarding & GSTIN Verification",
@@ -549,12 +563,14 @@ export const UserManual: React.FC<UserManualProps> = ({ setActiveTab, previousTa
         }
       ],
       checklist: [
+        "Ensure uploaded Excel/CSV headers match company, contact, phone, location, and requirement.",
+        "Review Today's Follow-up Agenda popup every morning to ensure zero missed client callbacks.",
         "Verify GSTIN status on the official portal before approving dealer credit limits above ₹5,000,000.",
         "Ensure all Form-Captured Enquiry Ledger items receive initial contact within 2 hours of receipt.",
         "Cross-check finished goods inventory before committing quote delivery dates.",
         "Update lead follow-up timestamps after every phone or in-person meeting."
       ],
-      qaTips: "Always check stock availability in Finished Goods before sending binding price quotations. If a lead remains stagnant in QUOTATION_SENT for over 7 days, trigger an automated follow-up notification."
+      qaTips: "Download the Excel Template (.xlsx) directly from the Bulk Upload modal to ensure your spreadsheet column headers align perfectly. Use the direct WhatsApp trigger on mobile for instantaneous dealer communications."
     },
     'regional-sales': {
       title: "9. Regional Sales Analytics & Territory Flow Management",

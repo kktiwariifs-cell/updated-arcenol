@@ -57,6 +57,7 @@ import {
 } from "recharts";
 import { useERPData } from "../hooks/useERPData";
 import { cn } from "../lib/utils";
+import { PanelManualButton, PanelManualModal } from "../components/PanelManualModal";
 
 export const MARKETING_EXECUTIVES = [
   { id: "exec-1", name: "Suresh Raina", role: "North CRM Executive", email: "sales@arcenol.com", phone: "+91 98112 33445" },
@@ -103,8 +104,9 @@ const STAGE_LABELS: Record<string, string> = {
   DEAD: "💀 Dead Deal (Closed/Lost)",
 };
 
-export const CRM: React.FC = () => {
+export const CRM: React.FC<{ setActiveTab?: (tab: string) => void }> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
+  const [showManualModal, setShowManualModal] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<
     "enquiries" | "leads" | "dealers" | "performance"
   >("enquiries");
@@ -1841,22 +1843,23 @@ export const CRM: React.FC = () => {
                   : "Network Intelligence & Performance"}
           </h2>
         </div>
-        <div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <PanelManualButton onClick={() => setShowManualModal(true)} />
           {activeSubTab === "enquiries" || activeSubTab === "leads" ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button
                 onClick={() => handleAction("Bulk Upload", () => setShowBulkUpload(true))}
-                className="px-6 py-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl flex items-center transition-all border border-transparent active:scale-95 cursor-pointer"
+                className="px-4 sm:px-6 py-3 sm:py-4 bg-slate-900 hover:bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] shadow-xl flex items-center transition-all border border-transparent active:scale-95 cursor-pointer"
               >
-                <FileSpreadsheet size={16} className="mr-2 text-emerald-400" /> Bulk Import (Excel / CSV)
+                <FileSpreadsheet size={15} className="mr-2 text-emerald-400 shrink-0" /> Bulk Import (Excel / CSV)
               </button>
               <button
                 onClick={() =>
                   handleAction("Add Inquiry", () => setShowAdd(true))
                 }
-                className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95 cursor-pointer"
+                className="px-5 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95 cursor-pointer"
               >
-                <Plus size={16} className="mr-2 text-emerald-200" /> New Inquiry
+                <Plus size={15} className="mr-1.5 text-emerald-200 shrink-0" /> New Inquiry
               </button>
             </div>
           ) : activeSubTab === "dealers" ? (
@@ -1864,29 +1867,35 @@ export const CRM: React.FC = () => {
               onClick={() =>
                 handleAction("Add Partner", () => setShowAddDealer(true))
               }
-              className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95"
+              className="px-6 sm:px-8 py-3 sm:py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-emerald-600/20 flex items-center hover:bg-emerald-700 transition-all border border-transparent active:scale-95"
             >
               <Plus size={16} className="mr-2 text-emerald-200" /> Register Partner
             </button>
           ) : (
-            <div className="flex space-x-3">
-              <button className="px-6 py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-slate-50 transition-all shadow-sm">
-                <Filter size={16} className="mr-2 text-slate-400" /> Filter
-                Analysis
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button className="px-5 py-3 sm:py-4 bg-white border border-slate-200 text-slate-900 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center hover:bg-slate-50 transition-all shadow-sm">
+                <Filter size={15} className="mr-2 text-slate-400" /> Filter Analysis
               </button>
               <button
                 onClick={handlePrintCRMReport}
-                className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/20 flex items-center hover:bg-black transition-all border border-transparent active:scale-95 cursor-pointer"
+                className="px-6 sm:px-8 py-3 sm:py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-slate-900/20 flex items-center hover:bg-black transition-all border border-transparent active:scale-95 cursor-pointer"
                 id="crm-pdf-print-btn"
                 title="Download CRM Report as PDF File"
               >
-                <Download size={16} className="mr-2 text-sky-400" /> Download
-                PDF Report
+                <Download size={15} className="mr-2 text-sky-400" /> Download PDF Report
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Embedded Contextual Panel Manual Modal */}
+      <PanelManualModal 
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        panelKey="crm"
+        onOpenFullManual={() => setActiveTab?.('user-manual')}
+      />
 
       {activeSubTab === "enquiries" ? (
         <div className="space-y-8 animate-in fade-in duration-300">

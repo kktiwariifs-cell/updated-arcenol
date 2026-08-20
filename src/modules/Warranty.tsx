@@ -4,9 +4,11 @@ import { useERPData } from '../hooks/useERPData';
 import { cn } from '../lib/utils';
 import { downloadElementAsPDF, printElement } from '../lib/pdfGenerator';
 import { FormattedSerial } from '../lib/serialUtils';
+import { PanelManualButton, PanelManualModal } from '../components/PanelManualModal';
 
-export const Warranty: React.FC = () => {
+export const Warranty: React.FC<{ setActiveTab?: (tab: string) => void }> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
+  const [showManualModal, setShowManualModal] = useState(false);
   const [view, setView] = useState<'dashboard' | 'verify'>('dashboard');
   const [search, setSearch] = useState('');
   const [result, setResult] = useState<any>(null);
@@ -361,6 +363,7 @@ export const Warranty: React.FC = () => {
              </div>
 
              <div className="flex flex-wrap items-center gap-2">
+               <PanelManualButton onClick={() => setShowManualModal(true)} />
                <button
                  onClick={() => setIsActivationModalOpen(true)}
                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-emerald-200"
@@ -381,6 +384,14 @@ export const Warranty: React.FC = () => {
                </button>
              </div>
            </div>
+
+           {/* Embedded Contextual Panel Manual Modal */}
+           <PanelManualModal 
+             isOpen={showManualModal}
+             onClose={() => setShowManualModal(false)}
+             panelKey="warranty"
+             onOpenFullManual={() => setActiveTab?.('user-manual')}
+           />
 
            <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-8">
               <div>

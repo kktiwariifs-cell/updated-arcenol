@@ -13,9 +13,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, PieChart, Pie, Cell, Legend
 } from 'recharts';
+import { PanelManualButton, PanelManualModal } from '../components/PanelManualModal';
 
-export const Service: React.FC = () => {
+export const Service: React.FC<{ setActiveTab?: (tab: string) => void }> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
+  const [showManualModal, setShowManualModal] = useState(false);
   const [view, setView] = useState<'dashboard' | 'detail' | 'analytics'>('dashboard');
   const [selectedComplaint, setSelectedComplaint] = useState<any>(null);
   const [updateForm, setUpdateForm] = useState({ stage: '', rootCause: '', notes: '', engineer: '', serial: '', type: '', date: '' });
@@ -112,40 +114,58 @@ export const Service: React.FC = () => {
     <div className={cn("space-y-12 pb-20 transition-all duration-500", isSyncing && "opacity-50 blur-[1px]")}>
       {/* Dynamic Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-200">
-        <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Service Operations</h2>
-          <div className="flex items-center mt-2 space-x-4">
-             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-                <Tool size={14} className="mr-2 text-primary-600" /> LifeCycle Maintenance Node
-             </p>
-             <span className="h-1 w-1 rounded-full bg-slate-300"></span>
-             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
-                Open Tickets: {openComplaints}
-             </p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full md:w-auto">
+          <div>
+            <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Service Operations</h2>
+            <div className="flex flex-wrap items-center mt-2 gap-2 sm:gap-4">
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+                  <Tool size={14} className="mr-2 text-primary-600 shrink-0" /> LifeCycle Maintenance Node
+               </p>
+               <span className="hidden sm:inline-block h-1 w-1 rounded-full bg-slate-300"></span>
+               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">
+                  Open Tickets: {openComplaints}
+               </p>
+            </div>
+          </div>
+          <div className="md:hidden self-start">
+            <PanelManualButton onClick={() => setShowManualModal(true)} />
           </div>
         </div>
-        <div className="flex bg-slate-100/90 p-1.5 rounded-3xl border border-slate-200 backdrop-blur-md overflow-x-auto max-w-full gap-1">
-            {[
-              { id: 'dashboard', label: 'Monitor & RMA Tickets', icon: Activity, color: 'bg-rose-500', activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700' },
-              { id: 'analytics', label: 'Failure & MTBF Analysis', icon: Microscope, color: 'bg-red-500', activeClass: 'bg-red-600 text-white shadow-lg shadow-red-200 border-red-700' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => handleAction(`Switch to ${tab.label}`, () => setView(tab.id as any))}
-                className={cn(
-                  "flex items-center px-6 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer shrink-0 border",
-                  view === tab.id
-                    ? cn(tab.activeClass, "scale-[1.02]")
-                    : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
-                )}
-              >
-                <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
-                <tab.icon size={14} className="mr-2 shrink-0" />
-                {tab.label}
-              </button>
-            ))}
+        <div className="flex items-center gap-2.5 max-w-full overflow-x-auto">
+          <div className="hidden md:block">
+            <PanelManualButton onClick={() => setShowManualModal(true)} />
+          </div>
+          <div className="flex bg-slate-100/90 p-1.5 rounded-3xl border border-slate-200 backdrop-blur-md overflow-x-auto max-w-full gap-1">
+              {[
+                { id: 'dashboard', label: 'Monitor & RMA Tickets', icon: Activity, color: 'bg-rose-500', activeClass: 'bg-rose-600 text-white shadow-lg shadow-rose-200 border-rose-700' },
+                { id: 'analytics', label: 'Failure & MTBF Analysis', icon: Microscope, color: 'bg-red-500', activeClass: 'bg-red-600 text-white shadow-lg shadow-red-200 border-red-700' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => handleAction(`Switch to ${tab.label}`, () => setView(tab.id as any))}
+                  className={cn(
+                    "flex items-center px-4 sm:px-6 py-2 sm:py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 cursor-pointer shrink-0 border",
+                    view === tab.id
+                      ? cn(tab.activeClass, "scale-[1.02]")
+                      : "bg-white/80 border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-white shadow-xs"
+                  )}
+                >
+                  <span className={cn("w-2 h-2 rounded-full mr-2 shrink-0 transition-all", tab.color, view === tab.id ? "bg-white animate-pulse" : "")} />
+                  <tab.icon size={14} className="mr-1.5 sm:mr-2 shrink-0" />
+                  {tab.label}
+                </button>
+              ))}
+          </div>
         </div>
       </div>
+
+      {/* Embedded Contextual Panel Manual Modal */}
+      <PanelManualModal 
+        isOpen={showManualModal}
+        onClose={() => setShowManualModal(false)}
+        panelKey="service"
+        onOpenFullManual={() => setActiveTab?.('user-manual')}
+      />
 
       {view === 'dashboard' ? (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-12">

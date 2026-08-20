@@ -6,6 +6,7 @@ import { formatCurrency, cn } from '../lib/utils';
 import { downloadElementAsPDF, downloadReportDataAsPDF, printElement } from '../lib/pdfGenerator';
 import { FormattedSerial, normalizeToRevisedSerial, generateBatterySerial, generateModelSpecificSerial, getNextSerialSequenceForModel } from '../lib/serialUtils';
 import { supabase } from '../lib/supabaseClient';
+import { PanelManualButton, PanelManualModal } from '../components/PanelManualModal';
 
 interface VyaparRecord {
   id: string;
@@ -27,6 +28,7 @@ interface BillingProps {
 export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
   const { data, loading, refetch } = useERPData();
   const { user: currentUser } = useAuthStore();
+  const [showManualModal, setShowManualModal] = useState(false);
   const isAdmin = currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.ADMIN;
   const [view, setView] = useState<'list' | 'create'>('list');
   const [activeSubTab, setActiveSubTab] = useState<'dashboard' | 'parties' | 'tax'>('dashboard');
@@ -971,51 +973,67 @@ export const Billing: React.FC<BillingProps> = ({ setActiveTab }) => {
       {view === 'list' ? (
         <>
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-black text-slate-900 tracking-tight italic uppercase flex items-center gap-2">
-                <Landmark className="text-primary-600 stroke-[2]" size={30} />
-                Vyapar Accounting Console
-              </h2>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
-                GST Ledger, Double-Entry Party Statements, Dynamic Liquidity Accounts
-              </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full md:w-auto">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight italic uppercase flex items-center gap-2">
+                  <Landmark className="text-primary-600 stroke-[2] shrink-0" size={28} />
+                  Vyapar Accounting Console
+                </h2>
+                <p className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  GST Ledger, Double-Entry Party Statements, Dynamic Liquidity Accounts
+                </p>
+              </div>
+              <div className="md:hidden self-start">
+                <PanelManualButton onClick={() => setShowManualModal(true)} />
+              </div>
             </div>
             
             {/* Quick Action Vyapar Bar */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="hidden md:block">
+                <PanelManualButton onClick={() => setShowManualModal(true)} />
+              </div>
               <button 
                 onClick={() => setView('create')} 
-                className="px-4 py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+                className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Sale Invoice
               </button>
               <button 
                 onClick={() => openPaymentInModal()} 
-                className="px-4 py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
+                className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Payment In
               </button>
               <button 
                 onClick={() => openPaymentOutModal()} 
-                className="px-4 py-3 bg-rose-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-rose-500/10 cursor-pointer"
+                className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-rose-600 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-rose-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Payment Out
               </button>
               <button 
                 onClick={() => setModalType('Purchase')} 
-                className="px-4 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+                className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Purchase
               </button>
               <button 
                 onClick={() => setModalType('Expense')} 
-                className="px-4 py-3 bg-emerald-550 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10"
+                className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-emerald-550 hover:brightness-110 active:scale-95 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/10 cursor-pointer"
               >
                 <Plus size={12} /> Expense
               </button>
             </div>
           </div>
+
+          {/* Embedded Contextual Panel Manual Modal */}
+          <PanelManualModal 
+            isOpen={showManualModal}
+            onClose={() => setShowManualModal(false)}
+            panelKey="billing"
+            onOpenFullManual={() => setActiveTab?.('user-manual')}
+          />
 
           {/* Vyapar Cash Book & Statement Ribbons */}
           {(currentUser?.role === UserRole.SUPER_ADMIN || currentUser?.role === UserRole.ADMIN) && (
